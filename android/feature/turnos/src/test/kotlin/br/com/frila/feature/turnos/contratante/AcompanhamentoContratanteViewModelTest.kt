@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos.contratante
 
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.AcaoPendente
@@ -517,5 +518,99 @@ class AcompanhamentoContratanteViewModelTest {
 
         assertEquals(AvisoDaConfirmacao.CONFIRMADA_AGORA, vm.estado.value.aviso)
         assertEquals(PresencaDoTurno.VERIFICADA, vm.estado.value.presenca)
+    }
+
+    // ── A folha de motivos da casa (Vmfnk4gQ) ─────────────────────────────────────────────────────────────────────────
+
+    private fun viewModelDoCancelamento(enviados: MutableList<Pair<String, String>>): AcompanhamentoContratanteViewModel =
+        AcompanhamentoContratanteViewModel(
+            contexto().copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            { error("não confirma") },
+            CoroutineScope(Dispatchers.Unconfined),
+            cancelar = { posicao, motivo ->
+                enviados += posicao to motivo
+                br.com.frila.core.dominio.modelo.ResultadoCancelamento("posicao", true, false)
+            },
+            relogio = { Instant.EPOCH },
+        )
+
+    @Test fun `escolher Movimento menor manda esse texto como motivo, e nao o nome do enum`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val vm = viewModelDoCancelamento(enviados)
+        vm.pedirCancelamento()
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.MOVIMENTO_MENOR)
+
+        vm.confirmarCancelamento()!!.let { kotlinx.coroutines.runBlocking { it.join() } }
+
+        assertEquals(listOf("posicao" to "Movimento menor que o esperado"), enviados)
+    }
+
+    @Test fun `o detalhe opcional vai depois de dois pontos`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val vm = viewModelDoCancelamento(enviados)
+        vm.pedirCancelamento()
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.PROBLEMA_NO_LOCAL)
+        vm.mudarDetalhesDoCancelamento("  Faltou luz  ")
+
+        kotlinx.coroutines.runBlocking { vm.confirmarCancelamento()!!.join() }
+
+        assertEquals("Problema no estabelecimento: Faltou luz", enviados.single().second)
+    }
+
+    @Test fun `Outro motivo sem detalhe fica travado, e com 2 caracteres tambem`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val vm = viewModelDoCancelamento(enviados)
+        vm.pedirCancelamento()
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.OUTRO)
+
+        assertNull(vm.estado.value.motivoCompletoDoCancelamento)
+        assertNull(vm.confirmarCancelamento())
+        vm.mudarDetalhesDoCancelamento("ab")
+        assertNull(vm.estado.value.motivoCompletoDoCancelamento)
+        assertNull(vm.confirmarCancelamento())
+        assertTrue(enviados.isEmpty(), "nada foi enviado")
+    }
+
+    @Test fun `Outro motivo com detalhe manda so o detalhe`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val vm = viewModelDoCancelamento(enviados)
+        vm.pedirCancelamento()
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.OUTRO)
+        vm.mudarDetalhesDoCancelamento("Fechamos mais cedo")
+
+        kotlinx.coroutines.runBlocking { vm.confirmarCancelamento()!!.join() }
+
+        assertEquals("Fechamos mais cedo", enviados.single().second)
+    }
+
+    @Test fun `sem motivo escolhido nao envia`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val vm = viewModelDoCancelamento(enviados)
+        vm.pedirCancelamento()
+
+        assertNull(vm.confirmarCancelamento())
+        assertTrue(enviados.isEmpty())
+    }
+
+    @Test fun `abrir de novo ou desistir limpa o motivo e o detalhe`() {
+        val vm = viewModelDoCancelamento(mutableListOf())
+        vm.pedirCancelamento()
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.OUTRO)
+        vm.mudarDetalhesDoCancelamento("texto")
+
+        vm.desistir()
+        assertNull(vm.estado.value.motivoDoCancelamento)
+        assertEquals("", vm.estado.value.detalhesDoCancelamento)
+
+        vm.pedirCancelamento()
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.OUTRO)
+        vm.pedirCancelamento()
+        assertNull(vm.estado.value.motivoDoCancelamento, "a folha reaberta começa sem motivo")
+    }
+
+    @Test fun `escolher motivo fora da folha aberta nao muda o estado`() {
+        val vm = viewModelDoCancelamento(mutableListOf())
+        vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.OUTRO)
+        assertNull(vm.estado.value.motivoDoCancelamento)
     }
 }

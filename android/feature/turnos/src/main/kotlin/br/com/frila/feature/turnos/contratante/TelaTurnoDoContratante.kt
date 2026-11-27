@@ -1,5 +1,9 @@
 package br.com.frila.feature.turnos.contratante
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.LinkFrila
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +33,9 @@ import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.EstiloDoSelo
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
@@ -52,7 +59,10 @@ data class AcoesTurnoDoContratante(
     val aoConfirmarPresenca: () -> Unit = {},
     val aoPedirCancelamento: () -> Unit = {},
     val aoDesistir: () -> Unit = {},
-    val aoConfirmarCancelamento: (String) -> Unit = {},
+    /** Confirma o cancelamento com o motivo da folha (o ViewModel sabe qual é); sem motivo, ou "Outro motivo" sem detalhe, não envia. */
+    val aoConfirmarCancelamento: () -> Unit = {},
+    val aoEscolherMotivoDoCancelamento: (MotivoDeCancelamentoDaCasa) -> Unit = {},
+    val aoMudarDetalhesDoCancelamento: (String) -> Unit = {},
     val aoVoltar: () -> Unit = {},
     /** L2-2: abrir a pergunta "Reabrir a vaga?", confirmá-la e desistir dela. */
     val aoPedirReabertura: () -> Unit = {},
@@ -91,7 +101,9 @@ fun TelaTurnoDoContratante(
             aoVoltar = aoVoltar,
             aoPedirCancelamento = viewModel::pedirCancelamento,
             aoDesistir = viewModel::desistir,
-            aoConfirmarCancelamento = { viewModel.confirmarCancelamento(it) },
+            aoConfirmarCancelamento = { viewModel.confirmarCancelamento() },
+            aoEscolherMotivoDoCancelamento = viewModel::escolherMotivoDoCancelamento,
+            aoMudarDetalhesDoCancelamento = viewModel::mudarDetalhesDoCancelamento,
             aoPedirReabertura = viewModel::pedirReabertura,
             aoConfirmarReabertura = { viewModel.confirmarReabertura() },
             aoDesistirDaReabertura = viewModel::desistirDaReabertura,
@@ -114,6 +126,23 @@ fun TelaTurnoDoContratante(
  */
 @Composable
 fun ConteudoTurnoDoContratante(
+    estado: EstadoTurnoDoContratante,
+    acoes: AcoesTurnoDoContratante,
+    modifier: Modifier = Modifier,
+    cartaoDoCodigo: (@Composable () -> Unit)? = null,
+    depoisDaChegada: (@Composable () -> Unit)? = null,
+) {
+    // A folha de motivos substitui o corpo (como a tela de cancelar a vaga) em vez de abrir uma janela: assim a tela de baixo não fica
+    // focável por baixo da folha, e o campo do detalhe vive na mesma composição.
+    if (estado.pedindoCancelamento) {
+        FolhaDeMotivosDoCancelamento(estado, acoes, modifier)
+    } else {
+        CorpoDoTurnoDoContratante(estado, acoes, modifier, cartaoDoCodigo, depoisDaChegada)
+    }
+}
+
+@Composable
+private fun CorpoDoTurnoDoContratante(
     estado: EstadoTurnoDoContratante,
     acoes: AcoesTurnoDoContratante,
     modifier: Modifier = Modifier,
@@ -246,26 +275,6 @@ fun ConteudoTurnoDoContratante(
         }
     }
 
-    // TELA PROVISÓRIA: substituir pelo high-fi do Fabrício
-    if (estado.pedindoCancelamento) {
-        var motivo by rememberSaveable(contexto.posicaoId) { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = acoes.aoDesistir,
-            title = { Text("Cancelar posição") },
-            text = { Column {
-                OutlinedTextField(value = motivo, onValueChange = { motivo = it }, label = { Text("Motivo") })
-                estado.avisoDoCancelamento?.let { Text(it) }
-            } },
-            confirmButton = {
-                TextButton(onClick = { acoes.aoConfirmarCancelamento(motivo) },
-                    modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) { Text("Confirmar cancelamento") }
-            },
-            dismissButton = {
-                TextButton(onClick = acoes.aoDesistir, modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo)) { Text("Voltar") }
-            },
-        )
-    }
-
     if (estado.pedindoReabertura) {
         AlertDialog(
             onDismissRequest = acoes.aoDesistirDaReabertura,
@@ -385,5 +394,61 @@ internal fun horario(inicio: Instant?, fim: Instant?): String? {
         "$dataDoInicio, ${hora(inicio)} – ${hora(fim)}"
     } else {
         "$dataDoInicio ${hora(inicio)} – $dataDoFim ${hora(fim)}"
+    }
+}
+
+/** Os textos da folha de cancelamento da posição (os de `TextosCancelarVaga`, no mesmo tom; o efeito do cancelamento vem no PR seguinte). */
+internal object TextosCancelarPosicao {
+    const val TITULO = "Cancelar posição"
+    const val MOTIVO_TITULO = "Qual é o motivo?"
+    const val DETALHES_OPCIONAIS = "Quer explicar melhor? (opcional)"
+    const val DETALHES_OBRIGATORIOS = "Descreva o motivo (pelo menos 3 caracteres)"
+    const val CONFIRMAR = "Confirmar cancelamento"
+    const val VOLTAR = "Voltar"
+}
+
+/** A folha de motivos da casa ao cancelar a posição (paridade com `CancelamentoViewModel` do iOS): os motivos da casa e o detalhe. */
+@Composable
+private fun FolhaDeMotivosDoCancelamento(estado: EstadoTurnoDoContratante, acoes: AcoesTurnoDoContratante, modifier: Modifier = Modifier) {
+    BackHandler(onBack = acoes.aoDesistir)
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(FrilaTema.cores.fundo)
+            .verticalScroll(rememberScrollState())
+            .padding(FrilaEspacamento.grupo),
+        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+    ) {
+        TituloDaTela(TextosCancelarPosicao.TITULO)
+        FrilaGrupoDeLinhas(titulo = TextosCancelarPosicao.MOTIVO_TITULO) {
+            MotivoDeCancelamentoDaCasa.entries.forEach { motivo ->
+                linha {
+                    FrilaLinhaDeOpcao(
+                        titulo = motivo.texto,
+                        marcada = estado.motivoDoCancelamento == motivo,
+                        aoClicar = { acoes.aoEscolherMotivoDoCancelamento(motivo) },
+                    )
+                }
+            }
+        }
+        CampoDeTexto(
+            valor = estado.detalhesDoCancelamento,
+            aoMudar = acoes.aoMudarDetalhesDoCancelamento,
+            rotulo = if (estado.motivoDoCancelamento?.exigeDetalhes == true) {
+                TextosCancelarPosicao.DETALHES_OBRIGATORIOS
+            } else {
+                TextosCancelarPosicao.DETALHES_OPCIONAIS
+            },
+            umaLinha = false,
+            linhasMinimas = 3,
+        )
+        estado.avisoDoCancelamento?.let { Text(it, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta) }
+        BotaoPrimario(
+            texto = TextosCancelarPosicao.CONFIRMAR,
+            aoClicar = acoes.aoConfirmarCancelamento,
+            habilitado = estado.motivoCompletoDoCancelamento != null,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        LinkFrila(texto = TextosCancelarPosicao.VOLTAR, aoClicar = acoes.aoDesistir)
     }
 }
