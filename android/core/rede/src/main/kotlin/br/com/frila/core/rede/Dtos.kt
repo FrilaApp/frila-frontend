@@ -190,7 +190,8 @@ data class DispositivoDto(
 
 /**
  * Resumo da vaga retornado em `/rpc/meus_turnos` e `/rpc/minhas_candidaturas` (schema `VagaResumo`,
- * MEDIDO em `iOS/Contrato/openapi.yaml:4455`).
+ * MEDIDO em `iOS/Contrato/openapi.yaml:4455`). `origem` é de onde a vaga nasceu (contrato 0.2.55): `chamada_direta` na vaga criada
+ * por `chamar_profissional`; ausente vale `publicacao`.
  */
 @Serializable
 data class VagaResumoDto(
@@ -202,7 +203,6 @@ data class VagaResumoDto(
     @SerialName("fim_em") val fimEm: String,
     @SerialName("valor_centavos") val valorCentavos: Long,
     @SerialName("ponto") val ponto: CoordenadaDto? = null,
-    /** De onde a vaga nasceu (`OrigemVaga`, 0.2.55): `chamada_direta` na vaga criada por `chamar_profissional`; ausente vale `publicacao`. */
     @SerialName("origem") val origem: String? = null,
 )
 
