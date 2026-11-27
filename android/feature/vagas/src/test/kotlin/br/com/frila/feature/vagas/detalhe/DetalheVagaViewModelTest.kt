@@ -637,6 +637,50 @@ class DetalheVagaViewModelTest {
         }
     }
 
+    @Test
+    fun `candidatar com funcao_incompativel marca ehFuncaoIncompativel uma vez, sem os outros destinos`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"inelegivel","message":"inelegivel","details":"funcao_incompativel"}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+
+        val estado = viewModel.estado.value
+        assertEquals(StatusCandidatura.ERRO, estado.statusCandidatura)
+        assertTrue(estado.ehFuncaoIncompativel)
+        assertFalse(estado.ehConflitoHorario)
+        assertFalse(estado.ehVagaPreenchida)
+        assertFalse(estado.ehVagaEncerrada)
+        assertFalse(estado.ehContaSuspensa)
+        assertTrue(viewModel.consumirNavegacaoParaFuncaoIncompativel())
+        assertFalse(viewModel.consumirNavegacaoParaFuncaoIncompativel(), "o evento dispara uma vez só")
+        assertFalse(viewModel.estado.value.ehFuncaoIncompativel)
+    }
+
+    @Test
+    fun `turno_sobreposto vai para o conflito e nao para ajustar as funcoes`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            vaga = vagaDe("urgencia"),
+            engine = MockEngine {
+                respond(
+                    content = """{"code":"inelegivel","message":"inelegivel","details":"turno_sobreposto"}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        viewModel.candidatar().join()
+
+        assertTrue(viewModel.estado.value.ehConflitoHorario)
+        assertFalse(viewModel.estado.value.ehFuncaoIncompativel)
+    }
+
     // ── A leitura de detalhe_vaga ao abrir pelo feed (DLjTVc2e) ───────────────────────────────────────────────────────
 
     private fun detalheJson(responsavel: String = "Procure a gerente no balcão", rateio: Boolean? = true) =

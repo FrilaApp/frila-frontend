@@ -20,6 +20,8 @@ data class EstadoDetalheVaga(
     val ehVagaPreenchida: Boolean = false,
     val ehVagaEncerrada: Boolean = false,
     val ehContaSuspensa: Boolean = false,
+    /** 422 `inelegivel` com `funcao_incompativel`: a tela de resultado oferece ajustar as funções (paridade iOS). */
+    val ehFuncaoIncompativel: Boolean = false,
 ) {
     /** A lista sempre traz a distância; o detalhe pode não trazer, e aí a tela não a mostra. */
     val mostraDistancia: Boolean
