@@ -1,5 +1,6 @@
 package br.com.frila.app
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -36,6 +37,14 @@ internal fun extrairCallbackOAuthSocialDoIntent(
     }
 }
 
+/** Abre o login social no navegador; `false` quando o aparelho não tem navegador (a [AppNavegacao] avisa). */
+internal fun abrirNavegadorLoginSocial(contexto: Context, url: String): Boolean {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        addCategory(Intent.CATEGORY_BROWSABLE)
+    }
+    return abrirExterno(contexto, intent)
+}
+
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
 class MainActivity : FragmentActivity() {
     private val callbackOAuthSocial = MutableStateFlow<String?>(null)
@@ -44,13 +53,6 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
-    }
-
-    private fun abrirNavegadorLoginSocial(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addCategory(Intent.CATEGORY_BROWSABLE)
-        }
-        runCatching { startActivity(intent) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -148,7 +150,7 @@ class MainActivity : FragmentActivity() {
                             checkinPorCodigoHabilitado = estadoConfig.checkinPorCodigo,
                             callbackOAuthSocial = callbackOAuthSocial,
                             aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
-                            aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(url) },
+                            aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(this@MainActivity, url) },
                             aoPronto = {
                                 MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                                 registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())
