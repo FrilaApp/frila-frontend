@@ -41,6 +41,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoVerNoMapa
 import br.com.frila.core.designsystem.componentes.linkDoMapa
 import br.com.frila.core.rede.ContatoDto
@@ -95,6 +97,7 @@ fun TelaDetalheVaga(
     aoNavegarParaVagaPreenchida: ((VagaAbertaDto) -> Unit)? = null,
     aoNavegarParaVagaEncerrada: ((VagaAbertaDto) -> Unit)? = null,
     aoNavegarParaContaSuspensa: (() -> Unit)? = null,
+    aoNavegarParaFuncaoIncompativel: ((VagaAbertaDto) -> Unit)? = null,
 ) {
     val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -114,6 +117,7 @@ fun TelaDetalheVaga(
         estado.ehVagaPreenchida,
         estado.ehVagaEncerrada,
         estado.ehContaSuspensa,
+        estado.ehFuncaoIncompativel,
     ) {
         if (estado.navegarParaConfirmada && viewModel.consumirNavegacaoParaConfirmada()) {
             aoNavegarParaConfirmada?.invoke(estado.vaga, estado.contato)
@@ -135,6 +139,9 @@ fun TelaDetalheVaga(
         }
         if (estado.ehContaSuspensa && viewModel.consumirNavegacaoParaContaSuspensa()) {
             aoNavegarParaContaSuspensa?.invoke()
+        }
+        if (estado.ehFuncaoIncompativel && viewModel.consumirNavegacaoParaFuncaoIncompativel()) {
+            aoNavegarParaFuncaoIncompativel?.invoke(estado.vaga)
         }
     }
 
@@ -171,7 +178,8 @@ fun TelaDetalheVaga(
         containerColor = FrilaTema.cores.fundo,
         topBar = { if (aoVoltar != null) FrilaBarraDeTopo(aoVoltar = aoVoltar) },
         bottomBar = {
-            RodapeDoDetalheDaVaga(
+            // Vaga que já não está disponível: sem botão (iOS `rodapeAtivo`).
+            if (!estado.indisponivel) RodapeDoDetalheDaVaga(
                 valor = Dinheiro(vaga.valorCentavos).formatado(),
                 periodo = periodoDoRodape(duracao, inicio.hour),
                 noFim = noFim,
@@ -222,6 +230,14 @@ fun TelaDetalheVaga(
                     text = AnnotatedString(vaga.estabelecimento.nome)
                 },
             )
+
+            if (estado.indisponivel) {
+                AvisoFrila(
+                    tom = TomAviso.ALERTA,
+                    mensagem = TextosDaVagaIndisponivel.MENSAGEM,
+                    modifier = Modifier.testTag("detalhe-nao-encontrada"),
+                )
+            }
 
             // A reputação da casa, logo abaixo do nome (iOS `reputacaoDaCasa`): quantas avaliações indicam que trabalhariam lá de novo.
             Text(

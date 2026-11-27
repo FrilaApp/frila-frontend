@@ -42,7 +42,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.mockk.every
 import io.mockk.mockk
+import br.com.frila.feature.perfil.FuncoesEHorariosViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
@@ -188,6 +190,16 @@ class AppNavegacaoDetalheEventosUmaVezTest {
                     escopo = escopo,
                 )
             }
+            viewModel {
+                // A tela de funções só precisa abrir: a leitura fica pendente, sem rede.
+                FuncoesEHorariosViewModel(
+                    carregarPerfil = { awaitCancellation() },
+                    carregarFuncoes = { awaitCancellation() },
+                    criarPerfil = { error("o teste não salva") },
+                    atualizarPerfil = { error("o teste não salva") },
+                    escopo = escopo,
+                )
+            }
             viewModel { (aoReativar: () -> Unit) ->
                 ContaSuspensaViewModel(
                     buscarSituacao = { SITUACAO_SUSPENSA },
@@ -323,6 +335,50 @@ class AppNavegacaoDetalheEventosUmaVezTest {
             rotaDestino = Rotas.CONFLITO_HORARIO,
             aPartirDoFeed = true,
         )
+    }
+
+    @Test
+    fun `funcao incompativel pelo feed navega uma vez para o resultado e popBackStack volta ao detalhe`() {
+        exercitarIdaEVolta(
+            status = HttpStatusCode.UnprocessableEntity,
+            corpo = ERRO_FUNCAO_INCOMPATIVEL,
+            rotaDestino = Rotas.FUNCAO_INCOMPATIVEL,
+            aPartirDoFeed = true,
+        )
+    }
+
+    @Test
+    fun `segundo clique apos popBackStack em funcao incompativel navega uma vez de novo`() {
+        exercitarSegundoClique(HttpStatusCode.UnprocessableEntity, ERRO_FUNCAO_INCOMPATIVEL, Rotas.FUNCAO_INCOMPATIVEL)
+    }
+
+    @Test
+    fun `ajustar minhas funcoes abre funcoes e horarios e tira o resultado da pilha, para voltar ao detalhe da vaga`() {
+        prepararCenario(HttpStatusCode.UnprocessableEntity, ERRO_FUNCAO_INCOMPATIVEL)
+        ActivityScenario.launch(ActivityDetalheEventosDeTeste::class.java).use {
+            abrirDetalhe(aPartirDoFeed = true)
+            candidatar()
+            esperarDestinoUnicoAcimaDoDetalhe(Rotas.FUNCAO_INCOMPATIVEL)
+
+            rule.onNodeWithTag("ajustar-minhas-funcoes").performClick()
+
+            esperarDestinoUnicoAcimaDoDetalhe(Rotas.FUNCOES_E_HORARIOS)
+            rule.runOnIdle { nav().popBackStack() }
+            rule.waitForIdle()
+            rule.runOnIdle { assertEquals(Rotas.DETALHE, nav().currentDestination?.route) }
+        }
+    }
+
+    @Test
+    fun `conflito de horario nao oferece ajustar as funcoes`() {
+        prepararCenario(HttpStatusCode.UnprocessableEntity, ERRO_CONFLITO)
+        ActivityScenario.launch(ActivityDetalheEventosDeTeste::class.java).use {
+            abrirDetalhe(aPartirDoFeed = true)
+            candidatar()
+            esperarDestinoUnicoAcimaDoDetalhe(Rotas.CONFLITO_HORARIO)
+            rule.onNodeWithTag("resultado-turno-sobreposto").assertExists()
+            rule.onNodeWithTag("ajustar-minhas-funcoes").assertDoesNotExist()
+        }
     }
 
     @Test
@@ -588,6 +644,8 @@ class AppNavegacaoDetalheEventosUmaVezTest {
             """{"estado":"confirmada","candidatura_id":"c1","posicao_id":"p1","turno_id":"t1","contato":{"nome":"Bar do Zé","telefone":"+5561999990000"}}"""
         const val ERRO_CONFLITO =
             """{"code":"inelegivel","message":"inelegivel","details":"turno_sobreposto"}"""
+        const val ERRO_FUNCAO_INCOMPATIVEL =
+            """{"code":"inelegivel","message":"inelegivel","details":"funcao_incompativel"}"""
         const val ERRO_PREENCHIDA =
             """{"code":"posicao_ja_preenchida","message":"preenchida","details":null}"""
         const val ERRO_ENCERRADA =
