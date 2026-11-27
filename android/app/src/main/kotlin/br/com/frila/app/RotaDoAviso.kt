@@ -64,7 +64,7 @@ internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
 /**
  * O destino da casa, como o `AvisoDoContratante` do iOS (`.turno` e `.vaga`), onde o Android tem a tela: o turno da
  * casa em uso, achado pelo `turno_id` no painel dela, e os candidatos da vaga (`candidatos_da_vaga` só devolve
- * candidaturas pendentes). Vaga direta (`chamada_*`), seleção encerrada e os lembretes de fim de turno abririam a lista
+ * candidaturas pendentes), ou as chamadas da vaga direta. Seleção encerrada e os lembretes de fim de turno abririam a lista
  * vazia com "Ninguém se candidatou ainda", que ali é falso: ficam em Minhas vagas.
  */
 private fun rotaDaCasa(aviso: AvisoDoToque, estabelecimentoId: String): String? = when (aviso.tipo) {
@@ -73,5 +73,10 @@ private fun rotaDaCasa(aviso: AvisoDoToque, estabelecimentoId: String): String? 
     "avaliacao_disponivel", "turno_nao_verificado" ->
         aviso.turnoId.uuid()?.let { Rotas.turnoDoContratanteAviso(estabelecimentoId, it) }
     "vaga_sem_elegiveis", "vaga_vazia", "selecao_lembrete", "cancelamento" -> aviso.vagaId.uuid()?.let { Rotas.candidatosDaVaga(it) }
+    // O iOS abre a vaga da casa (`.vaga`), que o Android não tem; as chamadas da vaga, com o estado de cada uma, são o
+    // que a casa precisa ver. A aceita com `turno_id` vai ao turno, como no iOS.
+    "chamada_aceita" -> aviso.turnoId.uuid()?.let { Rotas.turnoDoContratanteAviso(estabelecimentoId, it) }
+        ?: aviso.vagaId.uuid()?.let(RotasChamadaCasa::acompanhar)
+    "chamada_recusada", "chamada_expirada" -> aviso.vagaId.uuid()?.let(RotasChamadaCasa::acompanhar)
     else -> null
 }
