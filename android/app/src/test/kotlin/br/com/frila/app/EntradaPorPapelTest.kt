@@ -87,6 +87,9 @@ class EntradaPorPapelTest {
     /** Quando não nulo, a abertura decide este destino em vez de perguntar ao servidor (a conta mudou do outro lado). */
     @Volatile private var destinoForcado: DestinoDaConta? = null
 
+    /** As vagas com que a tela de acompanhar chamadas foi aberta. */
+    private val vagasDasChamadas = CopyOnWriteArrayList<String>()
+
     /** As vagas com que a tela de candidatos foi aberta. */
     private val vagasDosCandidatos = CopyOnWriteArrayList<String>()
 
@@ -176,6 +179,16 @@ class EntradaPorPapelTest {
                             CodigoViewModel(email, ServicoAutenticacao(cliente), sessao, CoroutineScope(Dispatchers.Default))
                         }
                         viewModel { CadastroViewModel() }
+                        viewModel { (vagaId: String) ->
+                            vagasDasChamadas += vagaId
+                            br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel(
+                                vagaId = vagaId,
+                                listar = { _, _, _ -> br.com.frila.core.rede.PaginaDeChamadasDto(itens = emptyList(), proximoCursor = null) },
+                                cancelarChamada = { error("o teste de navegação não cancela") },
+                                publicarAPartirDaChamada = { _, _, _ -> error("o teste de navegação não publica") },
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
                         viewModel {
                             mockk<br.com.frila.feature.turnos.AvaliacaoViewModel>(relaxed = true) {
                                 every { estado } returns MutableStateFlow(br.com.frila.feature.turnos.EstadoAvaliacao())
@@ -442,6 +455,27 @@ class EntradaPorPapelTest {
         assertTrue("a reativação não releu a conta", aguardar(8_000) { chamadas.count { it.endsWith("/rpc/minha_conta") } > leiturasAntes })
         assertTrue("a reativação não voltou a Minhas vagas (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS })
         assertNull(rotaAbaixo())
+    }
+
+    @Test
+    fun `XViq5sFe - com o app aberto, a chamada recusada leva a casa as chamadas da vaga`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        avisoDoToque.value = AvisoDoToque("chamada_recusada", vagaId = vagaDoAviso)
+
+        assertTrue("a chamada recusada não abriu as chamadas da vaga (rota: ${rotaAtual()})", aguardar { rotaAtual() == RotasChamadaCasa.ACOMPANHAR })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+        assertEquals(listOf(vagaDoAviso), vagasDasChamadas.toList())
+    }
+
+    @Test
+    fun `XViq5sFe - a casa que abre o app pela chamada aceita com turno cai no turno da casa`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = AvisoDoToque("chamada_aceita", vagaId = vagaDoAviso, turnoId = turnoDoAviso))
+
+        assertTrue("a chamada aceita não abriu o turno da casa (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+        assertTrue("sem o turno é que se abrem as chamadas", vagasDasChamadas.isEmpty())
     }
 
     @Test
