@@ -10,12 +10,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.AvisoFrila
+import br.com.frila.core.designsystem.componentes.DialogoConfirmarSaida
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.componentes.TituloDaTela
@@ -49,6 +54,7 @@ fun TelaContaSuspensa(
     contestacao: (@Composable () -> Unit)? = null,
 ) {
     val cores = FrilaTema.cores
+    var confirmarSair by remember { mutableStateOf(false) }
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = cores.fundo) { preenchimento ->
         Column(
             modifier = Modifier
@@ -106,9 +112,19 @@ fun TelaContaSuspensa(
                     texto = TextosContaSuspensa.BOTAO_SUPORTE,
                     aoClicar = { aoContatarSuporte(emailSuporte) },
                 )
-                AcaoDiscreta(texto = TextosContaSuspensa.BOTAO_SAIR, aoClicar = aoSair)
+                AcaoDiscreta(texto = TextosContaSuspensa.BOTAO_SAIR, aoClicar = { confirmarSair = true })
             }
         }
+    }
+
+    if (confirmarSair) {
+        DialogoConfirmarSaida(
+            aoCancelar = { confirmarSair = false },
+            aoConfirmar = {
+                confirmarSair = false
+                aoSair()
+            },
+        )
     }
 }
 

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.PapelMembro
 import br.com.frila.core.rede.AdministracaoTransferidaDto
@@ -365,6 +366,7 @@ class AppNavegacaoEquipeDaCasaTest {
         rule.runOnIdle { nav.popBackStack() }
 
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
         rule.waitUntil(5_000) { nav.currentDestination?.route == Rotas.ENTRADA }
         // Entra de novo (a abertura decide a casa pelo servidor) e cai no Perfil.
         rule.runOnIdle { nav.navigate(Rotas.PERFIL) }

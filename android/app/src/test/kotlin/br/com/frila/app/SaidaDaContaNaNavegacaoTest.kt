@@ -5,12 +5,14 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.app.seguranca.CoordenadorDeLogout
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
@@ -129,6 +131,7 @@ class SaidaDaContaNaNavegacaoTest {
         rule.waitForIdle()
 
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
         rule.waitForIdle()
 
         assertEquals(Rotas.ENTRADA, navController.currentDestination?.route)

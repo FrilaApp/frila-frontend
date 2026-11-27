@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.BloqueioDto
@@ -478,6 +479,7 @@ class AppNavegacaoContaSuporteEquipeTest {
         montar(inicio = Rotas.contaSuspensa())
 
         rule.onNodeWithText(TextosContaSuspensa.BOTAO_SAIR).performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
 
         rule.runOnIdle {
             verify(exactly = 1) { sessao.limparSessao() }
