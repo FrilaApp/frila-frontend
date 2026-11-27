@@ -560,7 +560,12 @@ val moduloFeatures = module {
      * Candidatos de uma vaga em seleção e a escolha (RF09, UC04). `posicoesAbertas` e `inicioDaVaga` vêm
      * da tela de origem, que conhece a vaga; nulos escondem o aviso da última posição e o prazo de escolha.
      */
-    viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: Instant?) ->
+    viewModel { parametros ->
+        val vagaId: String = parametros[0]
+        val posicoesAbertas: Int? = parametros[1]
+        val inicioDaVaga: Instant? = parametros[2]
+        // A casa é opcional: a rota aberta por aviso push só traz a vaga. Sem ela, o ViewModel não confere o painel.
+        val estabelecimentoId: String? = parametros.values.getOrNull(3) as? String
         val vagas = get<ServicoVagas>()
         CandidatosDaVagaViewModel(
             vagaId = vagaId,
@@ -568,6 +573,7 @@ val moduloFeatures = module {
             escolher = vagas::escolherCandidato,
             posicoesAbertas = posicoesAbertas,
             inicioDaVaga = inicioDaVaga,
+            relerVaga = estabelecimentoId?.let { casa -> { relerVagaNoPainel(vagas, casa, vagaId) } },
         )
     }
     /**
