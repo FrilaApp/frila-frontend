@@ -164,7 +164,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (entrada.status === "desafio_otp") {
-    const passoDesafio: Passo = { passo: "desafio", email, desafioId: entrada.desafioId };
+    const passoDesafio: Passo = {
+      passo: "desafio",
+      email,
+      desafioId: entrada.desafioId,
+      ...(entrada.reenviarEmSegundos !== undefined ? { reenviarEmSegundos: entrada.reenviarEmSegundos } : {}),
+    };
     if (entrada.descartarDeviceToken) {
       return data(passoDesafio, { headers: { "Set-Cookie": cookieDoDispositivo(null, seguro) } });
     }

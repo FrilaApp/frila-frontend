@@ -751,4 +751,41 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
       reenviarEmSegundos: 60,
     });
   });
+
+  it("entrarAction propaga reenviarEmSegundos opcional na criação do desafio e mantém fallback 60 quando ausente", async () => {
+    authMock.autenticarSenha
+      .mockResolvedValueOnce({
+        ok: true,
+        status: "desafio_otp",
+        desafioId: "des-30",
+        descartarDeviceToken: false,
+        reenviarEmSegundos: 30,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: "desafio_otp",
+        desafioId: "des-sem",
+        descartarDeviceToken: false,
+      });
+
+    const com30 = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", senha: "segredo" }, false),
+    );
+    expect(com30).toEqual({
+      passo: "desafio",
+      email: "pessoa@frila.test",
+      desafioId: "des-30",
+      reenviarEmSegundos: 30,
+    });
+
+    const semValor = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", senha: "segredo" }, false),
+    );
+    expect(semValor).toEqual({
+      passo: "desafio",
+      email: "pessoa@frila.test",
+      desafioId: "des-sem",
+    });
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+  });
 });
