@@ -182,20 +182,33 @@ class TelasSenhaComposeTest {
     }
 
     @Test
-    fun mascaraComRevelacaoBreveDetectaInsercaoNoFimEMeioEIgnoraColagemOuExclusao() {
-        org.junit.Assert.assertEquals(3, indiceCaractereRecemDigitado("abc", "abcd"))
-        org.junit.Assert.assertEquals(2, indiceCaractereRecemDigitado("abd", "abcd"))
-        org.junit.Assert.assertNull(indiceCaractereRecemDigitado("ab", "abcdef"))
-        org.junit.Assert.assertNull(indiceCaractereRecemDigitado("abcd", "abc"))
-        org.junit.Assert.assertNull(indiceCaractereRecemDigitado("abcd", "abXd"))
+    fun mascaraComRevelacaoBreveUsaSelectionECompositionEPreservaCaracteresRepetidosNoMeio() {
+        val t = { s: String, sel: Int, comp: androidx.compose.ui.text.TextRange? ->
+            androidx.compose.ui.text.input.TextFieldValue(s, androidx.compose.ui.text.TextRange(sel), comp)
+        }
+        // Inserção no fim
+        org.junit.Assert.assertEquals(3..3, intervaloCaractereRecemDigitado(t("abc", 3, null), t("abcd", 4, null)))
+        // Inserção de caractere repetido no MEIO ("aaaa" -> "aaaaa" no índice 2) revela índice 2, não 4
+        org.junit.Assert.assertEquals(2..2, intervaloCaractereRecemDigitado(t("aaaa", 2, null), t("aaaaa", 3, null)))
+        // Composição IME ativa não revela
+        org.junit.Assert.assertNull(intervaloCaractereRecemDigitado(t("abc", 3, null), t("abcd", 4, androidx.compose.ui.text.TextRange(3, 4))))
+        // Colagem (>=2 chars), exclusão e substituição de seleção não revelam
+        org.junit.Assert.assertNull(intervaloCaractereRecemDigitado(t("ab", 2, null), t("abcdef", 6, null)))
+        org.junit.Assert.assertNull(intervaloCaractereRecemDigitado(t("abcd", 4, null), t("abc", 3, null)))
+        org.junit.Assert.assertNull(
+            intervaloCaractereRecemDigitado(
+                androidx.compose.ui.text.input.TextFieldValue("abcd", androidx.compose.ui.text.TextRange(1, 3)),
+                t("aXd", 2, null),
+            ),
+        )
 
-        val reveladoMeio = MascaramentoDeSenhaComRevelacaoBreve(indiceRevelado = 2)
-            .filter(androidx.compose.ui.text.AnnotatedString("abcd"))
-        org.junit.Assert.assertEquals("••c•", reveladoMeio.text.text)
+        val reveladoMeio = MascaramentoDeSenhaComRevelacaoBreve(intervaloRevelado = 2..2)
+            .filter(androidx.compose.ui.text.AnnotatedString("aaaaa"))
+        org.junit.Assert.assertEquals("••a••", reveladoMeio.text.text)
 
-        val tudoMascarado = MascaramentoDeSenhaComRevelacaoBreve(indiceRevelado = null)
-            .filter(androidx.compose.ui.text.AnnotatedString("abcd"))
-        org.junit.Assert.assertEquals("••••", tudoMascarado.text.text)
+        val tudoMascarado = MascaramentoDeSenhaComRevelacaoBreve(intervaloRevelado = null)
+            .filter(androidx.compose.ui.text.AnnotatedString("aaaaa"))
+        org.junit.Assert.assertEquals("•••••", tudoMascarado.text.text)
     }
 
     @Test

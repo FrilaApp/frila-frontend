@@ -1,6 +1,9 @@
 package br.com.frila.app.ui
 
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
@@ -68,18 +71,35 @@ class TelaDefinirSenhaInstrumentedTest {
 
         composeTestRule.onNodeWithText("Nova senha").assertIsDisplayed()
         composeTestRule.onNodeWithText("Confirmar senha").assertIsDisplayed()
+        val vazioCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
 
-        // Digitação rápida no primeiro campo + espera real de 1,15 s para mascaramento
+        // Digitação rápida no primeiro campo: captura pixels antes (<1s) e depois (>1s) do mascaramento
+        val t0 = System.currentTimeMillis()
         composeTestRule.onNodeWithText("Nova senha").performTextInput("a")
         composeTestRule.onNodeWithText("Nova senha").performTextInput("b")
-        composeTestRule.onNodeWithText("Nova senha").performTextInput("c")
-        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Nova senha").performTextInput("W")
+        val tAposInput = System.currentTimeMillis() - t0
+        Thread.sleep(150)
+        val antesCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
         Thread.sleep(1_150)
+        composeTestRule.mainClock.advanceTimeBy(1_200)
         composeTestRule.waitForIdle()
-        assertEquals("abc", viewModel.estado.value.senha)
+        val depoisCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
+
+        // Compara também com exclusão (abW1 -> abW) que garante mascaramento total imediato
+        composeTestRule.onNodeWithText("Nova senha").performTextInput("1")
+        composeTestRule.onNodeWithText("Nova senha").performTextReplacement("abW")
+        composeTestRule.waitForIdle()
+        val mascaradoCampo1 = composeTestRule.onNodeWithText("Nova senha").captureToImage().asAndroidBitmap()
+
+        org.junit.Assert.assertFalse(
+            "Os pixels renderizados em Nova senha devem mudar entre <1s (t=${tAposInput}ms, igualVazio=${antesCampo1.sameAs(vazioCampo1)}, igualMascarado=${antesCampo1.sameAs(mascaradoCampo1)}) e >1s (depoisIgualMascarado=${depoisCampo1.sameAs(mascaradoCampo1)})",
+            antesCampo1.sameAs(depoisCampo1),
+        )
+        assertEquals("abW", viewModel.estado.value.senha)
 
         // Edição no meio / exclusão / colagem simulada (>=2 chars)
-        composeTestRule.onNodeWithText("Nova senha").performTextReplacement("abXc")
+        composeTestRule.onNodeWithText("Nova senha").performTextReplacement("abXW")
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Nova senha").performTextReplacement("abX")
         composeTestRule.waitForIdle()
@@ -87,12 +107,19 @@ class TelaDefinirSenhaInstrumentedTest {
         composeTestRule.waitForIdle()
         assertEquals("abXcolado12", viewModel.estado.value.senha)
 
-        // Segundo campo (Confirmar senha): digitação + espera real de 1,15 s
+        // Segundo campo (Confirmar senha): captura pixels antes (<1s) e depois (>1s) do mascaramento
         composeTestRule.onNodeWithText("Confirmar senha").performTextInput("x")
-        composeTestRule.onNodeWithText("Confirmar senha").performTextInput("y")
-        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Confirmar senha").performTextInput("K")
+        Thread.sleep(150)
+        val antesCampo2 = composeTestRule.onNodeWithText("Confirmar senha").captureToImage().asAndroidBitmap()
         Thread.sleep(1_150)
+        composeTestRule.mainClock.advanceTimeBy(1_200)
         composeTestRule.waitForIdle()
-        assertEquals("xy", viewModel.estado.value.confirmacao)
+        val depoisCampo2 = composeTestRule.onNodeWithText("Confirmar senha").captureToImage().asAndroidBitmap()
+        org.junit.Assert.assertFalse(
+            "Os pixels renderizados em Confirmar senha devem mudar entre <1s (caractere K visível) e >1s (bolinha)",
+            antesCampo2.sameAs(depoisCampo2),
+        )
+        assertEquals("xK", viewModel.estado.value.confirmacao)
     }
 }

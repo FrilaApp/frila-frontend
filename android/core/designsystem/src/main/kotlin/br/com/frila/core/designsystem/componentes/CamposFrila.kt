@@ -36,6 +36,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -93,38 +94,121 @@ fun CampoDeTexto(
         interactionSource = interacao,
         cursorBrush = SolidColor(cores.tinta),
         decorationBox = { campo ->
-            Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
-                Text(text = rotulo, style = FrilaTipo.rotuloDeGrupo, color = cores.tintaSuave)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = FrilaMetricas.alturaCampo)
-                        .background(cores.superficie, forma)
-                        .border(
-                            width = if (destacado) 2.dp else 1.dp,
-                            color = if (destacado) cores.tinta else cores.bordaControle,
-                            shape = forma,
-                        )
-                        .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.compacto),
-                    verticalAlignment = if (umaLinha) Alignment.CenterVertically else Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (valor.isEmpty() && dica != null) {
-                            Text(text = dica, style = FrilaTipo.corpo, color = cores.tintaSuave)
-                        }
-                        campo()
-                    }
-                    acessorio?.invoke()
-                }
-                if (erro != null) {
-                    Text(text = erro, style = FrilaTipo.apoio, color = cores.tinta)
-                } else if (apoio != null) {
-                    Text(text = apoio, style = FrilaTipo.apoio, color = cores.tintaSuave)
-                }
-            }
+            DecoracaoCampoDeTexto(
+                vazio = valor.isEmpty(),
+                rotulo = rotulo,
+                dica = dica,
+                apoio = apoio,
+                erro = erro,
+                destacado = destacado,
+                umaLinha = umaLinha,
+                forma = forma,
+                acessorio = acessorio,
+                campo = campo,
+            )
         },
     )
+}
+
+@Composable
+fun CampoDeTexto(
+    valor: TextFieldValue,
+    aoMudar: (TextFieldValue) -> Unit,
+    rotulo: String,
+    modifier: Modifier = Modifier,
+    dica: String? = null,
+    apoio: String? = null,
+    erro: String? = null,
+    habilitado: Boolean = true,
+    umaLinha: Boolean = true,
+    linhasMinimas: Int = 1,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    acessorio: @Composable (() -> Unit)? = null,
+) {
+    val cores = FrilaTema.cores
+    val interacao = remember { MutableInteractionSource() }
+    val emFoco by interacao.collectIsFocusedAsState()
+    val destacado = emFoco || erro != null
+    val forma = RoundedCornerShape(FrilaRaios.interno)
+
+    BasicTextField(
+        value = valor,
+        onValueChange = aoMudar,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { if (erro != null) error(erro) },
+        enabled = habilitado,
+        textStyle = FrilaTipo.corpo.copy(color = if (habilitado) cores.tinta else cores.tintaSuave),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = umaLinha,
+        minLines = linhasMinimas,
+        visualTransformation = visualTransformation,
+        interactionSource = interacao,
+        cursorBrush = SolidColor(cores.tinta),
+        decorationBox = { campo ->
+            DecoracaoCampoDeTexto(
+                vazio = valor.text.isEmpty(),
+                rotulo = rotulo,
+                dica = dica,
+                apoio = apoio,
+                erro = erro,
+                destacado = destacado,
+                umaLinha = umaLinha,
+                forma = forma,
+                acessorio = acessorio,
+                campo = campo,
+            )
+        },
+    )
+}
+
+@Composable
+private fun DecoracaoCampoDeTexto(
+    vazio: Boolean,
+    rotulo: String,
+    dica: String?,
+    apoio: String?,
+    erro: String?,
+    destacado: Boolean,
+    umaLinha: Boolean,
+    forma: RoundedCornerShape,
+    acessorio: @Composable (() -> Unit)?,
+    campo: @Composable () -> Unit,
+) {
+    val cores = FrilaTema.cores
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        Text(text = rotulo, style = FrilaTipo.rotuloDeGrupo, color = cores.tintaSuave)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = FrilaMetricas.alturaCampo)
+                .background(cores.superficie, forma)
+                .border(
+                    width = if (destacado) 2.dp else 1.dp,
+                    color = if (destacado) cores.tinta else cores.bordaControle,
+                    shape = forma,
+                )
+                .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.compacto),
+            verticalAlignment = if (umaLinha) Alignment.CenterVertically else Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                if (vazio && dica != null) {
+                    Text(text = dica, style = FrilaTipo.corpo, color = cores.tintaSuave)
+                }
+                campo()
+            }
+            acessorio?.invoke()
+        }
+        if (erro != null) {
+            Text(text = erro, style = FrilaTipo.apoio, color = cores.tinta)
+        } else if (apoio != null) {
+            Text(text = apoio, style = FrilaTipo.apoio, color = cores.tintaSuave)
+        }
+    }
 }
 
 /**

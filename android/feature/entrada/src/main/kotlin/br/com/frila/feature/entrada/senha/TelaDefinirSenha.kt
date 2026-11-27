@@ -26,13 +26,16 @@ import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import java.text.BreakIterator
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
 import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
@@ -108,16 +111,12 @@ fun TelaDefinirSenha(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
-                val transformacaoSenha = rememberVisualTransformationDeSenha(estado.senha)
-                val transformacaoConfirmacao = rememberVisualTransformationDeSenha(estado.confirmacao)
-
-                CampoDeTexto(
+                CampoDeSenhaComRevelacaoBreve(
                     valor = estado.senha,
                     aoMudar = viewModel::aoMudarSenha,
                     rotulo = "Nova senha",
                     dica = "Mínimo de 8 caracteres",
                     habilitado = !estado.carregando,
-                    visualTransformation = transformacaoSenha,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next,
@@ -126,13 +125,12 @@ fun TelaDefinirSenha(
                     modifier = Modifier.semantics { contentType = ContentType.NewPassword },
                 )
 
-                CampoDeTexto(
+                CampoDeSenhaComRevelacaoBreve(
                     valor = estado.confirmacao,
                     aoMudar = viewModel::aoMudarConfirmacao,
                     rotulo = "Confirmar senha",
                     dica = "Repita a nova senha",
                     habilitado = !estado.carregando,
-                    visualTransformation = transformacaoConfirmacao,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done,
@@ -148,21 +146,36 @@ fun TelaDefinirSenha(
 
 internal const val ATRASO_MASCARAMENTO_CARACTERE_SENHA_MS = 1_000L
 
-internal fun indiceCaractereRecemDigitado(anterior: String, atual: String): Int? {
-    if (atual.length != anterior.length + 1) return null
-    val indice = anterior.indices.firstOrNull { anterior[it] != atual[it] } ?: anterior.length
-    val semNovo = atual.removeRange(indice, indice + 1)
-    return if (semNovo == anterior) indice else null
+private fun ehUmUnicoGrafema(trecho: String): Boolean {
+    if (trecho.isEmpty()) return false
+    val iterador = BreakIterator.getCharacterInstance()
+    iterador.setText(trecho)
+    val primeiroFim = iterador.next()
+    return primeiroFim == trecho.length
+}
+
+internal fun intervaloCaractereRecemDigitado(anterior: TextFieldValue, atual: TextFieldValue): IntRange? {
+    if (atual.composition != null) return null
+    if (!anterior.selection.collapsed || !atual.selection.collapsed) return null
+    val delta = atual.text.length - anterior.text.length
+    if (delta <= 0) return null
+    val fim = atual.selection.end
+    val inicio = fim - delta
+    if (inicio < 0 || fim > atual.text.length) return null
+    if (atual.text.removeRange(inicio, fim) != anterior.text) return null
+    val inserido = atual.text.substring(inicio, fim)
+    return if (ehUmUnicoGrafema(inserido)) inicio until fim else null
 }
 
 internal class MascaramentoDeSenhaComRevelacaoBreve(
-    private val indiceRevelado: Int?,
+    private val intervaloRevelado: IntRange?,
     private val mascara: Char = '\u2022',
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val mascarado = buildString(text.text.length) {
             for (i in text.text.indices) {
-                append(if (i == indiceRevelado) text.text[i] else mascara)
+                val revelar = intervaloRevelado != null && i in intervaloRevelado
+                append(if (revelar) text.text[i] else mascara)
             }
         }
         return TransformedText(AnnotatedString(mascarado), OffsetMapping.Identity)
@@ -171,34 +184,62 @@ internal class MascaramentoDeSenhaComRevelacaoBreve(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MascaramentoDeSenhaComRevelacaoBreve) return false
-        return indiceRevelado == other.indiceRevelado && mascara == other.mascara
+        return intervaloRevelado == other.intervaloRevelado && mascara == other.mascara
     }
 
-    override fun hashCode(): Int = 31 * (indiceRevelado ?: -1) + mascara.hashCode()
+    override fun hashCode(): Int = 31 * (intervaloRevelado?.hashCode() ?: 0) + mascara.hashCode()
 }
 
 @Composable
-private fun rememberVisualTransformationDeSenha(valor: String): VisualTransformation {
-    var valorAnterior by remember { mutableStateOf(valor) }
-    var indiceRevelado by remember { mutableStateOf<Int?>(null) }
+private fun CampoDeSenhaComRevelacaoBreve(
+    valor: String,
+    aoMudar: (String) -> Unit,
+    rotulo: String,
+    dica: String,
+    habilitado: Boolean,
+    keyboardOptions: KeyboardOptions,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    modifier: Modifier = Modifier,
+) {
+    var valorCampo by remember { mutableStateOf(TextFieldValue(valor, selection = TextRange(valor.length))) }
+    if (valorCampo.text != valor) {
+        valorCampo = TextFieldValue(valor, selection = TextRange(valor.length))
+    }
+    var intervaloRevelado by remember { mutableStateOf<IntRange?>(null) }
     var cicloRevelacao by remember { mutableIntStateOf(0) }
 
-    if (valor != valorAnterior) {
-        indiceRevelado = indiceCaractereRecemDigitado(valorAnterior, valor)
-        if (indiceRevelado != null) {
-            cicloRevelacao += 1
-        }
-        valorAnterior = valor
-    }
-
     LaunchedEffect(cicloRevelacao) {
-        if (indiceRevelado != null) {
+        if (intervaloRevelado != null) {
             delay(ATRASO_MASCARAMENTO_CARACTERE_SENHA_MS)
-            indiceRevelado = null
+            intervaloRevelado = null
         }
     }
 
-    return remember(indiceRevelado) {
-        MascaramentoDeSenhaComRevelacaoBreve(indiceRevelado = indiceRevelado)
+    val visualTransformation = remember(intervaloRevelado) {
+        MascaramentoDeSenhaComRevelacaoBreve(intervaloRevelado = intervaloRevelado)
     }
+
+    CampoDeTexto(
+        valor = valorCampo,
+        aoMudar = { novo ->
+            val textoMudou = novo.text != valorCampo.text
+            if (textoMudou) {
+                intervaloRevelado = intervaloCaractereRecemDigitado(valorCampo, novo)
+                if (intervaloRevelado != null) {
+                    cicloRevelacao += 1
+                }
+            }
+            valorCampo = novo
+            if (textoMudou) {
+                aoMudar(novo.text)
+            }
+        },
+        rotulo = rotulo,
+        dica = dica,
+        habilitado = habilitado,
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        modifier = modifier,
+    )
 }
