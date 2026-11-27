@@ -501,4 +501,158 @@ class EscalaDeEventoViewModelTest {
             assertEquals(TextosEscala.VALOR_CAMPO, vm.estado.value.errosDosItens[primeiro]!![CampoDoItem.VALOR])
         }
     }
+
+    // ---- Quando a chave sai: primeira tentativa x reenvio de uma tentativa incerta (cartão UAYzdSdy) ----
+
+    private class Recusa(val status: HttpStatusCode, val codigo: String, val detalhes: String? = null, val erro: ErroGlobalEscala)
+
+    private val sessaoExpirada = Recusa(HttpStatusCode.Unauthorized, "nao_autenticado", null, ErroGlobalEscala.SESSAO_EXPIRADA)
+    private val limiteExcedido = Recusa(HttpStatusCode.TooManyRequests, "limite_excedido", null, ErroGlobalEscala.GENERICO)
+
+    /** O servidor confere quem pode ANTES da `chave`: estas recusas não provam que a tentativa anterior não gravou. */
+    private val recusasDeQuemPode = listOf(
+        Recusa(HttpStatusCode.Forbidden, "sem_permissao", null, ErroGlobalEscala.SEM_PERMISSAO),
+        Recusa(HttpStatusCode.Forbidden, "sem_permissao", "conta_suspensa", ErroGlobalEscala.CONTA_SUSPENSA),
+        Recusa(HttpStatusCode.UnprocessableEntity, "perfil_incompativel", null, ErroGlobalEscala.PERFIL_INCOMPATIVEL),
+        Recusa(HttpStatusCode.NotFound, "nao_encontrado", null, ErroGlobalEscala.GENERICO),
+    )
+
+    /** Vêm da conferência do corpo, DEPOIS da `chave`: provam que nada foi gravado, mesmo num reenvio. */
+    private val recusasDeConteudo = listOf(
+        Recusa(HttpStatusCode.UnprocessableEntity, "campo_invalido", "evento.nome", ErroGlobalEscala.CONFIRA_CAMPOS),
+        Recusa(HttpStatusCode.UnprocessableEntity, "campo_obrigatorio", "evento.nome", ErroGlobalEscala.CONFIRA_CAMPOS),
+        Recusa(HttpStatusCode.UnprocessableEntity, "horario_invalido", "vagas[0]", ErroGlobalEscala.CONFIRA_CAMPOS),
+        Recusa(HttpStatusCode.UnprocessableEntity, "selecao_sem_antecedencia", "vagas[0]", ErroGlobalEscala.CONFIRA_CAMPOS),
+        Recusa(HttpStatusCode.UnprocessableEntity, "funcao_incompativel", "vagas[0]", ErroGlobalEscala.CONFIRA_CAMPOS),
+    )
+
+    /** A 1ª tentativa recebe [primeira]; a 2ª, [segunda]; da 3ª em diante o servidor publica. `null` na 1ª = sem rede (incerta). */
+    private fun redeEmTres(primeira: Recusa?, segunda: Recusa?): Rede {
+        var tentativa = 0
+        return Rede(
+            publicar = {
+                val vez = ++tentativa
+                val recusa = if (vez == 1) primeira else if (vez == 2) segunda else null
+                when {
+                    vez == 1 && primeira == null -> throw ConnectTimeoutException("sem rede")
+                    recusa != null -> recusa(recusa.status, recusa.codigo, recusa.detalhes)
+                    else -> respond(publicadaJson, HttpStatusCode.OK, json)
+                }
+            },
+            funcoes = { respond(funcoesJson, HttpStatusCode.OK, json) },
+        )
+    }
+
+    private fun chaveDe(rede: Rede, indice: Int) = rede.publicacoes[indice].corpo!!["chave"]!!.jsonPrimitive.content
+
+    @Test
+    fun `401 e 429 na primeira tentativa soltam a escala, devolvem a edicao e o proximo envio leva chave nova`() = runBlocking {
+        for (recusa in listOf(sessaoExpirada, limiteExcedido)) {
+            chaves = 0
+            val rede = redeEmTres(recusa, null)
+            val vm = viewModelCom(rede)
+            vm.preencher()
+
+            vm.publicar().join()
+
+            assertNull(vm.estado.value.pendente, recusa.codigo)
+            assertTrue(vm.estado.value.podeEditar, recusa.codigo)
+            assertFalse(vm.estado.value.enviando, recusa.codigo)
+            assertEquals(recusa.erro, vm.estado.value.erro, recusa.codigo)
+
+            vm.publicar().join()
+
+            assertEquals(2, rede.publicacoes.size, recusa.codigo)
+            assertEquals("chave-1", chaveDe(rede, 0), recusa.codigo)
+            assertEquals("chave-2", chaveDe(rede, 1), recusa.codigo)
+            assertEquals("ev1", vm.estado.value.publicada?.eventoId, recusa.codigo)
+        }
+    }
+
+    @Test
+    fun `401 e 429 no reenvio de uma tentativa incerta mantem a escala pendente e a mesma chave`() = runBlocking {
+        for (recusa in listOf(sessaoExpirada, limiteExcedido)) {
+            chaves = 0
+            val rede = redeEmTres(primeira = null, segunda = recusa)
+            val vm = viewModelCom(rede)
+            vm.preencher()
+            vm.publicar().join() // sem rede: incerta, pode ter gravado
+
+            vm.publicar().join() // reenvio recusado antes de gravar, mas isso nada diz sobre a 1ª tentativa
+
+            assertNotNull(vm.estado.value.pendente, recusa.codigo)
+            assertFalse(vm.estado.value.podeEditar, recusa.codigo)
+            assertEquals(recusa.erro, vm.estado.value.erro, recusa.codigo)
+
+            vm.publicar().join()
+
+            assertEquals(3, rede.publicacoes.size, recusa.codigo)
+            assertEquals(List(3) { "chave-1" }, List(3) { chaveDe(rede, it) }, recusa.codigo)
+            assertEquals(1, chaves, recusa.codigo)
+            assertEquals("ev1", vm.estado.value.publicada?.eventoId, recusa.codigo)
+        }
+    }
+
+    @Test
+    fun `recusa de quem pode no reenvio de uma tentativa incerta mantem a escala pendente e a mesma chave`() = runBlocking {
+        for (recusa in recusasDeQuemPode) {
+            chaves = 0
+            val rede = redeEmTres(primeira = null, segunda = recusa)
+            val vm = viewModelCom(rede)
+            vm.preencher()
+            vm.publicar().join()
+
+            vm.publicar().join()
+
+            val rotulo = "${recusa.codigo} ${recusa.detalhes}"
+            assertNotNull(vm.estado.value.pendente, rotulo)
+            assertFalse(vm.estado.value.podeEditar, rotulo)
+            assertEquals(recusa.erro, vm.estado.value.erro, rotulo)
+
+            vm.publicar().join() // a conta voltou a poder: o mesmo corpo e a mesma chave devolvem a escala já gravada
+
+            assertEquals(List(3) { "chave-1" }, List(3) { chaveDe(rede, it) }, rotulo)
+            assertEquals(1, chaves, rotulo)
+            assertEquals("ev1", vm.estado.value.publicada?.eventoId, rotulo)
+        }
+    }
+
+    @Test
+    fun `recusa de conteudo no reenvio de uma tentativa incerta solta a escala porque nada foi gravado`() = runBlocking {
+        for (recusa in recusasDeConteudo) {
+            chaves = 0
+            val rede = redeEmTres(primeira = null, segunda = recusa)
+            val vm = viewModelCom(rede)
+            vm.preencher()
+            vm.publicar().join()
+
+            vm.publicar().join()
+
+            val rotulo = "${recusa.codigo} ${recusa.detalhes}"
+            assertNull(vm.estado.value.pendente, rotulo)
+            assertTrue(vm.estado.value.podeEditar, rotulo)
+            assertEquals(recusa.erro, vm.estado.value.erro, rotulo)
+        }
+    }
+
+    @Test
+    fun `recusa de quem pode na primeira tentativa solta a escala e o proximo envio leva chave nova`() = runBlocking {
+        for (recusa in recusasDeQuemPode) {
+            chaves = 0
+            val rede = redeEmTres(primeira = recusa, segunda = null)
+            val vm = viewModelCom(rede)
+            vm.preencher()
+
+            vm.publicar().join()
+
+            val rotulo = "${recusa.codigo} ${recusa.detalhes}"
+            assertNull(vm.estado.value.pendente, rotulo)
+            assertTrue(vm.estado.value.podeEditar, rotulo)
+            assertEquals(recusa.erro, vm.estado.value.erro, rotulo)
+
+            vm.publicar().join()
+
+            assertEquals("chave-2", chaveDe(rede, 1), rotulo)
+        }
+    }
 }
