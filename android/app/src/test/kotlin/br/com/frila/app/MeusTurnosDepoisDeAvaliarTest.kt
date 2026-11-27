@@ -44,7 +44,9 @@ import org.robolectric.annotation.Config
  * confere que ela ainda está em `AppNavegacao`.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35], application = Application::class)
+// Janela alta: o cartão do turno agendado ganhou a linha "Quem recebe" (QpgRwPFM) e, na janela padrão do Robolectric (470 dp), o botão
+// "Avaliar turno" ficava fora da tela e o toque não o alcançava. Medido: sem a linha o teste passava; com ela e a janela alta, também.
+@Config(sdk = [35], application = Application::class, qualifiers = "w411dp-h1200dp")
 class MeusTurnosDepoisDeAvaliarTest {
 
     @get:Rule(order = 0)
