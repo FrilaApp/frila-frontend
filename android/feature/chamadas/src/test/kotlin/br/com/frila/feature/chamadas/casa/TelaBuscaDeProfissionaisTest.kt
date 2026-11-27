@@ -13,6 +13,9 @@ import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -322,6 +325,24 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNode(hasTestTag("busca-cartao-p2") and selo).assertDoesNotExist()
         rolarAteTag("busca-cartao-p3")
         rule.onNode(hasTestTag("busca-cartao-p3") and selo).assertDoesNotExist()
+    }
+
+    @Test
+    fun abrirOPerfilEAnunciadoComoBotaoComAAcaoEONome() {
+        montar(comResultados())
+
+        rolarAteTag("busca-cartao-p3")
+        val abrir = rule.onNodeWithTag("busca-abrir-perfil-p3")
+        abrir.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        abrir.assert(
+            SemanticsMatcher("rótulo do toque = Ver perfil de Ana L.") {
+                it.config.getOrNull(SemanticsActions.OnClick)?.label == TextosChamadaCasa.buscaVerPerfil("Ana L.")
+            },
+        )
+        assertEquals("Ver perfil de Ana L.", TextosChamadaCasa.buscaVerPerfil("Ana L."))
+
+        abrir.performClick()
+        assertEquals(listOf("p3"), chamadas.perfis)
     }
 
     @Test
