@@ -99,4 +99,17 @@ class ComprovanteCheckinTest {
             texto.lines(),
         )
     }
+
+    @Test
+    fun `hora desconhecida: o comprovante existe, sem hora inventada, com codigo proprio`() {
+        val semHora = GeradorComprovanteCheckin.gerar(turnoId, null, TipoVerificacaoCheckin.GEOLOCALIZADO)
+        val comHora = GeradorComprovanteCheckin.gerar(turnoId, instante, TipoVerificacaoCheckin.GEOLOCALIZADO)
+
+        assertEquals(null, semHora.registradoEm)
+        assertEquals(ComprovanteCheckin.HORARIO_INDISPONIVEL, semHora.horarioFormatado())
+        assertTrue(semHora.textoCompartilhamento().contains("Horário: indisponível"))
+        assertTrue(semHora.codigoAutenticacao.startsWith("CHK-"))
+        assertEquals(semHora.codigoAutenticacao, GeradorComprovanteCheckin.gerar(turnoId, null, TipoVerificacaoCheckin.GEOLOCALIZADO).codigoAutenticacao)
+        assertTrue(semHora.codigoAutenticacao != comHora.codigoAutenticacao)
+    }
 }
