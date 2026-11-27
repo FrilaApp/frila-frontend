@@ -191,7 +191,7 @@ class TenhoUmConviteViewModelTest {
             vm.editar(colado)
             vm.aceitarConvite().join()
             assertTrue(tokens.isEmpty(), colado)
-            assertEquals(TextosEquipeDaCasa.CONVITE_INVALIDO, vm.estado.value.erro, colado)
+            assertEquals(TextosEquipeDaCasa.CONVITE_FORMATO_INVALIDO, vm.estado.value.erro, colado)
             assertNull(vm.estado.value.aceito)
         }
     }
@@ -236,7 +236,7 @@ class TenhoUmConviteViewModelTest {
         vm.aceitarConvite().join()
 
         assertTrue(tokens.isEmpty())
-        assertEquals(TextosEquipeDaCasa.CONVITE_INVALIDO, vm.estado.value.erro)
+        assertEquals(TextosEquipeDaCasa.CONVITE_FORMATO_INVALIDO, vm.estado.value.erro)
         vm.editar("outro texto")
         assertNull(vm.estado.value.erro)
     }
@@ -317,5 +317,73 @@ class TenhoUmConviteViewModelTest {
         val casas = (vm.estado.value as ListaDeCasas.Conteudo).casas
         assertEquals(listOf("Bar da Lia", "Buffet Sol", "Outra"), casas.map { it.nome })
         assertEquals(listOf(PapelMembro.ADMINISTRADOR, PapelMembro.OPERADOR, null), casas.map { it.papel })
+    }
+
+    // ---- Formato inválido e tempo esgotado (fN6OPSSd) ----
+
+    @Test
+    fun `texto sem forma de convite diz que o link ou codigo e invalido, e nao que o convite venceu`() = runBlocking {
+        listOf("oi", "   ", "https://frilabr.com/app/convite", "abc123").forEach { colado ->
+            val tokens = mutableListOf<String>()
+            val vm = viewModel(tokens)
+            vm.editar(colado)
+            vm.aceitarConvite().join()
+
+            assertTrue(tokens.isEmpty(), colado)
+            assertEquals("Link ou código inválido. Cole o link inteiro do convite, ou só o código, sem mais nada.", vm.estado.value.erro, colado)
+            assertFalse(vm.estado.value.erro!!.contains("não vale mais"), colado)
+        }
+    }
+
+    @Test
+    fun `o convite que o servidor recusa por invalido segue dizendo que nao vale mais`() = runBlocking {
+        val vm = viewModel(resposta = { throw erro(CodigoErroAPI.CONVITE_INVALIDO) })
+        vm.editar(token)
+        vm.aceitarConvite().join()
+        assertEquals(TextosEquipeDaCasa.CONVITE_INVALIDO, vm.estado.value.erro)
+    }
+
+    @Test
+    fun `tempo esgotado depois de enviar vira incerto e nunca Sem conexao`() = runBlocking {
+        val esgotado = ErroDaApi(CodigoErroAPI.SEM_REDE, ErroDaApi.CODIGO_TEMPO_ESGOTADO, null, "timeout")
+        val vm = viewModel(resposta = { throw esgotado })
+        vm.editar(token)
+
+        vm.aceitarConvite().join()
+
+        assertEquals(TextosEquipeDaCasa.CONVITE_INCERTO, vm.estado.value.erro)
+        assertTrue(vm.estado.value.erro!!.contains("a casa aparece na sua conta"))
+        assertFalse(vm.estado.value.erro!!.contains("Sem conexão"))
+        assertFalse(vm.estado.value.enviando)
+        assertNull(vm.estado.value.aceito)
+        // O convite é de uso único: o que foi colado fica no campo, e a pessoa decide (conferir a conta ou tentar de novo).
+        assertEquals(token, vm.estado.value.texto)
+    }
+
+    @Test
+    fun `falha de rede antes de enviar segue sendo Sem conexao`() = runBlocking {
+        val vm = viewModel(resposta = { throw ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "sem rota") })
+        vm.editar(token)
+        vm.aceitarConvite().join()
+        assertEquals(TextosEquipeDaCasa.SEM_REDE, vm.estado.value.erro)
+    }
+
+    @Test
+    fun `depois do incerto um novo toque envia de novo`() = runBlocking {
+        var chamadas = 0
+        val vm = viewModel(resposta = {
+            chamadas++
+            if (chamadas == 1) throw ErroDaApi(CodigoErroAPI.SEM_REDE, ErroDaApi.CODIGO_TEMPO_ESGOTADO, null, "timeout")
+            MembroAdicionadoDto(estabelecimentoId = "casa-1", usuarioId = "u1", papel = "operador")
+        })
+        vm.editar(token)
+        vm.aceitarConvite().join()
+        assertEquals(TextosEquipeDaCasa.CONVITE_INCERTO, vm.estado.value.erro)
+
+        vm.aceitarConvite().join()
+
+        assertEquals(2, chamadas)
+        assertNull(vm.estado.value.erro)
+        assertEquals("casa-1", vm.estado.value.aceito?.estabelecimentoId)
     }
 }

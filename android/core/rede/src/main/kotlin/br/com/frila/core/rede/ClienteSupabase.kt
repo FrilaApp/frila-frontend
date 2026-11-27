@@ -52,6 +52,17 @@ class ErroDaApi(
     val mensagemCrua: String,
 ) : Exception("ErroDaApi(codigo=$codigo, codigoOriginal=$codigoOriginal)") {
     /**
+     * `SEM_REDE` por tempo esgotado depois de a requisição ter saído (o servidor pode ter recebido e feito): quem tem uma ação de uso único
+     * (aceitar um convite) não pode dizer "sem conexão" nem sugerir tentar de novo como se nada tivesse acontecido.
+     */
+    val foiTempoEsgotado: Boolean get() = codigo == CodigoErroAPI.SEM_REDE && codigoOriginal == CODIGO_TEMPO_ESGOTADO
+
+    companion object {
+        /** O `codigoOriginal` de um `SEM_REDE` por tempo esgotado da requisição ou do socket (a conexão não falhou antes de enviar). */
+        const val CODIGO_TEMPO_ESGOTADO = "tempo_esgotado"
+    }
+
+    /**
      * Os `details` do servidor lidos como [CodigoErroAPI], para a tela comparar o valor do domínio e não um texto solto
      * (`403 sem_permissao` com `details: recurso_desligado`; `422 republicacao_indisponivel` com `details: ja_republicada`).
      * `null` sem `details` ou quando o texto não é um valor conhecido (ex.: `conta_suspensa` vale como código, `temporario` não).
@@ -216,7 +227,13 @@ class ClienteSupabase(
                 if (causa.isFalhaTransitoriaDeRede()) {
                     throw ErroDaApi(
                         codigo = CodigoErroAPI.SEM_REDE,
-                        codigoOriginal = "sem_rede",
+                        // Timeout da requisição ou do socket: a requisição já saiu, e o servidor pode ter feito o que se pediu. Falha ao conectar
+                        // (ConnectTimeout, host, sem rota) nunca chegou lá: segue "sem_rede".
+                        codigoOriginal = if (causa is HttpRequestTimeoutException || causa is SocketTimeoutException) {
+                            ErroDaApi.CODIGO_TEMPO_ESGOTADO
+                        } else {
+                            "sem_rede"
+                        },
                         detalhes = null,
                         mensagemCrua = causa.message ?: "Falha de conectividade",
                     )
