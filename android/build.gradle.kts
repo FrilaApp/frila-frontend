@@ -18,6 +18,15 @@ tasks.register("clean", Delete::class) {
 }
 
 subprojects {
+    // O formato padrão da CI mostra só a classe e a linha da falha. Com mensagem, pilha completa e causas, uma falha que não
+    // reproduz localmente (corrida de tempo) deixa de exigir um PR de laboratório para ser diagnosticada. Só falhas: sem stdout.
+    tasks.withType<Test>().configureEach {
+        testLogging {
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            showCauses = true
+            showStackTraces = true
+        }
+    }
     plugins.withId("org.jetbrains.kotlin.jvm") {
         tasks.register("testDebugUnitTest") {
             group = "verification"
