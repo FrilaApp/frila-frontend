@@ -481,4 +481,71 @@ class AutenticacaoComSenhaViewModelsTest {
         assertEquals(null, dispositivo.obterToken("conta@exemplo.test"))
         assertEquals("tok-30d-outra", dispositivo.obterToken("outra@exemplo.test"))
     }
+
+    // ── Cartão O9aPbBR2: a sessão nova só vai para o armazenamento se a guardada ainda é a de quem definiu a senha ────
+
+    private fun jwtDa(conta: String) =
+        "cab.${java.util.Base64.getUrlEncoder().withoutPadding().encodeToString("""{"sub":"$conta"}""".toByteArray())}.ass"
+
+    private fun sessaoDe(conta: String, refresh: String, vinculoId: String? = null) =
+        Sessao(jwtDa(conta), refresh, "bearer", 3600, vinculoId = vinculoId)
+
+    /** Define a senha com a sessão [inicial] guardada; [duranteAChamada] roda enquanto a rede espera, e o servidor devolve a sessão nova da conta A. */
+    private fun definirSenhaComEspera(inicial: Sessao, duranteAChamada: (ArmazenamentoDeSessaoEmMemoria) -> Unit): ArmazenamentoDeSessaoEmMemoria {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply { salvarSessao(inicial) }
+        val engine = MockEngine { request ->
+            if (request.url.encodedPath != "/auth/v1/token") duranteAChamada(armazenamento)
+            respond(
+                """{"ok":true,"precisa_definir_senha":false,"dispositivos_revogados":0,"sessao":{"access_token":"${jwtDa("conta-a")}","refresh_token":"refresh-a-definido","token_type":"bearer","expires_in":3600}}""",
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase("https://frila.supabase.co", "chave", armazenamentoDeSessao = armazenamento, engine = engine),
+        )
+        val vm = DefinirSenhaViewModel(servico, armazenamento, escopo = escopo(), emailAtual = "a@frila.test")
+        vm.aoMudarSenha("SenhaForte#2026")
+        vm.aoMudarConfirmacao("SenhaForte#2026")
+        runBlocking { vm.salvar()?.join() }
+        return armazenamento
+    }
+
+    @Test
+    fun `se a conta B entra enquanto a senha e definida, a sessao nova de A nao substitui a de B`() {
+        val sessaoDeB = sessaoDe("conta-b", "refresh-b", vinculoId = "vinculo-de-b")
+
+        val armazenamento = definirSenhaComEspera(sessaoDe("conta-a", "refresh-a", vinculoId = "vinculo-de-a")) { loja ->
+            loja.limparSessao()
+            loja.salvarSessao(sessaoDeB)
+        }
+
+        assertEquals(sessaoDeB, armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `se a pessoa sai enquanto a senha e definida, a sessao nova nao ressuscita a conta`() {
+        val armazenamento = definirSenhaComEspera(sessaoDe("conta-a", "refresh-a")) { it.limparSessao() }
+
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `sem troca de conta a sessao nova de A e gravada com o vinculo que ja estava guardado`() {
+        val armazenamento = definirSenhaComEspera(sessaoDe("conta-a", "refresh-a", vinculoId = "vinculo-de-a")) {}
+
+        val guardada = armazenamento.obterSessao()!!
+        assertEquals("refresh-a-definido", guardada.refreshToken)
+        assertEquals("vinculo-de-a", guardada.vinculoId)
+        assertEquals("a@frila.test", guardada.email)
+    }
+
+    @Test
+    fun `se a propria conta renova o token enquanto a senha e definida, a sessao nova de A e gravada`() {
+        val armazenamento = definirSenhaComEspera(sessaoDe("conta-a", "refresh-a", vinculoId = "vinculo-de-a")) { loja ->
+            loja.salvarSessao(sessaoDe("conta-a", "refresh-a-renovado", vinculoId = "vinculo-de-a"))
+        }
+
+        assertEquals("refresh-a-definido", armazenamento.obterSessao()?.refreshToken)
+    }
 }
