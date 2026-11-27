@@ -51,12 +51,18 @@ class DetalheVagaViewModel(
             try {
                 val lido = servicoVagas.detalheVaga(vagaId)
                 val aberta = lido.estado == AberturaDeVagaViewModel.ESTADO_PUBLICADA && lido.posicoesAbertas > 0
-                _estado.update { if (it.detalhe == null) it.copy(detalhe = lido, indisponivel = !aberta) else it }
+                // Só marca como indisponível quem ainda não se candidatou: a candidatura que confirma antes desta leitura voltar deixa a vaga sem
+                // posição aberta por causa dela, e o aviso "não está mais disponível" mentiria para quem acabou de conseguir o turno.
+                _estado.update {
+                    if (it.detalhe == null) it.copy(detalhe = lido, indisponivel = !aberta && it.statusCandidatura == StatusCandidatura.NENHUMA) else it
+                }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
                 // `404`: a vaga não existe mais para esta pessoa (iOS `.naoEncontrada`). Qualquer outra falha (rede, 5xx...) fica silenciosa.
-                if (erro.codigo == CodigoErroAPI.NAO_ENCONTRADO) _estado.update { it.copy(indisponivel = true) }
+                if (erro.codigo == CodigoErroAPI.NAO_ENCONTRADO) {
+                    _estado.update { if (it.statusCandidatura == StatusCandidatura.NENHUMA) it.copy(indisponivel = true) else it }
+                }
             } catch (_: Exception) {
                 // Fica o que veio do feed.
             }
