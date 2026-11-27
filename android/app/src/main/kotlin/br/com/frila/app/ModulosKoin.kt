@@ -475,10 +475,13 @@ val moduloFeatures = module {
      */
     viewModel {
         val servicoPerfil = get<ServicoPerfil>()
+        val servicoTurnos = get<ServicoTurnos>()
         val coordenadorDeLogout = get<CoordenadorDeLogout>()
         ExclusaoDeContaViewModel(
             excluir = { servicoPerfil.excluirConta() },
             aoConcluir = { coordenadorDeLogout.limparSessao() },
+            // Só lê, para a tela listar os turnos futuros que a exclusão cancela (profissional; a casa vem em outro PR).
+            consultarTurnos = servicoTurnos::listarMeusTurnos,
         )
     }
     viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->

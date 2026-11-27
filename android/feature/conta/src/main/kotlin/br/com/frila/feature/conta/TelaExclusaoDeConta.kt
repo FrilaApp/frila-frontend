@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,9 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /** Liga o [ExclusaoDeContaViewModel] ao [ConteudoExclusaoDeConta]. */
 @Composable
@@ -58,6 +62,8 @@ fun TelaExclusaoDeConta(
     modifier: Modifier = Modifier,
 ) {
     val estado by viewModel.estado.collectAsState()
+    // Só lê e mostra os turnos futuros; a exclusão não depende dessa leitura.
+    LaunchedEffect(viewModel) { viewModel.carregarTurnos() }
     ConteudoExclusaoDeConta(
         estado = estado,
         aoAlterarConfirmacao = viewModel::alterarConfirmacao,
@@ -131,6 +137,8 @@ fun ConteudoExclusaoDeConta(
                 Consequencia(TextosExclusaoDeConta.CONSEQUENCIA_TURNOS)
                 Consequencia(TextosExclusaoDeConta.CONSEQUENCIA_PRAZO)
             }
+
+            SecaoTurnosFuturos(estado.turnosFuturos)
 
             Row(
                 modifier = Modifier
@@ -248,3 +256,51 @@ private fun Consequencia(texto: String) {
         color = FrilaTema.cores.tinta,
     )
 }
+
+private val FORMATO_DATA_HORA: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.of("America/Sao_Paulo"))
+private val FORMATO_HORA: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.of("America/Sao_Paulo"))
+
+/** "20/11/2026 18:00 – 23:00": o dia e a hora de início, e a hora do fim (se o fim cair em outro dia, com a data também). */
+internal fun intervaloDoTurno(inicio: Instant, fim: Instant): String {
+    val zona = ZoneId.of("America/Sao_Paulo")
+    val mesmoDia = inicio.atZone(zona).toLocalDate() == fim.atZone(zona).toLocalDate()
+    return FORMATO_DATA_HORA.format(inicio) + " – " + (if (mesmoDia) FORMATO_HORA else FORMATO_DATA_HORA).format(fim)
+}
+
+/**
+ * Os turnos futuros que a exclusão cancelaria (contrato: cancela e avisa as contrapartes). Só lista; nunca bloqueia nada:
+ * lista indisponível vira um aviso e a exclusão segue liberada. Sem consulta ([TurnosFuturosDaExclusao.NaoConsultados]), nada.
+ */
+@Composable
+private fun SecaoTurnosFuturos(turnos: TurnosFuturosDaExclusao) {
+    val cores = FrilaTema.cores
+    if (turnos == TurnosFuturosDaExclusao.NaoConsultados) return
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        RotuloDeGrupo(TextosExclusaoDeConta.TITULO_TURNOS_FUTUROS)
+        when (turnos) {
+            TurnosFuturosDaExclusao.NaoConsultados -> Unit
+            TurnosFuturosDaExclusao.Carregando ->
+                Text(TextosExclusaoDeConta.CARREGANDO_TURNOS, style = FrilaTipo.apoio, color = cores.tintaSuave)
+            TurnosFuturosDaExclusao.Indisponivel ->
+                AvisoFrila(tom = TomAviso.INFORMATIVO, mensagem = TextosExclusaoDeConta.LISTA_TURNOS_INDISPONIVEL)
+            is TurnosFuturosDaExclusao.Lista ->
+                if (turnos.turnos.isEmpty()) {
+                    Text(TextosExclusaoDeConta.SEM_TURNOS_FUTUROS, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                } else {
+                    turnos.turnos.forEach { turno ->
+                        Column(
+                            modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { },
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(turno.funcao, style = FrilaTipo.nome, color = cores.tinta)
+                            Text(turno.contraparte, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                            Text(intervaloDoTurno(turno.inicio, turno.fim), style = FrilaTipo.apoio, color = cores.tintaSuave)
+                            Text(turno.local, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                        }
+                    }
+                }
+        }
+    }
+}
+
