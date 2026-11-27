@@ -19,6 +19,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CampoDeBusca
 import br.com.frila.core.designsystem.componentes.ChipFrila
@@ -29,6 +31,7 @@ import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.componentes.RodapeAncorado
 import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
@@ -105,6 +108,13 @@ fun ConteudoPontoBase(
                 Text(TextosPontoBase.DICA, style = FrilaTipo.apoio, color = cores.tintaSuave)
                 if (estado.carregando) Text(TextosPontoBase.CARREGANDO, style = FrilaTipo.apoio, color = cores.tintaSuave)
                 if (estado.temPontoBaseSalvo) Text(TextosPontoBase.PONTO_BASE_SALVO, style = FrilaTipo.apoio, color = cores.tintaSuave)
+                if (estado.avisoForaDoDF) {
+                    AvisoFrila(
+                        tom = TomAviso.ALERTA,
+                        mensagem = TextosPontoBase.AVISO_FORA_DO_DF,
+                        modifier = Modifier.testTag("ponto-base-aviso-fora-do-df"),
+                    )
+                }
             }
 
             if (estado.semPerfil) {
