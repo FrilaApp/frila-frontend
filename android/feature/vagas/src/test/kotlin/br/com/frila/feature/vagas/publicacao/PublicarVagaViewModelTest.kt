@@ -656,4 +656,29 @@ class PublicarVagaViewModelTest {
             assertEquals(TextosPublicarVaga.VALOR_CAMPO, vm.estado.value.errosDeCampo[CampoPublicacao.VALOR])
         }
     }
+
+    // ---- X0YONSwz: 422 funcao_incompativel marca o campo Função ----
+
+    @Test
+    fun `422 funcao_incompativel marca so o campo Funcao, com o texto de valor invalido, e libera a edicao`() {
+        for (detalhes in listOf(null, "funcao_id")) {
+            val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "funcao_incompativel", detalhes).estado.value
+
+            assertEquals(mapOf(CampoPublicacao.FUNCAO to TextosPublicarVaga.CAMPO_INVALIDO), estado.errosDeCampo, "details=$detalhes")
+            assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, estado.erro, "details=$detalhes")
+            assertNull(estado.pendente, "details=$detalhes")
+            assertTrue(estado.podeEditar, "details=$detalhes")
+        }
+    }
+
+    @Test
+    fun `escolher outra funcao depois do 422 funcao_incompativel limpa o erro do campo`() {
+        val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "funcao_incompativel", null)
+        assertTrue(CampoPublicacao.FUNCAO in vm.estado.value.errosDeCampo)
+
+        vm.escolherFuncao("f2")
+
+        assertTrue(CampoPublicacao.FUNCAO !in vm.estado.value.errosDeCampo)
+    }
 }
+
