@@ -1,30 +1,23 @@
 package br.com.frila.core.notificacoes
 
-/** Resolve somente destinos autorizados para abertura a partir de uma notificação FCM. */
-object ResolvedorDeDeepLinkPush {
+import java.net.URLEncoder
 
-    private val UUID_REGEX = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+/**
+ * Monta o link que o toque numa notificação FCM abre: `frila://aviso?tipo=...` com os ids do payload. Não decide a
+ * tela: quem decide é o `:app` no toque, com o papel da conta (como o `RoteadorDePush` do iOS).
+ */
+object ResolvedorDeDeepLinkPush {
 
     fun resolver(notificacao: NotificacaoParaExibir): String? {
         if (notificacao.neutralizada) return null
-
-        notificacao.chamadaId?.takeIf(String::isNotBlank)?.let { chamadaId ->
-            return "frila://chamadas/$chamadaId"
-        }
-
-        notificacao.vagaId?.takeIf(String::isNotBlank)?.let { vagaId ->
-            return "frila://vagas/$vagaId"
-        }
-
-        return if (notificacao.canal == GerenciadorDeCanais.CANAL_TURNOS) {
-            val turnoIdValido = notificacao.turnoId?.trim()?.takeIf { UUID_REGEX.matches(it) }
-            if (turnoIdValido != null) {
-                "frila://meus_turnos/$turnoIdValido"
-            } else {
-                "frila://meus_turnos"
-            }
-        } else {
-            null
-        }
+        val tipo = notificacao.tipo?.takeIf(String::isNotBlank) ?: return null
+        val campos = listOf(
+            "tipo" to tipo,
+            "vaga_id" to notificacao.vagaId,
+            "turno_id" to notificacao.turnoId,
+            "posicao_id" to notificacao.posicaoId,
+            "chamada_id" to notificacao.chamadaId,
+        ).mapNotNull { (chave, valor) -> valor?.takeIf(String::isNotBlank)?.let { "$chave=${URLEncoder.encode(it, "UTF-8")}" } }
+        return "frila://aviso?" + campos.joinToString("&")
     }
 }

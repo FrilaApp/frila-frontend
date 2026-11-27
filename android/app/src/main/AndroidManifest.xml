@@ -76,6 +76,14 @@
                     android:scheme="frila"
                     android:host="chamadas" />
             </intent-filter>
+            <!-- O toque num push: o app escolhe a tela pelo tipo. Sem BROWSABLE, página da web não abre este link. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="frila"
+                    android:host="aviso" />
+            </intent-filter>
         </activity>
 
         <!--

@@ -84,6 +84,9 @@ class EntradaPorPapelTest {
 
     private val sessao = ArmazenamentoDeSessaoEmMemoria()
 
+    /** O toque num push, como a `MainActivity` o entrega. */
+    private val avisoDoToque = MutableStateFlow<AvisoDoToque?>(null)
+
     /** Caminhos pedidos ao "servidor", na ordem. */
     private val chamadas = CopyOnWriteArrayList<String>()
 
@@ -129,7 +132,9 @@ class EntradaPorPapelTest {
         respond(corpo, status, headersOf(HttpHeaders.ContentType, "application/json"))
     }
 
-    private fun montar(papel: Papel, comSessaoGuardada: Boolean) {
+    /** [semRedeComGuardado]: o servidor não responde e a abertura usa este destino guardado. */
+    private fun montar(papel: Papel, comSessaoGuardada: Boolean, aviso: AvisoDoToque? = null, semRedeComGuardado: DestinoDaConta? = null) {
+        avisoDoToque.value = aviso
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = servidor(papel))
         if (comSessaoGuardada) sessao.salvarSessao(Sessao("tok", "ref", "bearer", 3600))
         val servicoMembros = ServicoMembros(cliente)
@@ -149,9 +154,12 @@ class EntradaPorPapelTest {
                             val perfil = ServicoPerfil(cliente)
                             AvaliadorDeDestino(
                                 descobrir = {
+                                    if (semRedeComGuardado != null) {
+                                        throw br.com.frila.core.rede.ErroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_REDE, "sem_rede", null, "sem rede")
+                                    }
                                     avaliarDestinoDaConta(conta::minhaConta, perfil::obterMeuPerfilProfissional, servicoMembros::listarMeusEstabelecimentos)
                                 },
-                                guardado = DestinoGuardadoEmMemoria(),
+                                guardado = DestinoGuardadoEmMemoria().apply { semRedeComGuardado?.let(::salvar) },
                                 // Este cliente não renova o token: o 401 do servidor já é a recusa (o caso da sessão vencida).
                                 sessaoGuardada = { false },
                             )
@@ -188,6 +196,8 @@ class EntradaPorPapelTest {
                     monitorDeConectividade = MonitorDeConectividadeFalso(),
                     navController = nav,
                     servicoMembros = servicoMembros,
+                    avisoDoToque = avisoDoToque,
+                    aoConsumirAvisoDoToque = { avisoDoToque.value = null },
                 )
             }
         }
@@ -257,6 +267,57 @@ class EntradaPorPapelTest {
             "a casa nunca pede o feed do profissional (chamadas: $chamadas)",
             chamadas.any { it.endsWith("/rpc/vagas_abertas") },
         )
+    }
+
+    // ──────────── 9E0Pgqmw: o toque num push escolhe a tela pelo tipo e pelo papel ────────────
+
+    private val vagaDoAviso = "40000000-0000-0000-0000-000000000001"
+    private val turnoDoAviso = "60000000-0000-0000-0000-000000000001"
+    private val confirmacao = AvisoDoToque("confirmacao", vagaId = vagaDoAviso, turnoId = turnoDoAviso)
+
+    @Test
+    fun `9E0Pgqmw - profissional que abre o app pelo aviso de confirmacao cai no turno, com o feed embaixo`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true, aviso = confirmacao)
+
+        val chegou = aguardar(8_000) { rotaAtual() == Rotas.TURNO_AVISO }
+
+        assertTrue("a confirmação não abriu o turno (rota: ${rotaAtual()})", chegou)
+        assertEquals(Rotas.FEED, rotaAbaixo())
+        assertNull("o aviso atendido sai da fila", avisoDoToque.value)
+    }
+
+    @Test
+    fun `9E0Pgqmw - casa que abre o app por um aviso fica em Minhas vagas e nunca numa tela do profissional`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = confirmacao)
+
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS && avisoDoToque.value == null }
+        aguardar(1_500) { rotaAtual() != Rotas.MINHAS_VAGAS }
+
+        assertNull("o aviso não foi atendido (rota: ${rotaAtual()})", avisoDoToque.value)
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAtual())
+        assertNull("Minhas vagas é a raiz: nada da abertura nem do profissional embaixo", rotaAbaixo())
+    }
+
+    @Test
+    fun `9E0Pgqmw - sem rede, com o papel so do destino guardado, o aviso nao escolhe tela`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true, aviso = confirmacao, semRedeComGuardado = DestinoDaConta.Profissional)
+
+        aguardar(8_000) { rotaAtual() == Rotas.FEED && avisoDoToque.value == null }
+        aguardar(1_500) { rotaAtual() != Rotas.FEED }
+
+        assertNull("o aviso ficou pendurado (rota: ${rotaAtual()})", avisoDoToque.value)
+        assertEquals(Rotas.FEED, rotaAtual())
+    }
+
+    @Test
+    fun `9E0Pgqmw - com o app aberto, o aviso de cancelamento de quem tinha a posicao abre Meus turnos`() {
+        montar(Papel.PROFISSIONAL, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.FEED }
+
+        avisoDoToque.value = AvisoDoToque("cancelamento", vagaId = vagaDoAviso, posicaoId = "50000000-0000-0000-0000-000000000001")
+
+        assertTrue("o cancelamento não abriu Meus turnos (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MEUS_TURNOS })
+        assertNull(avisoDoToque.value)
     }
 
     // ───────────────────── #783: tela inicial por papel ─────────────────────

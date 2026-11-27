@@ -134,7 +134,7 @@ class DestinoDaContaTest {
         runCurrent()
 
         assertEquals(
-            ResultadoDaAbertura.Destino(DestinoDaConta.Contratante(CasaDoContratante("e1", "Bar Teste"))),
+            ResultadoDaAbertura.Destino(DestinoDaConta.Contratante(CasaDoContratante("e1", "Bar Teste")), doServidor = false),
             resultado.await(),
         )
     }
@@ -155,7 +155,7 @@ class DestinoDaContaTest {
         val guardado = GuardadoFalso(DestinoDaConta.Profissional)
         val resultado = AvaliadorDeDestino({ throw erro(CodigoErroAPI.SEM_REDE) }, guardado, sessaoGuardada = { false }).avaliar()
 
-        assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional), resultado)
+        assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional, doServidor = false), resultado)
         assertEquals(DestinoDaConta.Profissional, guardado.valor)
     }
 
@@ -252,7 +252,7 @@ class DestinoDaContaTest {
             sessaoGuardada = { true },
         ).avaliar()
 
-        assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional), resultado)
+        assertEquals(ResultadoDaAbertura.Destino(DestinoDaConta.Profissional, doServidor = false), resultado)
         assertEquals(DestinoDaConta.Profissional, guardado.valor)
     }
 

@@ -34,11 +34,13 @@ internal fun extrairCallbackOAuthSocialDoIntent(intent: Intent?): String? {
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
 class MainActivity : FragmentActivity() {
     private val callbackOAuthSocial = MutableStateFlow<String?>(null)
+    private val avisoDoToque = MutableStateFlow<AvisoDoToque?>(null)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
+        avisoDoIntent(intent)?.let { avisoDoToque.value = it }
     }
 
     private fun abrirNavegadorLoginSocial(url: String) {
@@ -51,6 +53,8 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
+        // Recriada (rotação, processo restaurado), a activity recebe o mesmo Intent: o aviso já foi atendido.
+        if (savedInstanceState == null) avisoDoIntent(intent)?.let { avisoDoToque.value = it }
         // O app desenha de borda a borda em todas as versões (no Android 15+ já é obrigatório): as telas recuam para as
         // barras do sistema e o rodapé ancorado sobe com o teclado. Sem isto, no Android 14 ou menos o teclado cobria o botão.
         enableEdgeToEdge()
@@ -144,6 +148,8 @@ class MainActivity : FragmentActivity() {
                             callbackOAuthSocial = callbackOAuthSocial,
                             aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
                             aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(url) },
+                            avisoDoToque = avisoDoToque,
+                            aoConsumirAvisoDoToque = { avisoDoToque.value = null },
                             aoPronto = {
                                 MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                                 registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())

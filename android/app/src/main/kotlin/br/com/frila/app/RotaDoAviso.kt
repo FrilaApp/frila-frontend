@@ -1,0 +1,57 @@
+package br.com.frila.app
+
+import android.content.Intent
+
+/** O toque num push: o `tipo` e os ids que o `ResolvedorDeDeepLinkPush` põe em `frila://aviso`. */
+data class AvisoDoToque(
+    val tipo: String,
+    val vagaId: String? = null,
+    val turnoId: String? = null,
+    val posicaoId: String? = null,
+    val chamadaId: String? = null,
+)
+
+/** O aviso do `frila://aviso` que abriu a activity; outro link (vaga, OAuth, lançador) não é aviso. */
+internal fun avisoDoIntent(intent: Intent?): AvisoDoToque? {
+    if (intent?.action != Intent.ACTION_VIEW) return null
+    val uri = intent.data?.takeIf { it.scheme == "frila" && it.host == HOST_DO_AVISO } ?: return null
+    val tipo = uri.getQueryParameter("tipo")?.takeIf(String::isNotBlank) ?: return null
+    return AvisoDoToque(
+        tipo = tipo,
+        vagaId = uri.getQueryParameter("vaga_id"),
+        turnoId = uri.getQueryParameter("turno_id"),
+        posicaoId = uri.getQueryParameter("posicao_id"),
+        chamadaId = uri.getQueryParameter("chamada_id"),
+    )
+}
+
+internal const val HOST_DO_AVISO = "aviso"
+
+private val UUID_REGEX = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+private fun String?.uuid(): String? = this?.trim()?.takeIf { UUID_REGEX.matches(it) }
+
+/**
+ * A tela que o toque abre, pelo tipo e pelo papel da conta, como o `RoteadorDePush` do iOS (`DestinoDoProfissional`).
+ * Nulo: não navega, e o app fica na raiz do papel. A casa vai sempre a Minhas vagas, nunca a tela do profissional;
+ * o destino fino da casa (turno, vaga) ainda não tem rota por link.
+ */
+internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
+    if (papel is PapelDaRaiz.Contratante) return papel.rotaDeMinhasVagas
+    return when (aviso.tipo) {
+        "vaga", "candidatura_recusada", "selecao_encerrada" -> aviso.vagaId.uuid()?.let(Rotas::detalhe)
+        "confirmacao", "lembrete_24h", "lembrete_3h", "inicio_sem_checkin", "fim_sem_checkout", "turno_nao_verificado" ->
+            aviso.turnoId.uuid()?.let(Rotas::turnoAviso)
+        // O cancelamento nunca traz `turno_id`. Com `posicao_id`, a pessoa tinha a posição e o turno cancelado está em
+        // Meus turnos; sem ele, era candidata de uma vaga recolhida.
+        "cancelamento" -> if (aviso.posicaoId.uuid() != null) Rotas.MEUS_TURNOS else aviso.vagaId.uuid()?.let(Rotas::detalhe)
+        // Como estava antes do toque decidir pelo tipo; a tela da avaliação vem depois.
+        "avaliacao_disponivel" -> aviso.turnoId.uuid()?.let(Rotas::turnoAviso) ?: Rotas.MEUS_TURNOS
+        "chamada_recebida", "chamada_lembrete", "chamada_cancelada", "chamada_expirada", "chamada_encerrada" ->
+            aviso.chamadaId?.takeIf(String::isNotBlank)?.let(RotasChamadaProfissional::recebida)
+        // Os da casa (`vaga_sem_elegiveis`, `atraso_15min`, `vaga_vazia`, `checkin`, `checkin_manual_pendente`,
+        // `selecao_lembrete`, `chamada_aceita`, `chamada_recusada`, lembretes de fim de turno), `midia_recusada`,
+        // `vagas_agrupadas`, `suspensao`, `reativacao` e tipo desconhecido não abrem tela.
+        else -> null
+    }
+}

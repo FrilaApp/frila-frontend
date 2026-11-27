@@ -12,6 +12,7 @@ data class DadosDoPush(
     val corpo: String?,
     val chamadaId: String? = null,
     val turnoId: String? = null,
+    val posicaoId: String? = null,
 ) {
     companion object {
         private const val CHAVE_VINCULO_ID = "vinculo_id"
@@ -21,6 +22,7 @@ data class DadosDoPush(
         private const val CHAVE_CORPO = "corpo"
         private const val CHAVE_CHAMADA_ID = "chamada_id"
         private const val CHAVE_TURNO_ID = "turno_id"
+        private const val CHAVE_POSICAO_ID = "posicao_id"
 
         fun doPayload(payload: Map<String, String>): DadosDoPush = DadosDoPush(
             vinculoId = payload[CHAVE_VINCULO_ID],
@@ -30,6 +32,7 @@ data class DadosDoPush(
             corpo = payload[CHAVE_CORPO],
             chamadaId = payload[CHAVE_CHAMADA_ID],
             turnoId = payload[CHAVE_TURNO_ID],
+            posicaoId = payload[CHAVE_POSICAO_ID],
         )
     }
 }
@@ -47,6 +50,9 @@ data class NotificacaoParaExibir(
     /** Só nos avisos da chamada ao profissional (como o `RoteadorDePush` do iOS): vira `frila://chamadas/<id>`. */
     val chamadaId: String? = null,
     val turnoId: String? = null,
+    /** O `tipo` do payload: é ele que o `:app` usa no toque para escolher a tela. */
+    val tipo: String? = null,
+    val posicaoId: String? = null,
 )
 
 /**
@@ -96,6 +102,8 @@ class ProcessadorDePush(
             vagaId = dados.vagaId,
             chamadaId = dados.chamadaId?.takeIf { dados.tipo in TIPOS_DA_CHAMADA_RECEBIDA },
             turnoId = dados.turnoId,
+            tipo = dados.tipo,
+            posicaoId = dados.posicaoId,
             neutralizada = false,
             silenciada = !preferenciasNotificacao.estaAtivado(canal),
         )

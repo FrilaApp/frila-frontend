@@ -8,6 +8,7 @@ import androidx.navigation.NavDestination
 import androidx.navigation.navDeepLink
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,6 +69,36 @@ class AppDeepLinkNavegacaoTest {
             destino(RotasChamadaProfissional.RECEBIDA, RotasChamadaProfissional.DEEP_LINK_RECEBIDA)
                 .hasDeepLink(intent.data!!),
         )
+    }
+
+    /** 9E0Pgqmw: o toque num push chega como `frila://aviso`, com o tipo e os ids, e o app escolhe a tela. */
+    @Test
+    fun `intent do aviso resolve MainActivity e leva o tipo e os ids`() {
+        val intent = intentPara("frila://aviso?tipo=cancelamento&vaga_id=v1&posicao_id=p1")
+
+        assertEquals(
+            ComponentName(contexto, MainActivity::class.java),
+            intent.resolveActivity(contexto.packageManager),
+        )
+        assertEquals(AvisoDoToque("cancelamento", vagaId = "v1", posicaoId = "p1"), avisoDoIntent(intent))
+    }
+
+    @Test
+    fun `so o link do aviso com tipo vira aviso`() {
+        assertNull(avisoDoIntent(intentPara("frila://vagas/v1")))
+        assertNull(avisoDoIntent(intentPara("frila://aviso?vaga_id=v1")))
+        assertNull(avisoDoIntent(Intent(Intent.ACTION_MAIN, Uri.parse("frila://aviso?tipo=vaga"))))
+        assertNull(avisoDoIntent(null))
+    }
+
+    /** Sem a categoria BROWSABLE, uma página da web não abre o link do aviso. */
+    @Test
+    fun `o link do aviso nao abre pelo navegador`() {
+        val doNavegador = Intent(Intent.ACTION_VIEW, Uri.parse("frila://aviso?tipo=vaga"))
+            .addCategory(Intent.CATEGORY_BROWSABLE)
+            .setPackage(contexto.packageName)
+
+        assertNull(doNavegador.resolveActivity(contexto.packageManager))
     }
 
     private fun intentPara(uri: String): Intent =
