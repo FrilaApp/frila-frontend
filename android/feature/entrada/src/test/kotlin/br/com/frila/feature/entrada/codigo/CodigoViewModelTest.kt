@@ -304,7 +304,7 @@ class CodigoViewModelTest {
         assertEquals(0L, viewModel.segundosParaReenviar())
     }
 
-    /** Igual ao iOS: outro código só pode ser pedido 60 s depois do último pedido. */
+    /** Outro código só pode ser pedido após a espera conservadora padrão de 60 s (sem `reenviarEmSegundos` do servidor). */
     @Test
     fun `reenviar antes de 60 segundos nao chama a API`() = runBlocking {
         val chamadas = AtomicInteger(0)
@@ -342,6 +342,41 @@ class CodigoViewModelTest {
         // Logo em seguida, um segundo reenvio fica barrado.
         viewModel.reenviarCodigo()?.join()
         assertEquals(1, chamadas.get())
+    }
+
+    @Test
+    fun `teto de 3 reenvios bloqueia o quarto pedido e erro de codigo aguarda nova digitacao`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-16T12:00:00Z")
+        val (viewModel, _) = viewModelComEngine(
+            MockEngine {
+                chamadas.incrementAndGet()
+                val url = it.url.encodedPath
+                if (url.contains("verify")) {
+                    respond("""{"code":403,"error_code":"otp_expired"}""", HttpStatusCode.Forbidden, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+            agora = { relogio },
+        )
+
+        // Erro ao completar 6 digitos -> repetir a mesma string nao dispara nova chamada
+        viewModel.aoMudarCodigo("123456")?.join()
+        assertEquals(1, chamadas.get())
+        assertNotNull(viewModel.estado.value.erro)
+        assertNull(viewModel.aoMudarCodigo("123456"))
+        assertEquals(1, chamadas.get())
+
+        // Teto de 3 reenvios
+        repeat(3) {
+            relogio = relogio.plusSeconds(60)
+            viewModel.reenviarCodigo()?.join()
+        }
+        assertEquals(3, viewModel.estado.value.reenviosFeitos)
+        relogio = relogio.plusSeconds(60)
+        assertNull(viewModel.reenviarCodigo())
+        assertNotNull(viewModel.estado.value.erro)
     }
 
     /** Corpo REAL do Auth para código errado ou vencido: 403 `otp_expired`, sem o envelope `{code,message}` do PostgREST. */
@@ -485,6 +520,64 @@ class CodigoViewModelTest {
             if (permitirDominioDeTeste) listOf("/functions/v1/entrar-demonstracao") else listOf("/functions/v1/confirmar-dispositivo-otp", "/auth/v1/otp"),
             caminhos,
         )
+    }
+
+    @Test
+    fun `confirmarCodigo apos erro nao repete chamada com mesmo codigo e respeita 30s e 429 em login_dispositivo`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-27T12:00:00Z")
+        var responder429 = false
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                chamadas.incrementAndGet()
+                val path = request.url.encodedPath
+                when {
+                    path.endsWith("/confirmar-dispositivo-otp") ->
+                        respond("""{"code":"codigo_invalido","message":"Código inválido"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
+                    path.endsWith("/reenviar-dispositivo-otp") && responder429 ->
+                        respond("""{"code":"limite_excedido","message":"Muitas tentativas"}""", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.ContentType, "application/json"))
+                    path.endsWith("/reenviar-dispositivo-otp") ->
+                        respond("""{"ok":true,"desafio_id":"des-2","expira_em":"2026-11-27T12:15:00Z","reenviar_em_segundos":30}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                    else -> respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+        val vm = CodigoViewModel(
+            email = "profissional@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = { relogio },
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-1",
+        )
+
+        // 1) Erro em confirmarCodigo trava repetir o mesmo codigo sem nova digitacao
+        vm.aoMudarCodigo("123456")?.join()
+        assertEquals(1, chamadas.get())
+        assertTrue(vm.estado.value.codigoBloqueadoPorErro)
+        assertNull(vm.confirmarCodigo())
+        assertEquals(1, chamadas.get())
+
+        // Nova digitacao libera confirmar
+        vm.aoMudarCodigo("12345")?.join()
+        assertFalse(vm.estado.value.codigoBloqueadoPorErro)
+
+        // 2) Resposta 30s do servidor em reenviar_dispositivo_otp atualiza espera para 30s (alem do default 60s)
+        relogio = relogio.plusSeconds(60)
+        vm.reenviarCodigo()?.join()
+        assertEquals(30L, vm.segundosParaReenviar())
+        assertEquals(1, vm.estado.value.reenviosFeitos)
+
+        // 3) 429 no reenvio nao incrementa contador nem promete 30s
+        relogio = relogio.plusSeconds(30)
+        responder429 = true
+        vm.reenviarCodigo()?.join()
+        assertNotNull(vm.estado.value.erro)
+        assertEquals(1, vm.estado.value.reenviosFeitos)
+        assertEquals(0L, vm.segundosParaReenviar())
     }
 
 }
