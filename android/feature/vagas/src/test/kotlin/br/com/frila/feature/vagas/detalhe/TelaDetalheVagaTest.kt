@@ -110,7 +110,7 @@ class TelaDetalheVagaTest {
         return DetalheVagaViewModel(
             vaga = vaga,
             servicoVagas = ServicoVagas(cliente),
-            escopo = CoroutineScope(Dispatchers.Default),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
         )
     }
 
@@ -684,7 +684,7 @@ class TelaDetalheVagaTest {
             apiKey = "chave-teste",
             engine = MockEngine { respond(resposta, status, headersOf(HttpHeaders.ContentType, "application/json")) },
         )
-        return DetalheVagaViewModel(vaga = criarVaga(), servicoVagas = ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return DetalheVagaViewModel(vaga = criarVaga(), servicoVagas = ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Unconfined))
     }
 
     @Test
@@ -695,7 +695,7 @@ class TelaDetalheVagaTest {
         // Na hora: o que o feed trouxe.
         compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
         // Depois da leitura: o que a lista não traz.
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().isNotEmpty() }
         compose.onNode(hasText("Quem recebe: Procure a gerente no balcão")).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText("Observações: Chegar 15 minutos antes")).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText("Traje: Camisa preta")).assertExists()
@@ -724,7 +724,7 @@ class TelaDetalheVagaTest {
             vaga = criarVaga(),
             servicoVagas = ServicoVagas(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = MockEngine { respond("") })),
             detalhe = vagaDoServidor(participaRateio = participaRateio),
-            escopo = CoroutineScope(Dispatchers.Default),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
         )
         compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = vm) } }
     }
