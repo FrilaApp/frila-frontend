@@ -20,6 +20,11 @@ data class EstadoDetalheVaga(
     val ehVagaPreenchida: Boolean = false,
     val ehVagaEncerrada: Boolean = false,
     val ehContaSuspensa: Boolean = false,
+    /**
+     * A vaga aberta pelo feed já não está disponível: o `detalhe_vaga` respondeu `404`, ou `200` com a vaga encerrada ou preenchida. A
+     * tela diz isso e esconde o botão. Falha de rede não marca (fica o que veio do feed).
+     */
+    val indisponivel: Boolean = false,
     /** 422 `inelegivel` com `funcao_incompativel`: a tela de resultado oferece ajustar as funções (paridade iOS). */
     val ehFuncaoIncompativel: Boolean = false,
 ) {
@@ -30,4 +35,9 @@ data class EstadoDetalheVaga(
     /** Modo urgência (RN19): primeiro elegível confirma na hora. Modo seleção: fica pendente. */
     val ehModoUrgencia: Boolean
         get() = vaga.modo == "urgencia"
+}
+
+/** O aviso de uma vaga que já não está disponível (paridade com `TextosDoProfissional.Detalhe.naoEncontrada` do iOS). */
+internal object TextosDaVagaIndisponivel {
+    const val MENSAGEM = "Esta vaga não está mais disponível."
 }
