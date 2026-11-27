@@ -260,6 +260,20 @@ class ArmazenamentoDeSessaoKeystoreTest {
         assertEquals("sessões de B sobrescritas em $ITERACOES_CONCORRENTES iterações", 0, sobrescritas)
     }
 
+    @Test
+    fun `salvarSeRefreshTokenIgual com leitura ok e commit falhando devolve false e nao deixa sessao`() {
+        armazenamento.salvarSessao(sessaoCompleta)
+        val comCommitQueFalha = ArmazenamentoDeSessaoKeystore(contexto) {
+            PreferenciasCujoCommitFalha(it.getSharedPreferences("sessao_segura", Context.MODE_PRIVATE))
+        }
+        val renovada = sessaoCompleta.copy(accessToken = "access-novo", refreshToken = "refresh-novo")
+
+        assertFalse(comCommitQueFalha.salvarSeRefreshTokenIgual(sessaoCompleta.refreshToken, renovada))
+
+        assertNull(comCommitQueFalha.obterSessao())
+        assertNull(novoArmazenamento().obterSessao())
+    }
+
     private fun novoArmazenamento() = ArmazenamentoDeSessaoKeystore(contexto) {
         it.getSharedPreferences("sessao_segura", Context.MODE_PRIVATE)
     }
@@ -392,3 +406,16 @@ class FakeKeyGeneratorSpi : KeyGeneratorSpi() {
     }
 }
 
+/** Lê normalmente; o `commit()` de qualquer edição devolve `false`, como numa falha de disco ou de cifra. */
+private class PreferenciasCujoCommitFalha(private val real: android.content.SharedPreferences) :
+    android.content.SharedPreferences by real {
+    override fun edit(): android.content.SharedPreferences.Editor = EditorCujoCommitFalha(real.edit())
+}
+
+private class EditorCujoCommitFalha(private val real: android.content.SharedPreferences.Editor) :
+    android.content.SharedPreferences.Editor by real {
+    override fun putString(chave: String, valor: String?) = apply { real.putString(chave, valor) }
+    override fun putLong(chave: String, valor: Long) = apply { real.putLong(chave, valor) }
+    override fun remove(chave: String) = apply { real.remove(chave) }
+    override fun commit(): Boolean = false
+}

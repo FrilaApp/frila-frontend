@@ -34,13 +34,13 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
     override fun salvarSeRefreshTokenIgual(esperado: String, nova: Sessao): Boolean = synchronized(bloqueio) {
         if (obterSessao()?.refreshToken != esperado) return@synchronized false
         gravar(nova)
-        true
     }
 
-    private fun gravar(sessao: Sessao) {
-        val prefs = obterPreferenciasOuNull() ?: return
+    /** `true` só se a sessão ficou guardada; sem preferências, ou com falha no `commit()` ou na cifra, é `false`. */
+    private fun gravar(sessao: Sessao): Boolean {
+        val prefs = obterPreferenciasOuNull() ?: return false
 
-        executarComRecuperacao {
+        return executarComRecuperacao {
             val persistiu = prefs.edit()
                 .putString(CHAVE_ACCESS_TOKEN, sessao.accessToken)
                 .putString(CHAVE_REFRESH_TOKEN, sessao.refreshToken)
@@ -55,7 +55,8 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
                 }
                 .commit()
             check(persistiu) { "Não foi possível persistir a sessão criptografada" }
-        }
+            true
+        } == true
     }
 
     override fun obterSessao(): Sessao? = synchronized(bloqueio) {

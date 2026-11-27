@@ -14,7 +14,7 @@ interface ArmazenamentoDeSessao {
     /**
      * Grava [nova] só se a sessão guardada ainda tem o refresh token [esperado]. A comparação e a gravação são uma
      * operação só, sem outro escritor entre as duas (#794: a renovação de A não pode sobrescrever a sessão de B).
-     * Devolve `false` quando a sessão mudou ou sumiu; nada é gravado.
+     * Devolve `false` quando a sessão mudou ou sumiu, ou quando a gravação falhou: nada ficou guardado, e quem chama não pode tratar [nova] como a sessão vigente.
      */
     fun salvarSeRefreshTokenIgual(esperado: String, nova: Sessao): Boolean
 
