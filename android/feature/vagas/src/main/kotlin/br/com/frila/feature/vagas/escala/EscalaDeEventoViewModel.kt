@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
 /** Campos do evento que podem receber uma recusa. */
@@ -131,6 +132,8 @@ class EscalaDeEventoViewModel(
     private val relogio: () -> Instant = Instant::now,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     escopo: CoroutineScope? = null,
+    /** A escala pendente de cada casa, acima da tela: ver [GuardaDaEscala]. Sem ela, a pendência some com o view model. */
+    private val guarda: GuardaDaEscala? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -139,13 +142,28 @@ class EscalaDeEventoViewModel(
     /** O endereço da casa, onde o evento acontece (vem do cadastro; a tela só o mostra). */
     val enderecoDoEvento: String get() = estabelecimento.endereco
 
-    private val _estado = MutableStateFlow(estadoInicial())
+    private val _estado = MutableStateFlow(guarda?.obter(estabelecimento.id)?.let(::restaurar) ?: estadoInicial())
     val estado: StateFlow<EstadoEscalaDeEvento> = _estado.asStateFlow()
 
     private fun estadoInicial(): EstadoEscalaDeEvento {
         val agora = relogio()
         val data = agora.atZone(FUSO_DA_VAGA).toLocalDate().plusDays(DIAS_ATE_O_EVENTO)
         return EstadoEscalaDeEvento(data = data, itens = listOf(itemNovo(data)), agora = agora)
+    }
+
+    /**
+     * Volta à escala que ficou pendente (o formulário como estava e o corpo com a mesma `chave`). Sem envio em curso: o toque anterior
+     * foi interrompido e o resultado dele é desconhecido, então só "Tentar novamente" reenvia, e com o corpo guardado.
+     */
+    private fun restaurar(guardado: EstadoEscalaDeEvento): EstadoEscalaDeEvento {
+        proximoId = (guardado.itens.maxOfOrNull { it.id } ?: -1) + 1
+        return guardado.copy(enviando = false)
+    }
+
+    /** Muda o estado e mantém a guarda em dia: com pendência ela guarda o estado; sem (sucesso, recusa definitiva), a casa sai. */
+    private fun atualizarGuardando(mudar: (EstadoEscalaDeEvento) -> EstadoEscalaDeEvento) {
+        val novo = _estado.updateAndGet(mudar)
+        if (novo.pendente != null) guarda?.guardar(estabelecimento.id, novo) else guarda?.remover(estabelecimento.id)
     }
 
     private fun itemNovo(data: LocalDate, modelo: ItemDaEscala? = null): ItemDaEscala {
@@ -298,20 +316,20 @@ class EscalaDeEventoViewModel(
             }
             montarCorpo(validado)
         }
-        _estado.update { it.copy(enviando = true, errosDoEvento = emptyMap(), errosDosItens = emptyMap(), erro = null, pendente = corpo) }
+        atualizarGuardando { it.copy(enviando = true, errosDoEvento = emptyMap(), errosDosItens = emptyMap(), erro = null, pendente = corpo) }
         return escopoDeTrabalho.launch {
             try {
                 val publicada = enviarEscala(corpo)
-                _estado.update { it.copy(enviando = false, publicada = publicada, pendente = null) }
+                atualizarGuardando { it.copy(enviando = false, publicada = publicada, pendente = null) }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                _estado.update { aplicarRecusa(it.copy(enviando = false), erro) }
+                atualizarGuardando { aplicarRecusa(it.copy(enviando = false), erro) }
             } catch (_: Exception) {
                 // Corpo não-JSON de gateway ou campo ausente escapam do ErroDaApi; sem isto o botão ficaria em
                 // "Publicando…" para sempre. O resultado é incerto: o corpo (e a chave) ficam pendentes para um
                 // reenvio idempotente. A mensagem nunca carrega o corpo cru.
-                _estado.update { it.copy(enviando = false, erro = ErroGlobalEscala.GENERICO) }
+                atualizarGuardando { it.copy(enviando = false, erro = ErroGlobalEscala.GENERICO) }
             }
         }
     }
