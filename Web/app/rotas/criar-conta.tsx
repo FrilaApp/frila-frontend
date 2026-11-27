@@ -4,10 +4,13 @@ import { contextoDaSessao } from "../contexto";
 import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
 import { cookieDoDispositivo, cookiesDaSessao, ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
+import { PassoCodigoOtp } from "./passo-codigo-otp";
 import type { Route } from "./+types/criar-conta";
 
 type Erro = keyof typeof textos.criarConta.erros;
-type Passo = { passo: "email"; email: string; erro?: Erro } | { passo: "codigo"; email: string; erro?: Erro };
+type Passo =
+  | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
+  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TERMOS = "https://frilabr.com/termos";
@@ -29,25 +32,31 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const email = String(formulario.get("email") ?? "").trim().toLowerCase();
   const codigo = String(formulario.get("codigo") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "pedir");
+  const ehReenvio = String(formulario.get("reenvio") ?? "") === "1";
+  const tentativaId = String(formulario.get("tentativa_id") ?? "").trim() || undefined;
+  const comTentativa = <T extends Passo>(passo: T): T => (tentativaId ? { ...passo, tentativaId } : passo);
 
   if (!FORMATO_DO_EMAIL.test(email) || email.length > 254) {
-    return { passo: "email", email, erro: "email_invalido" };
+    return comTentativa({ passo: "email", email, erro: "email_invalido" });
   }
   const auth = authDesteAmbiente();
   if (!auth) {
-    return { passo: "email", email, erro: "indisponivel" };
+    return comTentativa({ passo: "email", email, erro: "indisponivel" });
   }
   if (emailsDeDemonstracao().has(email)) {
-    return { passo: "email", email, erro: "conta_demo" };
+    return comTentativa({ passo: "email", email, erro: "conta_demo" });
   }
 
   if (intencao === "pedir") {
     const pedido = await auth.pedirCodigo(email, { criarUsuario: true });
-    return pedido.ok ? { passo: "codigo", email } : { passo: "email", email, erro: pedido.motivo };
+    if (!pedido.ok) {
+      return comTentativa({ passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo });
+    }
+    return comTentativa(ehReenvio ? { passo: "codigo", email, reenviado: true } : { passo: "codigo", email });
   }
 
   if (!/^\d{6}$/.test(codigo)) {
-    return { passo: "codigo", email, erro: "codigo_incompleto" };
+    return comTentativa({ passo: "codigo", email, erro: "codigo_incompleto" });
   }
   const lembrarDispositivo = formulario.get("lembrar_dispositivo") === "sim";
   const entrada = await auth.confirmarDispositivoOtp({
@@ -58,7 +67,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
     visitante: visitanteDoPedido(request),
   });
   if (!entrada.ok) {
-    return { passo: "codigo", email, erro: entrada.motivo };
+    return comTentativa({ passo: "codigo", email, erro: entrada.motivo });
   }
 
   const seguro = ehPedidoSeguro(request);
@@ -119,51 +128,34 @@ export default function CriarConta({ actionData }: Route.ComponentProps) {
           </div>
         </Form>
       ) : (
-        <div className="flex flex-col gap-4">
-          <Form method="post" className="flex flex-col gap-4" noValidate>
-            <h1 className="font-titulo text-3xl font-bold">{textos.criarConta.tituloDoCodigo}</h1>
-            <p className="text-tinta-suave">
+        <PassoCodigoOtp
+          titulo={textos.criarConta.tituloDoCodigo}
+          descricao={
+            <>
               {textos.criarConta.corpoDoCodigo} <strong className="break-all text-tinta">{estado.email}</strong>.
-            </p>
-            <input type="hidden" name="email" value={estado.email} />
-            <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
-              {textos.criarConta.rotuloDoCodigo}
-              <input
-                id="codigo"
-                name="codigo"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                autoFocus
-                aria-invalid={erro ? true : undefined}
-                aria-describedby={erro ? "erro" : undefined}
-                className={`${classeDoCampo} tracking-widest`}
-              />
-            </label>
-            <label className="flex min-h-11 items-center gap-3 text-sm">
-              <input type="checkbox" name="lembrar_dispositivo" value="sim" className="size-5 shrink-0" />
-              <span>{textos.criarConta.lembrarDispositivo}</span>
-            </label>
-            {erro ? (
-              <p id="erro" role="alert" className="font-semibold">
-                {erro}
-              </p>
-            ) : null}
-            <button type="submit" name="intencao" value="confirmar" disabled={enviando} className={classeDoBotao}>
-              {enviando ? textos.criarConta.conferindo : textos.criarConta.confirmar}
-            </button>
-          </Form>
-          <Form method="post" className="flex flex-wrap gap-x-6 gap-y-2">
-            <input type="hidden" name="email" value={estado.email} />
-            <button type="submit" name="intencao" value="pedir" disabled={enviando} className={classeDoLink}>
-              {textos.criarConta.reenviar}
-            </button>
+            </>
+          }
+          email={estado.email}
+          rotuloDoCodigo={textos.criarConta.rotuloDoCodigo}
+          textoConfirmar={textos.criarConta.confirmar}
+          textoConferindo={textos.criarConta.conferindo}
+          textoReenviar={textos.criarConta.reenviar}
+          intencaoConfirmar="confirmar"
+          intencaoReenviar="pedir"
+          enviando={enviando}
+          erro={erro}
+          reenviado={estado.reenviado}
+          tentativaId={estado.tentativaId}
+          mensagemReenvio="Novo código enviado para seu e-mail."
+          mostrarLembrarDispositivo
+          textoLembrarDispositivo={textos.criarConta.lembrarDispositivo}
+          incluirCampoReenvio
+          acaoVoltar={
             <Link to="/criar-conta" className={`${classeDoLink} inline-flex items-center`}>
               {textos.criarConta.trocarEmail}
             </Link>
-          </Form>
-        </div>
+          }
+        />
       )}
 
       <footer className="text-sm text-tinta-suave">

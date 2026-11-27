@@ -27,26 +27,36 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
     private var preferencias: SharedPreferences? = null
 
     override fun salvarSessao(sessao: Sessao) {
-        synchronized(bloqueio) {
-            val prefs = obterPreferenciasOuNull() ?: return@synchronized
+        synchronized(bloqueio) { gravar(sessao) }
+    }
 
-            executarComRecuperacao {
-                val persistiu = prefs.edit()
-                    .putString(CHAVE_ACCESS_TOKEN, sessao.accessToken)
-                    .putString(CHAVE_REFRESH_TOKEN, sessao.refreshToken)
-                    .putString(CHAVE_TOKEN_TYPE, sessao.tokenType)
-                    .putLong(CHAVE_EXPIRES_IN, sessao.expiresIn)
-                    .apply {
-                        if (sessao.vinculoId == null) remove(CHAVE_VINCULO_ID)
-                        else putString(CHAVE_VINCULO_ID, sessao.vinculoId)
-                        val emailNormalizado = sessao.email?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
-                        if (emailNormalizado == null) remove(CHAVE_EMAIL)
-                        else putString(CHAVE_EMAIL, emailNormalizado)
-                    }
-                    .commit()
-                check(persistiu) { "Não foi possível persistir a sessão criptografada" }
-            }
-        }
+    /** A comparação e a gravação ficam no mesmo [bloqueio]: nenhum outro escritor entra entre as duas (#794). */
+    override fun salvarSeRefreshTokenIgual(esperado: String, nova: Sessao): Boolean = synchronized(bloqueio) {
+        if (obterSessao()?.refreshToken != esperado) return@synchronized false
+        gravar(nova)
+    }
+
+    /** `true` só se a sessão ficou guardada; sem preferências, ou com falha no `commit()` ou na cifra, é `false`. */
+    private fun gravar(sessao: Sessao): Boolean {
+        val prefs = obterPreferenciasOuNull() ?: return false
+
+        return executarComRecuperacao {
+            val persistiu = prefs.edit()
+                .putString(CHAVE_ACCESS_TOKEN, sessao.accessToken)
+                .putString(CHAVE_REFRESH_TOKEN, sessao.refreshToken)
+                .putString(CHAVE_TOKEN_TYPE, sessao.tokenType)
+                .putLong(CHAVE_EXPIRES_IN, sessao.expiresIn)
+                .apply {
+                    if (sessao.vinculoId == null) remove(CHAVE_VINCULO_ID)
+                    else putString(CHAVE_VINCULO_ID, sessao.vinculoId)
+                    val emailNormalizado = sessao.email?.trim()?.lowercase()?.takeIf { it.isNotBlank() }
+                    if (emailNormalizado == null) remove(CHAVE_EMAIL)
+                    else putString(CHAVE_EMAIL, emailNormalizado)
+                }
+                .commit()
+            check(persistiu) { "Não foi possível persistir a sessão criptografada" }
+            true
+        } == true
     }
 
     override fun obterSessao(): Sessao? = synchronized(bloqueio) {
@@ -74,6 +84,12 @@ class ArmazenamentoDeSessaoKeystore internal constructor(
             val prefs = obterPreferenciasOuNull() ?: return@synchronized
             executarComRecuperacao { prefs.edit().clear().commit() }
         }
+    }
+
+    override fun limparSeRefreshTokenIgual(esperado: String): Boolean = synchronized(bloqueio) {
+        if (obterSessao()?.refreshToken != esperado) return@synchronized false
+        limparSessao()
+        true
     }
 
     override fun estaAutenticado(): Boolean = obterSessao() != null

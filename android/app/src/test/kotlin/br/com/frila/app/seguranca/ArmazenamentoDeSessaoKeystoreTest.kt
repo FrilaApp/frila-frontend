@@ -18,6 +18,9 @@ import java.security.spec.AlgorithmParameterSpec
 import java.util.Collections
 import java.util.Date
 import java.util.Enumeration
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import javax.crypto.KeyGeneratorSpi
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
@@ -192,8 +195,91 @@ class ArmazenamentoDeSessaoKeystoreTest {
         assertFalse(instanciaRecuperada.estaAutenticado())
     }
 
+    @Test
+    fun `salvarSeRefreshTokenIgual grava e persiste so quando o refresh token e o esperado`() {
+        armazenamento.salvarSessao(sessaoCompleta)
+        val renovada = sessaoCompleta.copy(accessToken = "access-novo", refreshToken = "refresh-novo")
+
+        assertFalse(armazenamento.salvarSeRefreshTokenIgual("refresh-de-outra-conta", renovada))
+        assertEquals(sessaoCompleta, armazenamento.obterSessao())
+
+        assertTrue(armazenamento.salvarSeRefreshTokenIgual(sessaoCompleta.refreshToken, renovada))
+        assertEquals(renovada, armazenamento.obterSessao())
+        assertEquals(renovada, novoArmazenamento().obterSessao())
+    }
+
+    @Test
+    fun `salvarSeRefreshTokenIgual sem sessao guardada nao grava`() {
+        assertFalse(armazenamento.salvarSeRefreshTokenIgual("refresh-token", sessaoCompleta))
+        assertNull(armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `limparSeRefreshTokenIgual apaga sessao e biometria so quando o refresh token e o esperado`() {
+        armazenamento.salvarSessao(sessaoCompleta)
+        armazenamento.definirBiometriaAtivada(true)
+
+        assertFalse(armazenamento.limparSeRefreshTokenIgual("refresh-de-outra-conta"))
+        assertEquals(sessaoCompleta, armazenamento.obterSessao())
+        assertTrue(armazenamento.isBiometriaAtivada())
+
+        assertTrue(armazenamento.limparSeRefreshTokenIgual(sessaoCompleta.refreshToken))
+        assertNull(armazenamento.obterSessao())
+        assertFalse(armazenamento.isBiometriaAtivada())
+    }
+
+    @Test
+    fun `renovacao de A concorrente com a troca para B nunca termina com a sessao de A`() {
+        val sessaoB = sessaoCompleta.copy(accessToken = "access-b", refreshToken = "refresh-b")
+        val renovadaA = sessaoCompleta.copy(accessToken = "access-a2", refreshToken = "refresh-a2")
+        val pool = Executors.newFixedThreadPool(2)
+        var sobrescritas = 0
+        try {
+            repeat(ITERACOES_CONCORRENTES) {
+                armazenamento.limparSessao()
+                armazenamento.salvarSessao(sessaoCompleta)
+                val largada = CountDownLatch(1)
+                val renovacao = pool.submit {
+                    largada.await()
+                    armazenamento.salvarSeRefreshTokenIgual(sessaoCompleta.refreshToken, renovadaA)
+                }
+                val troca = pool.submit {
+                    largada.await()
+                    armazenamento.limparSessao()
+                    armazenamento.salvarSessao(sessaoB)
+                }
+                largada.countDown()
+                renovacao.get(10, TimeUnit.SECONDS)
+                troca.get(10, TimeUnit.SECONDS)
+                if (armazenamento.obterSessao() != sessaoB) sobrescritas++
+            }
+        } finally {
+            pool.shutdownNow()
+        }
+
+        assertEquals("sessões de B sobrescritas em $ITERACOES_CONCORRENTES iterações", 0, sobrescritas)
+    }
+
+    @Test
+    fun `salvarSeRefreshTokenIgual com leitura ok e commit falhando devolve false e nao deixa sessao`() {
+        armazenamento.salvarSessao(sessaoCompleta)
+        val comCommitQueFalha = ArmazenamentoDeSessaoKeystore(contexto) {
+            PreferenciasCujoCommitFalha(it.getSharedPreferences("sessao_segura", Context.MODE_PRIVATE))
+        }
+        val renovada = sessaoCompleta.copy(accessToken = "access-novo", refreshToken = "refresh-novo")
+
+        assertFalse(comCommitQueFalha.salvarSeRefreshTokenIgual(sessaoCompleta.refreshToken, renovada))
+
+        assertNull(comCommitQueFalha.obterSessao())
+        assertNull(novoArmazenamento().obterSessao())
+    }
+
     private fun novoArmazenamento() = ArmazenamentoDeSessaoKeystore(contexto) {
         it.getSharedPreferences("sessao_segura", Context.MODE_PRIVATE)
+    }
+
+    private companion object {
+        const val ITERACOES_CONCORRENTES = 2_000
     }
 }
 
@@ -320,3 +406,16 @@ class FakeKeyGeneratorSpi : KeyGeneratorSpi() {
     }
 }
 
+/** Lê normalmente; o `commit()` de qualquer edição devolve `false`, como numa falha de disco ou de cifra. */
+private class PreferenciasCujoCommitFalha(private val real: android.content.SharedPreferences) :
+    android.content.SharedPreferences by real {
+    override fun edit(): android.content.SharedPreferences.Editor = EditorCujoCommitFalha(real.edit())
+}
+
+private class EditorCujoCommitFalha(private val real: android.content.SharedPreferences.Editor) :
+    android.content.SharedPreferences.Editor by real {
+    override fun putString(chave: String, valor: String?) = apply { real.putString(chave, valor) }
+    override fun putLong(chave: String, valor: Long) = apply { real.putLong(chave, valor) }
+    override fun remove(chave: String) = apply { real.remove(chave) }
+    override fun commit(): Boolean = false
+}

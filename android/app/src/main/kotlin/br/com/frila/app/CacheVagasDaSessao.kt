@@ -90,6 +90,22 @@ internal class SessaoComCacheVagas(
         origem.salvarSessao(sessao)
         limpoSemSessao = false
     }
+    /** Mesma troca de conta do [salvarSessao], mas só se a sessão guardada ainda é a [esperado]; senão não limpa nada. */
+    override fun salvarSeRefreshTokenIgual(esperado: String, nova: Sessao): Boolean = synchronized(cache) {
+        val anterior = origem.obterSessao()
+        if (anterior?.refreshToken != esperado) return@synchronized false
+        if (arquivoCacheVagas(File("."), anterior) != arquivoCacheVagas(File("."), nova)) cache.limpar()
+        val gravou = origem.salvarSeRefreshTokenIgual(esperado, nova)
+        if (gravou) limpoSemSessao = false
+        gravou
+    }
+
+    override fun limparSeRefreshTokenIgual(esperado: String): Boolean = synchronized(cache) {
+        if (origem.obterSessao()?.refreshToken != esperado) return@synchronized false
+        limparSessao()
+        true
+    }
+
     override fun obterSessao(): Sessao? = synchronized(cache) {
         origem.obterSessao().also {
             when {
