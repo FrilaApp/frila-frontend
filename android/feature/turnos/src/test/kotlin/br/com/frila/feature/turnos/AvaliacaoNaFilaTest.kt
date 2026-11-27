@@ -27,8 +27,9 @@ class AvaliacaoNaFilaTest {
     private var offline = true
     private var recusaDireta = false
     private var pedidos = 0
-    private val cliente = ClienteSupabase("https://sintetico.supabase.invalid", "chave-sintetica", engine = MockEngine {
-        pedidos++
+    private val cliente = ClienteSupabase("https://sintetico.supabase.invalid", "chave-sintetica", engine = MockEngine { request ->
+        // Só os envios (`/avaliar`): ao abrir, o ViewModel também lê `meus_turnos` (288rCCAg), que não é um envio.
+        if (request.url.encodedPath.endsWith("/avaliar")) pedidos++
         if (offline) throw IOException("sem rede sintética")
         if (recusaDireta) return@MockEngine respond(
             """{"code":"avaliacao_indisponivel","message":"sintético"}""", io.ktor.http.HttpStatusCode.UnprocessableEntity,

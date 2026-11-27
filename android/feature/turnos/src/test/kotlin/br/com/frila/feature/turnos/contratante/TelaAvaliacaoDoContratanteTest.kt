@@ -155,7 +155,14 @@ class TelaAvaliacaoDoContratanteTest {
     }
 
     // MO7DkVA2: o 409 avaliacao_ja_registrada deixa a tela em "já avaliado": sem botões de avaliar, com a resposta gravada relida do turno.
-    private fun viewModelComConflito(gravada: Boolean?): AvaliacaoViewModel {
+    private val casaId = "casa-0001"
+
+    /**
+     * O servidor só devolve os turnos da casa quando a leitura leva `?estabelecimento_id=$casaId` (sem ele, conta de contratante recebe
+     * lista vazia, contrato). [avaliadoAoAbrir]: a leitura de abertura já traz a avaliação; senão ela só aparece na releitura do 409.
+     */
+    private fun viewModelComConflito(gravada: Boolean?, avaliadoAoAbrir: Boolean = false): AvaliacaoViewModel {
+        val leituras = java.util.concurrent.atomic.AtomicInteger(0)
         val turno = """
             [{"id": "$turnoId", "posicao_id": "p1",
               "vaga": {"id": "v1", "funcao": "garçom", "local": "CLS 405", "regiao_administrativa": "Plano Piloto",
@@ -174,7 +181,9 @@ class TelaAvaliacaoDoContratanteTest {
                 if (request.url.encodedPath.endsWith("/avaliar")) {
                     respond("""{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, cabecalho)
                 } else {
-                    respond(turno, HttpStatusCode.OK, cabecalho)
+                    val n = leituras.incrementAndGet()
+                    val daCasa = request.url.parameters["estabelecimento_id"] == casaId
+                    respond(if (daCasa && (n > 1 || avaliadoAoAbrir)) turno else "[]", HttpStatusCode.OK, cabecalho)
                 }
             },
         )
@@ -185,7 +194,9 @@ class TelaAvaliacaoDoContratanteTest {
     fun conflitoJaRegistradoMostraTurnoJaAvaliadoComARespostaGravadaESemBotoes() {
         val vm = viewModelComConflito(gravada = false)
 
-        compose.setContent { FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}) } }
+        compose.setContent {
+            FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}, estabelecimentoId = casaId) }
+        }
 
         compose.onNodeWithText("Não chamaria").performClick()
         compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.JA_AVALIADO }
@@ -196,6 +207,36 @@ class TelaAvaliacaoDoContratanteTest {
         compose.onNodeWithText("Sim, chamaria").assertDoesNotExist()
         compose.onNodeWithText("Não chamaria").assertDoesNotExist()
         compose.onNodeWithTag("voltar-avaliacao-contratante").assertIsDisplayed()
+    }
+
+    @Test
+    fun aoAbrirTurnoJaAvaliadoPelaCasaMostraDiretoComARespostaESemPergunta() {
+        val vm = viewModelComConflito(gravada = true, avaliadoAoAbrir = true)
+
+        compose.setContent {
+            FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}, estabelecimentoId = casaId) }
+        }
+        compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
+        compose.onNodeWithText("A avaliação registrada: você recomendou este profissional.").assertIsDisplayed()
+        compose.onNodeWithText("Sim, chamaria").assertDoesNotExist()
+        compose.onNodeWithText("Não chamaria").assertDoesNotExist()
+    }
+
+    @Test
+    fun semAcasaNaRotaAAberturaNaoAchaOTurnoEAPerguntaSegue() {
+        // Sem `estabelecimentoId` a releitura vai sem a casa: o servidor devolve lista vazia ao contratante e a pergunta segue.
+        val vm = viewModelComConflito(gravada = true, avaliadoAoAbrir = true)
+
+        compose.setContent { FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}) } }
+        compose.waitForIdle()
+        Thread.sleep(300)
+        compose.waitForIdle()
+
+        assertEquals(StatusAvaliacao.OCIOSO, vm.estado.value.status)
+        compose.onNodeWithText("Sim, chamaria").assertIsDisplayed()
     }
 }
 

@@ -225,13 +225,16 @@ object Rotas {
     const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
     const val VAGA_PREENCHIDA = "vaga_preenchida/{vagaId}"
     const val VAGA_ENCERRADA = "vaga_encerrada/{vagaId}"
-    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}"
+    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}?estabelecimentoId={estabelecimentoId}"
 
     fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
     fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
     fun vagaPreenchida(vagaId: String) = "vaga_preenchida/$vagaId"
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
-    fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
+    fun avaliacaoDoContratante(turnoId: String, estabelecimentoId: String? = null): String {
+        val base = "avaliacao_contratante/$turnoId"
+        return if (estabelecimentoId == null) base else "$base?estabelecimentoId=${Uri.encode(estabelecimentoId)}"
+    }
 
     fun codigo(
         email: String,
@@ -1182,12 +1185,23 @@ fun AppNavegacao(
                 }
             }
 
-            composable(Rotas.AVALIACAO_DO_CONTRATANTE) { entrada ->
+            composable(
+                route = Rotas.AVALIACAO_DO_CONTRATANTE,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId")
                     val viewModel: AvaliacaoViewModel = koinViewModel()
                     TelaAvaliacaoDoContratante(
                         turnoId = turnoId,
+                        estabelecimentoId = estabelecimentoId,
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
                     )
@@ -1769,8 +1783,9 @@ fun AppNavegacao(
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
                     RotaTurnoDoContratante(
-                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        estabelecimentoId = estabelecimentoId,
                         vagaId = entrada.arguments?.getString("vagaId").orEmpty(),
                         posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
                         buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
@@ -1782,7 +1797,7 @@ fun AppNavegacao(
                         },
                         aoPedirSuporte = pedirSuporte,
                         aoAvaliarTurno = { turnoId ->
-                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId, estabelecimentoId))
                         },
                     )
                 }
@@ -1812,7 +1827,7 @@ fun AppNavegacao(
                         },
                         aoPedirSuporte = pedirSuporte,
                         aoAvaliarTurno = { turnoId ->
-                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId, estabelecimentoId))
                         },
                         aoNaoEncontrar = {
                             val minhasVagas = (papelDaRaiz as? PapelDaRaiz.Contratante)?.rotaDeMinhasVagas ?: Rotas.minhasVagas(estabelecimentoId)
