@@ -1,6 +1,8 @@
 package br.com.frila.feature.chamadas.profissional
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -81,5 +83,45 @@ class TelaDetalheChamadaRecebidaTest {
 
     private companion object {
         const val TIMEOUT_MS = 5_000L
+    }
+
+    private fun reabrirAceita(detalhe: String): Pair<ChamadaRecebidaViewModel, MutableList<String>> {
+        val rede = RedeDeTeste().apply { ok("/rpc/detalhe_chamada", detalhe) }
+        val abertos = mutableListOf<String>()
+        val viewModel = ChamadaRecebidaViewModel(
+            chamadaId = Fixtures.CHAMADA,
+            detalhar = rede.servico::detalheChamada,
+            responder = rede.servico::responderChamada,
+            agora = { Instant.parse("2026-11-17T00:00:00Z") },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme { TelaDetalheChamadaRecebida(viewModel = viewModel, aoVoltar = {}, aoAbrirTurno = { abertos += it }) }
+        }
+        rule.waitUntil(TIMEOUT_MS) { !viewModel.estado.value.carregando }
+        rule.waitForIdle()
+        return viewModel to abertos
+    }
+
+    @Test
+    fun chamadaAceitaReabertaMostraAceitaEVerTurnoPeloTurnoDoDetalhe() {
+        val (_, abertos) = reabrirAceita(
+            Fixtures.detalheChamadaJson(estado = "aceita", turnoId = Fixtures.TURNO, local = "SCS Quadra 2", responsavelLocal = "Ana"),
+        )
+
+        rule.onNodeWithTag("chamada-aceita").assertIsDisplayed()
+        rule.onNodeWithText("SCS Quadra 2").assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("aviso-concorrencia").fetchSemanticsNodes().size)
+        rule.onNodeWithTag("ver-turno-aceito").assertIsDisplayed().performClick()
+        assertEquals(listOf(Fixtures.TURNO), abertos)
+    }
+
+    @Test
+    fun chamadaAceitaReabertaSemTurnoNoDetalheMostraAceitaSemVerTurno() {
+        reabrirAceita(Fixtures.detalheChamadaJson(estado = "aceita"))
+
+        rule.onNodeWithTag("chamada-aceita").assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("aviso-concorrencia").fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithTag("ver-turno-aceito").fetchSemanticsNodes().size)
     }
 }

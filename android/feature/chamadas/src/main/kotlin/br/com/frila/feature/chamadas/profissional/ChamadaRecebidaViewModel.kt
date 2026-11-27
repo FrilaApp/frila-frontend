@@ -33,6 +33,14 @@ data class EstadoChamadaRecebida(
     val mostrarRecusa: Boolean = false,
     val motivoSelecionado: String? = null,
 ) {
+    /** A chamada foi aceita por este profissional: pelo resultado deste toque ou pelo detalhe de uma chamada reaberta. */
+    val chamadaAceita: Boolean
+        get() = resultado?.chamada?.estado == "aceita"
+
+    /** O turno do aceite, para "Ver meu turno": o do resultado deste toque ou o do detalhe. */
+    val turnoAceito: String?
+        get() = resultado?.turnoId
+
     val podeResponder: Boolean
         get() = detalhe?.estado == "aberta" && resultado == null && mensagemDeConcorrencia == null &&
             !respondendo && !carregando
