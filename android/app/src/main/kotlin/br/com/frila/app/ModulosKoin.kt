@@ -133,6 +133,7 @@ import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MedidorDeDistancia
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.QuemRecebeDasVagas
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
 import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
@@ -168,6 +169,8 @@ val moduloSeguranca = module {
                 // Cada guarda se esvazia sozinha: uma falha numa não deixa a outra com o que é da conta que saiu.
                 runCatching { getOrNull<GuardaDaEscala>()?.limpar() }
                 runCatching { getOrNull<GuardaDaBusca>()?.limpar() }
+                // O responsável do local de cada vaga agendada (QpgRwPFM) é lido da conta que estava na sessão.
+                runCatching { getOrNull<QuemRecebeDasVagas>()?.limpar() }
             },
         )
     }
@@ -430,9 +433,14 @@ val moduloFeatures = module {
     viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
     viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
+    /**
+     * Quem recebe o profissional no local de cada vaga agendada (`detalhe_vaga`, uma leitura por vaga) guardado na sessão: a atualização
+     * automática e o puxar para atualizar de Meus turnos não a repetem. Logout, troca de conta e expiração o esvaziam (`limparGuardas`).
+     */
+    single { QuemRecebeDasVagas { vagaId -> get<ServicoVagas>().detalheVaga(vagaId).responsavelLocal } }
     viewModel {
         val armazenamento = get<ArmazenamentoDeSessao>()
-        MeusTurnosViewModel(get(), filaDeAcoes = get(),
+        MeusTurnosViewModel(get(), filaDeAcoes = get(), quemRecebeDasVagas = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,
             // Não há evento de telemetria para isto (o conjunto é fechado pelo contrato): só o log, com o id do turno e nada mais.

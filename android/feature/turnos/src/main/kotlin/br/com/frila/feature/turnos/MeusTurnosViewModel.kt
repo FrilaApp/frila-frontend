@@ -18,6 +18,9 @@ import br.com.frila.core.rede.TurnoDto
 import java.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,7 +109,7 @@ class MeusTurnosViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val turnos = servicoTurnos.listarMeusTurnos()
-                val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
+                val agendados = agendadosDe(turnos)
                 val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
 
                 _estado.update {
@@ -117,6 +120,7 @@ class MeusTurnosViewModel(
                         paginaHistorico = 1,
                     )
                 }
+                completarQuemRecebe(agendados) // depois de a lista aparecer: o detalhe não atrasa a tela
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(status = StatusMeusTurnos.ERRO, mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {
@@ -149,6 +153,30 @@ class MeusTurnosViewModel(
             }
         }
 
+    /** Os agendados, já com o responsável que o cache da sessão conhece (sem rede): a releitura não faz o nome piscar nem voltar à casa. */
+    private fun agendadosDe(turnos: List<TurnoDto>): List<ItemTurno> {
+        val cache = quemRecebeDasVagas
+        return itensDe(turnos, ESTADOS_AGENDADOS).map { item ->
+            item.copy(quemRecebe = item.quemRecebe ?: cache?.noCache(item.vagaId)?.valor)
+        }
+    }
+
+    /**
+     * Lê o responsável do local das vagas agendadas que o cache ainda não conhece, em paralelo, e o põe nos itens quando chega. SÓ os
+     * agendados: o histórico não mostra o dado e não paga a leitura. Falha nenhuma sobe daqui (a tela cai no nome da casa).
+     */
+    private suspend fun completarQuemRecebe(agendados: List<ItemTurno>) {
+        val cache = quemRecebeDasVagas ?: return
+        val faltam = agendados.filter { it.vagaId.isNotEmpty() && cache.noCache(it.vagaId) == null }.map { it.vagaId }.distinct()
+        if (faltam.isEmpty()) return
+        val lidos = coroutineScope { faltam.map { id -> async { id to cache.de(id)?.valor } }.awaitAll() }
+            .filter { (_, responsavel) -> responsavel != null }.toMap()
+        if (lidos.isEmpty()) return
+        _estado.update { e ->
+            e.copy(agendados = e.agendados.map { item -> lidos[item.vagaId]?.let { item.copy(quemRecebe = it) } ?: item })
+        }
+    }
+
     private fun comListaNaTela(): Boolean = _estado.value.comListaNaTela()
 
     private fun EstadoMeusTurnos.comListaNaTela() = status == StatusMeusTurnos.SUCESSO || status == StatusMeusTurnos.VAZIO
@@ -162,7 +190,7 @@ class MeusTurnosViewModel(
         if (!comListaNaTela()) return@launch
         try {
             val turnos = servicoTurnos.listarMeusTurnos()
-            val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
+            val agendados = agendadosDe(turnos)
             val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
             _estado.update {
                 // A carga ou um erro pode ter começado durante a leitura: quem manda na tela agora não é esta releitura.
@@ -173,6 +201,7 @@ class MeusTurnosViewModel(
                     historicoCompleto = historicoCompleto,
                 )
             }
+            completarQuemRecebe(agendados)
         } catch (erro: CancellationException) {
             throw erro
         } catch (_: Exception) {
@@ -206,7 +235,7 @@ class MeusTurnosViewModel(
         return escopoDeTrabalho.launch {
             try {
                 val turnos = servicoTurnos.listarMeusTurnos()
-                val agendados = itensDe(turnos, ESTADOS_AGENDADOS)
+                val agendados = agendadosDe(turnos)
                 val historicoCompleto = itensDe(turnos, ESTADOS_HISTORICO)
 
                 _estado.update {
@@ -218,6 +247,7 @@ class MeusTurnosViewModel(
                         mensagemErro = null,
                     )
                 }
+                completarQuemRecebe(agendados)
             } catch (erro: ErroDaApi) {
                 _estado.update { it.copy(mensagemErro = mensagemDeErro(erro)) }
             } catch (erro: CancellationException) {

@@ -14,6 +14,7 @@ import java.util.Collections
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
@@ -139,7 +140,7 @@ class QuemRecebeNosAgendadosTest {
         vm.atualizar().join()
         vm.carregar().join()
 
-        assertEquals(5, c.listagens.get(), "a lista foi relida 5 vezes (carregar, 3 automaticas, puxar para atualizar, carregar)")
+        assertEquals(6, c.listagens.get(), "a lista foi lida 6 vezes (carregar, 3 automaticas, puxar para atualizar, carregar)")
         assertEquals(3, c.leituras.size, "mas o detalhe das vagas continuou lido só 3 vezes: ${c.leituras}")
         assertEquals(mapOf("v1" to "Carlos Silva", "v2" to "Ana Lima", "v3" to "Rui Costa"), vm.quemRecebeDosAgendados())
     }
@@ -256,7 +257,7 @@ class QuemRecebeNosAgendadosTest {
     fun `uma leitura em voo quando a sessao termina nao guarda o dado da conta que saiu`() = runBlocking {
         val portao = CompletableDeferred<Unit>()
         val cache = QuemRecebeDasVagas { portao.await(); "Carlos Silva" }
-        val leitura = kotlinx.coroutines.async(Dispatchers.Default) { cache.de("v1") }
+        val leitura = async(Dispatchers.Default) { cache.de("v1") }
         kotlinx.coroutines.delay(100) // a leitura já está em voo
 
         cache.limpar() // logout, troca de conta ou sessão expirada
