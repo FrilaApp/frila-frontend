@@ -3,12 +3,7 @@ package br.com.frila.feature.conta
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ExclusaoDeContaDto
-import br.com.frila.core.rede.CancelamentoDoTurnoDto
-import br.com.frila.core.rede.PerfilPublicoDto
-import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.ServicoPerfil
-import br.com.frila.core.rede.TurnoDto
-import br.com.frila.core.rede.VagaResumoDto
 import java.io.IOException
 import java.time.Instant
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -189,30 +184,20 @@ class ExclusaoDeContaViewModelTest {
 
     private val agora = Instant.parse("2026-11-20T15:00:00Z")
 
-    private fun turno(id: String, inicio: String, fim: String = "2026-12-31T23:00:00Z", funcao: String = "garçom", estado: String? = "confirmada", contraparte: String = "Bar do Zé") = TurnoDto(
-        id = id,
-        posicaoId = "pos-$id",
-        vaga = VagaResumoDto(
-            id = "vaga-$id", funcao = funcao, local = "CLS 405 Bloco $id", regiaoAdministrativa = "Plano Piloto",
-            inicioEm = inicio, fimEm = fim, valorCentavos = 16000,
-        ),
-        contraparte = PerfilPublicoDto(
-            id = "e-$id", tipo = "estabelecimento", nome = contraparte,
-            reputacao = ReputacaoDto(positivas = 1, total = 1, turnosConsiderados = 1, turnosRealizados = 1),
-        ),
-        verificacao = "pendente",
-        valorAcordadoCentavos = 16000,
-        podeAvaliar = false,
-        estado = estado,
-    )
+    private fun turno(id: String, inicio: String, fim: String = "2026-12-31T23:00:00Z", funcao: String = "garçom", contraparte: String = "Bar do Zé") =
+        TurnoFuturoDaExclusao(
+            id = id, funcao = funcao, contraparte = contraparte,
+            inicio = Instant.parse(inicio), fim = Instant.parse(fim), local = "CLS 405 Bloco $id",
+        )
 
     private fun viewModelComTurnos(
         chamadas: MutableList<Int> = mutableListOf(),
         excluir: suspend () -> ExclusaoDeContaDto = { sucesso },
-        consultar: suspend () -> List<TurnoDto>,
+        limitada: Boolean = false,
+        consultar: suspend () -> List<TurnoFuturoDaExclusao>,
     ) = ExclusaoDeContaViewModel(
         excluir = excluir,
-        consultarTurnos = { chamadas += 1; consultar() },
+        consultarTurnos = { chamadas += 1; ConsultaDeTurnosDaExclusao(consultar(), limitada) },
         relogio = { agora },
         escopo = CoroutineScope(Dispatchers.Unconfined),
     )
@@ -241,19 +226,25 @@ class ExclusaoDeContaViewModelTest {
     }
 
     @Test
-    fun `turno que comeca exatamente agora ja nao e futuro, e turno ja cancelado nao entra na lista`() = runBlocking {
+    fun `turno que comeca exatamente agora ja nao e futuro`() = runBlocking {
         val vm = viewModelComTurnos {
-            listOf(
-                turno("agora", "2026-11-20T15:00:00Z"),
-                turno("um-segundo-depois", "2026-11-20T15:00:01Z"),
-                turno("cancelado", "2026-11-25T20:00:00Z", estado = "cancelada"),
-                turno("sem-estado", "2026-11-26T20:00:00Z", estado = null),
-            )
+            listOf(turno("agora", "2026-11-20T15:00:00Z"), turno("um-segundo-depois", "2026-11-20T15:00:01Z"))
         }
 
         vm.carregarTurnos().join()
 
-        assertEquals(listOf("um-segundo-depois", "sem-estado"), vm.ids())
+        assertEquals(listOf("um-segundo-depois"), vm.ids())
+    }
+
+    @Test
+    fun `a consulta limitada (a da casa) chega a lista, e a do profissional nao e limitada`() = runBlocking {
+        val limitada = viewModelComTurnos(limitada = true) { listOf(turno("t", "2026-11-25T20:00:00Z")) }
+        limitada.carregarTurnos().join()
+        assertEquals(true, (limitada.estado.value.turnosFuturos as TurnosFuturosDaExclusao.Lista).limitada)
+
+        val completa = viewModelComTurnos { listOf(turno("t", "2026-11-25T20:00:00Z")) }
+        completa.carregarTurnos().join()
+        assertEquals(false, (completa.estado.value.turnosFuturos as TurnosFuturosDaExclusao.Lista).limitada)
     }
 
     @Test
