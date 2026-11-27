@@ -142,7 +142,11 @@ class EscalaDeEventoViewModel(
     /** O endereço da casa, onde o evento acontece (vem do cadastro; a tela só o mostra). */
     val enderecoDoEvento: String get() = estabelecimento.endereco
 
-    private val _estado = MutableStateFlow(guarda?.obter(estabelecimento.id)?.let(::restaurar) ?: estadoInicial())
+    /** A escala que a visita anterior desta casa deixou e a geração em que esta visita nasceu ([GuardaDaEscala]), lidas juntas. */
+    private val visitaGuardada: Pair<EstadoEscalaDeEvento?, Int>? = guarda?.abrir(estabelecimento.id)
+    private val geracaoDaVisita: Int = visitaGuardada?.second ?: 0
+
+    private val _estado = MutableStateFlow(visitaGuardada?.first?.let(::restaurar) ?: estadoInicial())
     val estado: StateFlow<EstadoEscalaDeEvento> = _estado.asStateFlow()
 
     private fun estadoInicial(): EstadoEscalaDeEvento {
@@ -163,7 +167,11 @@ class EscalaDeEventoViewModel(
     /** Muda o estado e mantém a guarda em dia: com pendência ela guarda o estado; sem (sucesso, recusa definitiva), a casa sai. */
     private fun atualizarGuardando(mudar: (EstadoEscalaDeEvento) -> EstadoEscalaDeEvento) {
         val novo = _estado.updateAndGet(mudar)
-        if (novo.pendente != null) guarda?.guardar(estabelecimento.id, novo) else guarda?.remover(estabelecimento.id)
+        if (novo.pendente != null) {
+            guarda?.guardar(estabelecimento.id, novo, geracaoDaVisita)
+        } else {
+            guarda?.remover(estabelecimento.id, geracaoDaVisita)
+        }
     }
 
     private fun itemNovo(data: LocalDate, modelo: ItemDaEscala? = null): ItemDaEscala {
