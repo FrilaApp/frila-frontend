@@ -95,6 +95,7 @@ fun TelaDetalheVaga(
     aoNavegarParaVagaPreenchida: ((VagaAbertaDto) -> Unit)? = null,
     aoNavegarParaVagaEncerrada: ((VagaAbertaDto) -> Unit)? = null,
     aoNavegarParaContaSuspensa: (() -> Unit)? = null,
+    aoNavegarParaFuncaoIncompativel: ((VagaAbertaDto) -> Unit)? = null,
 ) {
     val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -114,6 +115,7 @@ fun TelaDetalheVaga(
         estado.ehVagaPreenchida,
         estado.ehVagaEncerrada,
         estado.ehContaSuspensa,
+        estado.ehFuncaoIncompativel,
     ) {
         if (estado.navegarParaConfirmada && viewModel.consumirNavegacaoParaConfirmada()) {
             aoNavegarParaConfirmada?.invoke(estado.vaga, estado.contato)
@@ -135,6 +137,9 @@ fun TelaDetalheVaga(
         }
         if (estado.ehContaSuspensa && viewModel.consumirNavegacaoParaContaSuspensa()) {
             aoNavegarParaContaSuspensa?.invoke()
+        }
+        if (estado.ehFuncaoIncompativel && viewModel.consumirNavegacaoParaFuncaoIncompativel()) {
+            aoNavegarParaFuncaoIncompativel?.invoke(estado.vaga)
         }
     }
 
