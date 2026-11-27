@@ -71,10 +71,15 @@ class MapeadoresTest {
     }
 
     @Test
-    fun `hora de check-in ilegivel nao vira comprovante com a hora de agora`() {
-        // Antes: getOrDefault(Instant.now()) mostrava um horário que ninguém registrou, e vencia o toque real do CheckinViewModel.
-        assertNull(criarTurnoDto(checkinEm = "ontem").paraItem().comprovante)
-        assertNull(criarTurnoDto(checkinEm = "").paraItem().comprovante)
+    fun `hora de check-in ilegivel e check-in feito com horario desconhecido, nunca a hora de agora`() {
+        // O servidor mandou checkin_em (não nulo): o check-in FOI feito, só a hora não lê. Antes: getOrDefault(Instant.now()) inventava a
+        // hora; "sem comprovante" (a primeira correção) inventava o estado: a tela voltava a oferecer "Fazer check-in".
+        for (ilegivel in listOf("ontem", "")) {
+            val comprovante = criarTurnoDto(checkinEm = ilegivel).paraItem().comprovante
+            assertNotNull(comprovante, "checkinEm=\"$ilegivel\"")
+            assertNull(comprovante!!.registradoEm, "sem hora inventada, checkinEm=\"$ilegivel\"")
+            assertEquals(TipoVerificacaoCheckin.GEOLOCALIZADO, comprovante.tipoVerificacao)
+        }
     }
 
     @Test
@@ -84,6 +89,11 @@ class MapeadoresTest {
             criarTurnoDto(checkinEm = "2026-11-01T21:05:00Z").paraItem().comprovante?.registradoEm,
         )
         assertNull(criarTurnoDto(checkinEm = null).paraItem().comprovante)
+    }
+
+    @Test
+    fun `checkin_em nulo continua sendo sem check-in`() {
+        assertNull(criarTurnoDto(checkinEm = null, checkinTipo = null, verificacao = "pendente").paraItem().comprovante)
     }
 
     @Test
