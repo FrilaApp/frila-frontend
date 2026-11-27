@@ -78,6 +78,7 @@ object TextosChamadaCasa {
         "As chamadas diretas foram finalizadas sem confirmação. Você pode abrir a vaga para todos os " +
             "profissionais da região."
     const val VAGA_PUBLICADA_SUCESSO = "Vaga aberta para todos os profissionais da região."
+    const val VAGA_ENCERRADA_AO_PUBLICAR = "Esta vaga já foi encerrada e não pode mais ser aberta para todos."
     const val VER_VAGA_ABERTA = "Ver vaga aberta"
     const val MOTIVO_ROTULO = "Motivo"
 

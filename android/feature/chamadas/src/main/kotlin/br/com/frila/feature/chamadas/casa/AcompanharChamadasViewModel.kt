@@ -8,6 +8,8 @@ import br.com.frila.core.rede.ChamadaResumoDto
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PaginaDeChamadasDto
 import br.com.frila.core.rede.VagaPublicadaDto
+import br.com.frila.feature.chamadas.profissional.FormatoChamada
+import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -29,12 +31,14 @@ data class EstadoAcompanharChamadas(
     val sucesso: String? = null,
     /** A vaga normal aberta a partir da chamada (`publicar_a_partir_da_chamada`). */
     val vagaPublicadaId: String? = null,
+    /** A vaga direta já fechou ([vagaJaEncerrada], ou o servidor recusou com `409 vaga_encerrada`): não há o que publicar. */
+    val vagaEncerrada: Boolean = false,
 ) {
     val temChamadaAceita: Boolean get() = chamadas.any { it.estado == ESTADO_ACEITA }
 
     /** Todas as chamadas da vaga terminaram sem aceite: a casa pode abrir a vaga para todos. */
     val podePublicarParaTodos: Boolean
-        get() = chamadas.isNotEmpty() && !temChamadaAceita && vagaPublicadaId == null && !acaoEmVoo &&
+        get() = chamadas.isNotEmpty() && !temChamadaAceita && vagaPublicadaId == null && !acaoEmVoo && !vagaEncerrada &&
             chamadas.all { it.estado in ESTADOS_SEM_ACEITE }
 
     fun rotuloDoEstado(estado: String): String = when (estado) {
@@ -52,6 +56,17 @@ data class EstadoAcompanharChamadas(
         const val ESTADO_ACEITA = "aceita"
         private val ESTADOS_SEM_ACEITE = setOf("recusada", "expirada", "cancelada", "encerrada")
     }
+}
+
+/**
+ * A vaga direta já fechou pelo que a lista mostra, e `publicar_a_partir_da_chamada` responderia `409 vaga_encerrada`:
+ * o turno já começou, ou a última chamada a fechar expirou (`expirar_chamadas` encerra a vaga direta quando a última
+ * chamada aberta expira; recusa e cancelamento não a encerram). Sem `respondida_em`, não dá para saber, e o botão fica.
+ */
+internal fun vagaJaEncerrada(chamadas: List<ChamadaResumoDto>, agora: Instant): Boolean {
+    if (chamadas.any { c -> FormatoChamada.instante(c.inicioEm)?.let { !it.isAfter(agora) } == true }) return true
+    val ultima = chamadas.maxByOrNull { c -> c.respondidaEm?.let(FormatoChamada::instante) ?: Instant.MIN } ?: return false
+    return ultima.estado == "expirada" && ultima.respondidaEm?.let(FormatoChamada::instante) != null
 }
 
 /** O texto do motivo que o profissional escolheu ao recusar; nunca o código do contrato. */
@@ -81,6 +96,7 @@ class AcompanharChamadasViewModel(
     private val publicarAPartirDaChamada: suspend (vagaId: String, chave: String, modo: String?) -> VagaPublicadaDto,
     private val novaChave: () -> String = { UUID.randomUUID().toString() },
     private val prazoMs: Long = ChamadaDiretaViewModel.PRAZO_PADRAO_MS,
+    private val relogio: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -101,7 +117,10 @@ class AcompanharChamadasViewModel(
     private suspend fun recarregar() {
         try {
             val todas = withTimeout(prazoMs) { lerTodasAsPaginas() }
-            _estado.update { it.copy(carregando = false, chamadas = todas.filter { c -> c.vagaId == vagaId }) }
+            val daVaga = todas.filter { c -> c.vagaId == vagaId }
+            _estado.update {
+                it.copy(carregando = false, chamadas = daVaga, vagaEncerrada = it.vagaEncerrada || vagaJaEncerrada(daVaga, relogio()))
+            }
         } catch (erro: TimeoutCancellationException) {
             _estado.update { it.copy(carregando = false, erro = TextosChamadaCasa.ERRO) }
         } catch (erro: CancellationException) {
@@ -174,9 +193,16 @@ class AcompanharChamadasViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                // Recusa do servidor (vaga encerrada, fora da janela...) é definitiva: a próxima tentativa leva chave nova.
+                // Recusa do servidor é definitiva: a próxima tentativa leva chave nova.
                 if (!resultadoIncerto(erro)) chaveDaPublicacao = null
-                _estado.update { it.copy(acaoEmVoo = false, erro = TextosChamadaCasa.ERRO) }
+                if (erro.codigo == CodigoErroAPI.VAGA_ENCERRADA) {
+                    // Vaga direta cancelada, encerrada ou preenchida, ou fora da janela (RN35): o botão some e a lista é
+                    // relida, porque as chamadas podem ter mudado do outro lado.
+                    _estado.update { it.copy(acaoEmVoo = false, vagaEncerrada = true, erro = TextosChamadaCasa.VAGA_ENCERRADA_AO_PUBLICAR) }
+                    recarregar()
+                } else {
+                    _estado.update { it.copy(acaoEmVoo = false, erro = TextosChamadaCasa.ERRO) }
+                }
             } catch (_: Exception) {
                 _estado.update { it.copy(acaoEmVoo = false, erro = TextosChamadaCasa.ERRO) }
             }
