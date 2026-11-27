@@ -36,6 +36,7 @@ class AtualizacaoAutomaticaDaListaTest {
 
     private val agora = AtomicReference(Instant.parse("2026-11-27T12:00:00Z"))
     private var releituras = 0
+    private var travada: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
     private val dono = object : LifecycleOwner {
         val registro = LifecycleRegistry.createUnsafe(this)
@@ -51,7 +52,7 @@ class AtualizacaoAutomaticaDaListaTest {
         rule.runOnUiThread { dono.registro.currentState = Lifecycle.State.RESUMED }
         rule.setContent {
             CompositionLocalProvider(LocalLifecycleOwner provides dono) {
-                AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, atualizacao) { releituras++ }
+                AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, atualizacao) { releituras++; travada?.await() }
             }
         }
         rule.waitForIdle()
@@ -112,6 +113,20 @@ class AtualizacaoAutomaticaDaListaTest {
     }
 
     @Test
+    fun `sair da tela com a releitura em voo cancela e libera a vez da lista`() {
+        val atualizacao = montar()
+        travada = kotlinx.coroutines.CompletableDeferred()
+        estado(Lifecycle.State.STARTED)
+        passar(31)
+        estado(Lifecycle.State.RESUMED)
+        assertEquals("a releitura começou e está travada", 1, releituras)
+        assertEquals(true, atualizacao.emVoo(ListaAtualizavel.VAGAS))
+
+        estado(Lifecycle.State.STARTED)
+        assertEquals("sair da tela libera a vez", false, atualizacao.emVoo(ListaAtualizavel.VAGAS))
+    }
+
+    @Test
     fun `sem conta nada e relido`() {
         val atualizacao = montar(conta = null)
         estado(Lifecycle.State.STARTED)
@@ -142,12 +157,12 @@ class AtualizacaoAutomaticaDaListaTest {
         assertEquals(
             "o feed relê em silêncio",
             true,
-            navegacao.contains("AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, koinInject<AtualizacaoAutomatica>()) { viewModel.atualizarEmSilencio().join() }"),
+            navegacao.contains("AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }"),
         )
         assertEquals(
             "Meus turnos relê sem piscar",
             true,
-            navegacao.contains("AtualizacaoAutomaticaDaLista(ListaAtualizavel.MEUS_TURNOS, koinInject<AtualizacaoAutomatica>()) { viewModel.atualizarSemPiscar().join() }"),
+            navegacao.contains("AtualizacaoAutomaticaDaLista(ListaAtualizavel.MEUS_TURNOS, atualizacao) { viewModel.atualizarSemPiscar().join() }"),
         )
     }
 
