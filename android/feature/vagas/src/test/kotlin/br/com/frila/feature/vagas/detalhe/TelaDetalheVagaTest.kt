@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -672,5 +673,42 @@ class TelaDetalheVagaTest {
     @Test
     fun `uma casa com avaliacoes e nenhuma positiva ainda mostra a contagem`() {
         assertEquals("0 de 4 avaliações indicam que trabalhariam lá de novo", textoDaReputacaoNaTela(positivas = 0, total = 4))
+    }
+
+    // ── O rateio dos 10% (DLjTVc2e, item 150) ─────────────────────────────────────────────────────────────────────────
+
+    private fun montarComDetalhe(participaRateio: Boolean?) {
+        val vm = DetalheVagaViewModel(
+            vaga = criarVaga(),
+            servicoVagas = ServicoVagas(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = MockEngine { respond("") })),
+            detalhe = vagaDoServidor(participaRateio = participaRateio),
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = vm) } }
+    }
+
+    @Test
+    fun `a casa que participa do rateio mostra Rateio dos 10 por cento Sim`() {
+        montarComDetalhe(participaRateio = true)
+        compose.onNodeWithText("Rateio dos 10%: Sim").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `a casa que nao participa mostra Nao`() {
+        montarComDetalhe(participaRateio = false)
+        compose.onNodeWithText("Rateio dos 10%: Não").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `quando a casa nao disse o rateio, a linha nao aparece`() {
+        montarComDetalhe(participaRateio = null)
+        compose.onNode(hasText("Responsável no local", substring = true)).performScrollTo().assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `aberta pela lista, sem o detalhe do servidor, a tela nao inventa o rateio`() {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
+        assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
     }
 }
