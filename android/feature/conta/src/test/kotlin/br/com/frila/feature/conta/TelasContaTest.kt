@@ -261,6 +261,35 @@ class TelasContaTest {
     }
 
     @Test
+    fun consultaLimitadaDaCasaAvisaQueAListaPodeEstarIncompleta() {
+        montarExclusao(
+            inicial = EstadoExclusaoDeConta(
+                turnosFuturos = TurnosFuturosDaExclusao.Lista(
+                    listOf(turnoFuturo("t1", "garçom", "Maria", "CLS 405", "2026-11-25T21:00:00Z", "2026-11-26T02:00:00Z")),
+                    limitada = true,
+                ),
+            ),
+        )
+
+        rule.onNodeWithText(TextosExclusaoDeConta.LISTA_LIMITADA).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Maria").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun consultaCompletaDoProfissionalNaoMostraOAvisoDeLimitada() {
+        montarExclusao(
+            inicial = EstadoExclusaoDeConta(
+                turnosFuturos = TurnosFuturosDaExclusao.Lista(
+                    listOf(turnoFuturo("t1", "garçom", "Bar do Zé", "CLS 405", "2026-11-25T21:00:00Z", "2026-11-26T02:00:00Z")),
+                ),
+            ),
+        )
+
+        rule.onNodeWithText("Bar do Zé").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosExclusaoDeConta.LISTA_LIMITADA).assertDoesNotExist()
+    }
+
+    @Test
     fun semTurnosFuturosDizOQueFoiConsultado() {
         montarExclusao(inicial = EstadoExclusaoDeConta(turnosFuturos = TurnosFuturosDaExclusao.Lista(emptyList())))
 
@@ -316,18 +345,13 @@ class TelasContaTest {
             excluir = { error("ler a lista não exclui") },
             consultarTurnos = {
                 leituras++
-                listOf(
-                    br.com.frila.core.rede.TurnoDto(
-                        id = "t1", posicaoId = "p1",
-                        vaga = br.com.frila.core.rede.VagaResumoDto(
-                            id = "v1", funcao = "garçom", local = "CLS 405", regiaoAdministrativa = "Plano Piloto",
-                            inicioEm = "2026-12-02T21:00:00Z", fimEm = "2026-12-03T02:00:00Z", valorCentavos = 16000,
+                ConsultaDeTurnosDaExclusao(
+                    listOf(
+                        TurnoFuturoDaExclusao(
+                            id = "t1", funcao = "garçom", contraparte = "Bar do Zé",
+                            inicio = java.time.Instant.parse("2026-12-02T21:00:00Z"),
+                            fim = java.time.Instant.parse("2026-12-03T02:00:00Z"), local = "CLS 405",
                         ),
-                        contraparte = br.com.frila.core.rede.PerfilPublicoDto(
-                            id = "e1", tipo = "estabelecimento", nome = "Bar do Zé",
-                            reputacao = br.com.frila.core.rede.ReputacaoDto(positivas = 1, total = 1, turnosConsiderados = 1, turnosRealizados = 1),
-                        ),
-                        verificacao = "pendente", valorAcordadoCentavos = 16000, podeAvaliar = false, estado = "confirmada",
                     ),
                 )
             },

@@ -269,7 +269,7 @@ internal fun intervaloDoTurno(inicio: Instant, fim: Instant): String {
 }
 
 /**
- * Os turnos futuros que a exclusão cancelaria (contrato: cancela e avisa as contrapartes). Só lista; nunca bloqueia nada:
+ * Os turnos futuros que a exclusão cancelaria (contrato: cancela e avisa as contrapartes; do profissional e, para contratante, das casas). Só lista; nunca bloqueia nada:
  * lista indisponível vira um aviso e a exclusão segue liberada. Sem consulta ([TurnosFuturosDaExclusao.NaoConsultados]), nada.
  */
 @Composable
@@ -284,7 +284,10 @@ private fun SecaoTurnosFuturos(turnos: TurnosFuturosDaExclusao) {
                 Text(TextosExclusaoDeConta.CARREGANDO_TURNOS, style = FrilaTipo.apoio, color = cores.tintaSuave)
             TurnosFuturosDaExclusao.Indisponivel ->
                 AvisoFrila(tom = TomAviso.INFORMATIVO, mensagem = TextosExclusaoDeConta.LISTA_TURNOS_INDISPONIVEL)
-            is TurnosFuturosDaExclusao.Lista ->
+            is TurnosFuturosDaExclusao.Lista -> {
+                if (turnos.limitada) {
+                    AvisoFrila(tom = TomAviso.INFORMATIVO, mensagem = TextosExclusaoDeConta.LISTA_LIMITADA)
+                }
                 if (turnos.turnos.isEmpty()) {
                     Text(TextosExclusaoDeConta.SEM_TURNOS_FUTUROS, style = FrilaTipo.apoio, color = cores.tintaSuave)
                 } else {
@@ -300,6 +303,7 @@ private fun SecaoTurnosFuturos(turnos: TurnosFuturosDaExclusao) {
                         }
                     }
                 }
+            }
         }
     }
 }

@@ -4,9 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
-import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.ExclusaoDeContaDto
-import br.com.frila.core.rede.TurnoDto
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -44,8 +42,8 @@ data class EstadoExclusaoDeConta(
 class ExclusaoDeContaViewModel(
     private val excluir: suspend () -> ExclusaoDeContaDto,
     private val aoConcluir: () -> Unit = {},
-    /** `ServicoTurnos.listarMeusTurnos`: os turnos do profissional. `null`: a tela não consulta e mostra só o texto geral. */
-    private val consultarTurnos: (suspend () -> List<TurnoDto>)? = null,
+    /** Os turnos da conta (do profissional, ou das casas do contratante). `null`: a tela não consulta e mostra só o texto geral. */
+    private val consultarTurnos: (suspend () -> ConsultaDeTurnosDaExclusao)? = null,
     private val relogio: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
@@ -69,12 +67,12 @@ class ExclusaoDeContaViewModel(
         return escopoDeTrabalho.launch {
             val resultado = try {
                 val agora = relogio()
+                val consulta = consultar()
                 TurnosFuturosDaExclusao.Lista(
-                    consultar()
-                        .filter { turno -> turno.estado != "cancelada" }
-                        .map { turno -> turno.paraTurnoFuturo() }
+                    turnos = consulta.turnos
                         .filter { turno -> turno.inicio.isAfter(agora) }
                         .sortedBy { turno -> turno.inicio },
+                    limitada = consulta.limitada,
                 )
             } catch (erro: CancellationException) {
                 throw erro
@@ -85,15 +83,6 @@ class ExclusaoDeContaViewModel(
             _estado.update { it.copy(turnosFuturos = resultado) }
         }.also { leituraDosTurnos = it }
     }
-
-    private fun TurnoDto.paraTurnoFuturo() = TurnoFuturoDaExclusao(
-        id = id,
-        funcao = vaga.funcao,
-        contraparte = contraparte.nome,
-        inicio = instanteDoServidor(vaga.inicioEm),
-        fim = instanteDoServidor(vaga.fimEm),
-        local = vaga.local,
-    )
 
     fun alterarConfirmacao(confirmou: Boolean) {
         _estado.update { if (it.excluindo || it.resultado != null) it else it.copy(confirmouConsequencias = confirmou) }

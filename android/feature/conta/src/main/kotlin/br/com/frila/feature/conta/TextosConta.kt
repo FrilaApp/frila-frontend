@@ -13,8 +13,12 @@ object TextosExclusaoDeConta {
     const val TITULO_TURNOS_FUTUROS = "Turnos futuros vinculados à conta"
     const val CARREGANDO_TURNOS = "Verificando turnos futuros…"
 
-    /** Só os turnos como profissional: a consulta da casa (turnos do estabelecimento) é outra etapa. */
-    const val SEM_TURNOS_FUTUROS = "Nenhum turno futuro como profissional encontrado na consulta."
+    const val SEM_TURNOS_FUTUROS = "Nenhum turno futuro encontrado na consulta."
+
+    /** A consulta da casa olha os próximos 12 meses do painel (paridade com `listaLimitada` do iOS). */
+    const val LISTA_LIMITADA =
+        "A lista pode estar incompleta: consultamos os próximos 12 meses dos estabelecimentos. " +
+            "Você pode continuar com a exclusão."
     const val LISTA_TURNOS_INDISPONIVEL =
         "A lista de turnos está indisponível ou desatualizada. Você pode continuar com a exclusão."
     const val CONSEQUENCIA_PRAZO =
