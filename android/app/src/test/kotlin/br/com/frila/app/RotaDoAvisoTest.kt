@@ -47,7 +47,7 @@ class RotaDoAvisoTest {
         Caso(AvisoDoToque("cancelamento", vagaId = vaga, posicaoId = posicao), Rotas.MEUS_TURNOS, candidatos),
         // O candidato de uma vaga recolhida: sem posição.
         Caso(AvisoDoToque("cancelamento", vagaId = vaga), Rotas.detalhe(vaga), candidatos),
-        Caso(AvisoDoToque("avaliacao_disponivel", turnoId = turno), "avaliacao/$turno", "avaliacao_contratante/$turno"),
+        Caso(AvisoDoToque("avaliacao_disponivel", turnoId = turno), "avaliacao/$turno", turnoDaCasa),
         Caso(AvisoDoToque("suspensao"), Rotas.ABERTURA, Rotas.ABERTURA),
         Caso(AvisoDoToque("reativacao"), Rotas.ABERTURA, Rotas.ABERTURA),
         Caso(AvisoDoToque("candidatura_recusada", vagaId = vaga), Rotas.detalhe(vaga)),
@@ -61,7 +61,7 @@ class RotaDoAvisoTest {
         Caso(AvisoDoToque("chamada_expirada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("chamada_cancelada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("chamada_encerrada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
-        Caso(AvisoDoToque("turno_nao_verificado", turnoId = turno), Rotas.turnoAviso(turno)),
+        Caso(AvisoDoToque("turno_nao_verificado", turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
         Caso(AvisoDoToque("lembrete_30min_fim_turno", vagaId = vaga), null),
         Caso(AvisoDoToque("lembrete_fim_turno", vagaId = vaga), null),
     )
@@ -97,7 +97,7 @@ class RotaDoAvisoTest {
 
     @Test
     fun `para a casa, turno_id que nao e UUID ou ausente cai em Minhas vagas`() {
-        for (tipo in listOf("confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min")) {
+        for (tipo in listOf("confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min", "avaliacao_disponivel", "turno_nao_verificado")) {
             assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, turnoId = "turno-1", vagaId = vaga), casa))
             assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, vagaId = vaga), casa))
         }

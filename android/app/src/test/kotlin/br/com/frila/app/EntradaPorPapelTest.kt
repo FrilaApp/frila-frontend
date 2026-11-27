@@ -383,11 +383,24 @@ class EntradaPorPapelTest {
     }
 
     @Test
-    fun `jq8xVAve - a casa que abre o app pela avaliacao disponivel cai na avaliacao do contratante`() {
+    fun `jq8xVAve - a casa que abre o app pela avaliacao disponivel cai no turno da casa, como no iOS`() {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = AvisoDoToque("avaliacao_disponivel", turnoId = turnoDoAviso))
 
-        assertTrue("a avaliação da casa não abriu (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.AVALIACAO_DO_CONTRATANTE })
+        assertTrue("a avaliação disponível não abriu o turno da casa (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO })
         assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+    }
+
+    @Test
+    fun `jq8xVAve - com o app aberto, o turno nao verificado leva a casa ao turno`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        avisoDoToque.value = AvisoDoToque("turno_nao_verificado", turnoId = turnoDoAviso)
+
+        assertTrue("o turno não verificado não abriu o turno da casa (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO })
+        var turno: String? = null
+        rule.runOnIdle { turno = nav.currentBackStackEntry?.arguments?.getString("turnoId") }
+        assertEquals(turnoDoAviso, turno)
     }
 
     @Test

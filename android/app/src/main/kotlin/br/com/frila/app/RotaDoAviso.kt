@@ -68,10 +68,10 @@ internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
  * vazia com "Ninguém se candidatou ainda", que ali é falso: ficam em Minhas vagas.
  */
 private fun rotaDaCasa(aviso: AvisoDoToque, estabelecimentoId: String): String? = when (aviso.tipo) {
-    "confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min" ->
+    // `avaliacao_disponivel` e `turno_nao_verificado` também abrem o turno, como no iOS: a casa avalia de lá.
+    "confirmacao", "lembrete_24h", "lembrete_3h", "fim_sem_checkout", "checkin", "checkin_manual_pendente", "atraso_15min",
+    "avaliacao_disponivel", "turno_nao_verificado" ->
         aviso.turnoId.uuid()?.let { Rotas.turnoDoContratanteAviso(estabelecimentoId, it) }
-    // A avaliação da casa abre direto pelo turno (o iOS abre o turno, de onde a casa avalia).
-    "avaliacao_disponivel" -> aviso.turnoId.uuid()?.let(Rotas::avaliacaoDoContratante)
     "vaga_sem_elegiveis", "vaga_vazia", "selecao_lembrete", "cancelamento" -> aviso.vagaId.uuid()?.let { Rotas.candidatosDaVaga(it) }
     else -> null
 }
