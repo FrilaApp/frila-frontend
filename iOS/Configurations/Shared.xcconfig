@@ -12,6 +12,10 @@ FRILA_NOTIFICATION_SERVICE_BUNDLE_ID = $(FRILA_BUNDLE_ID).notificationservice
 FRILA_PROVISIONING_PROFILE_APP =
 FRILA_PROVISIONING_PROFILE_NOTIFICATION_SERVICE =
 
+// Chave de build para habilitar login social (Sign in with Apple) em Release/Beta.
+// Nasce desligada (NO) por padrão; só pode ser ligada em build autorizado (Prod permanece NO).
+FRILA_LOGIN_SOCIAL_RELEASE = NO
+
 // Vazios de propósito: sem Secrets.xcconfig, Dev e Prod falham na CI e abrem na tela de
 // configuração incompleta, nunca no dublê em memória. Veja Scripts/generate-supabase-secrets.sh.
 FRILA_SUPABASE_DEV_URL =

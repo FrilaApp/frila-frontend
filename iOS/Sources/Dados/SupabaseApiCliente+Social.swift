@@ -6,12 +6,30 @@ extension SupabaseApiCliente {
     /// Desligado por padrão até o dono provisionar a capability `com.apple.developer.applesignin`
     /// no App ID (`com.frila.org.app`) + provisioning profile e validar DEV/Beta.
     /// Em `DEBUG` pode ser ligado explicitamente para prova local via `FRILA_LOGIN_SOCIAL_DEV=1`.
-    public var suportaLoginSocial: Bool {
+    /// Em `Release` permanece `false` por padrão, lendo `FRILA_LOGIN_SOCIAL_RELEASE` do `Info.plist`
+    /// (configuração de build local, distinta de flags remotas; Prod permanece `NO`).
+    public static func suportaLoginSocialEmRelease(
+        infoDictionary: [String: Any] = Bundle.main.infoDictionary ?? [:]
+    ) -> Bool {
+        let valor = (infoDictionary["FRILA_LOGIN_SOCIAL_RELEASE"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return valor == "yes" || valor == "true" || valor == "1"
+    }
+
+    public static func suportaLoginSocial(
+        infoDictionary: [String: Any] = Bundle.main.infoDictionary ?? [:],
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
         #if DEBUG
-        ProcessInfo.processInfo.environment["FRILA_LOGIN_SOCIAL_DEV"] == "1"
+        return environment["FRILA_LOGIN_SOCIAL_DEV"] == "1"
         #else
-        false
+        return suportaLoginSocialEmRelease(infoDictionary: infoDictionary)
         #endif
+    }
+
+    public var suportaLoginSocial: Bool {
+        Self.suportaLoginSocial()
     }
 
     /// Conclui Sign in with Apple nativo via Edge Function `POST /functions/v1/autenticar-social`

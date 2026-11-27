@@ -41,6 +41,12 @@ val assinarReleaseComDebugParaSmoke: Boolean = (
     project.findProperty("frila.smoke.release") as? String ?: System.getenv("FRILA_SMOKE_RELEASE")
 )?.toBoolean() == true
 
+// Chave de build para login social em Release (distinta de flag remota; OFF por padrão; Prod permanece OFF).
+val loginSocialReleaseAtivo: Boolean = (
+    project.findProperty("frila.loginSocialRelease") as? String
+        ?: System.getenv("FRILA_LOGIN_SOCIAL_RELEASE")
+)?.trim()?.equals("true", ignoreCase = true) == true
+
 // Supabase (pedido 16-26): a URL e a chave PUBLICÁVEL vão para o BuildConfig. Debug = par DEV,
 // release = par PROD. Fonte: variável de ambiente ou android/local.properties (ignorado pelo Git).
 // Nenhum valor é impresso: as mensagens citam só o nome da variável. A regra da chave proibida é a
@@ -183,11 +189,13 @@ android {
             }
             buildConfigField("String", "SUPABASE_URL", literalJava(supabaseProdUrl))
             buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalJava(supabaseProdChave))
+            buildConfigField("boolean", "LOGIN_SOCIAL_RELEASE_ATIVO", loginSocialReleaseAtivo.toString())
         }
         debug {
             isMinifyEnabled = false
             buildConfigField("String", "SUPABASE_URL", literalJava(supabaseDevUrl.ifEmpty { urlSupabaseSemConfiguracao }))
             buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", literalJava(supabaseDevChave))
+            buildConfigField("boolean", "LOGIN_SOCIAL_RELEASE_ATIVO", "false")
         }
     }
 

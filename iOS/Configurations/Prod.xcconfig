@@ -6,3 +6,5 @@ FRILA_SUPABASE_PUBLISHABLE_KEY = $(FRILA_SUPABASE_PROD_PUBLISHABLE_KEY)
 SWIFT_COMPILATION_MODE = wholemodule
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) FRILA_PROD
 FRILA_APS_ENVIRONMENT = production
+// Prod mantém login social em Release desligado por padrão (chave de build local != flag remota).
+FRILA_LOGIN_SOCIAL_RELEASE = NO

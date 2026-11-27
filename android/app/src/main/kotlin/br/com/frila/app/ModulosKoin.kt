@@ -376,7 +376,7 @@ val moduloFeatures = module {
             armazenamentoDeSessao = get(),
             aoEntrar = { get<RegistradorDeDispositivo>().registrarEmSegundoPlano() },
             permitirDominioDeTeste = BuildConfig.DEBUG,
-            mostrarLoginSocial = BuildConfig.DEBUG,
+            mostrarLoginSocial = BuildConfig.DEBUG || BuildConfig.LOGIN_SOCIAL_RELEASE_ATIVO,
             armazenamentoOAuthPendente = get(),
             urlCallbackOAuth = SegurancaOAuthSocial.urlCallbackParaAmbiente(usarAppLinks = !BuildConfig.DEBUG),
             permitirCustomSchemeDev = BuildConfig.DEBUG,
