@@ -97,7 +97,8 @@ private const val ESTADO_SUSPENSA = "suspensa"
 
 /** Resultado da abertura: um destino, ou o motivo de não haver. */
 sealed interface ResultadoDaAbertura {
-    data class Destino(val destino: DestinoDaConta) : ResultadoDaAbertura
+    /** `doServidor` falso: sem rede, vale o último destino guardado. O toque num push não escolhe tela por ele. */
+    data class Destino(val destino: DestinoDaConta, val doServidor: Boolean = true) : ResultadoDaAbertura
 
     /** Sem rede (ou prazo vencido) e nada guardado: a tela diz que está sem conexão. */
     data object SemConexao : ResultadoDaAbertura
@@ -165,7 +166,7 @@ class AvaliadorDeDestino(
     }
 
     private fun semConexao(): ResultadoDaAbertura =
-        guardado.obter()?.let { ResultadoDaAbertura.Destino(it) } ?: ResultadoDaAbertura.SemConexao
+        guardado.obter()?.let { ResultadoDaAbertura.Destino(it, doServidor = false) } ?: ResultadoDaAbertura.SemConexao
 
     companion object {
         val PRAZO_PADRAO: Duration = 8.seconds

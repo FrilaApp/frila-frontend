@@ -8,6 +8,9 @@ import androidx.navigation.NavDestination
 import androidx.navigation.navDeepLink
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import br.com.frila.core.notificacoes.EntradaDoAvisoActivity
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,6 +71,27 @@ class AppDeepLinkNavegacaoTest {
             destino(RotasChamadaProfissional.RECEBIDA, RotasChamadaProfissional.DEEP_LINK_RECEBIDA)
                 .hasDeepLink(intent.data!!),
         )
+    }
+
+    /** O toque num push entra pela `EntradaDoAvisoActivity`, não exportada: `frila://aviso` não tem filtro no app. */
+    @Test
+    fun `frila aviso nao abre o app por filtro, e a entrada do aviso nao e exportada`() {
+        val implicito = Intent(Intent.ACTION_VIEW, Uri.parse("frila://aviso?tipo=vaga")).setPackage(contexto.packageName)
+
+        assertNull(implicito.resolveActivity(contexto.packageManager))
+        val entrada = contexto.packageManager.getActivityInfo(ComponentName(contexto, EntradaDoAvisoActivity::class.java), 0)
+        assertFalse(entrada.exported)
+    }
+
+    @Test
+    fun `o link do aviso leva o tipo e os ids, e so ele com tipo vira aviso`() {
+        assertEquals(
+            AvisoDoToque("cancelamento", vagaId = "v1", posicaoId = "p1"),
+            avisoDoLink("frila://aviso?tipo=cancelamento&vaga_id=v1&posicao_id=p1"),
+        )
+        assertNull(avisoDoLink("frila://vagas/v1"))
+        assertNull(avisoDoLink("frila://aviso?vaga_id=v1"))
+        assertNull(avisoDoLink(null))
     }
 
     private fun intentPara(uri: String): Intent =

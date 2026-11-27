@@ -4,6 +4,14 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
+        <!-- O toque no push entra por aqui: não exportada, então só o PendingIntent do app abre um aviso. -->
+        <activity
+            android:name=".EntradaDoAvisoActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
         <service
             android:name=".FrilaFirebaseMessagingService"
             android:exported="false">

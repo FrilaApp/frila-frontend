@@ -382,6 +382,9 @@ fun AppNavegacao(
     aoConsumirCallbackOAuthSocial: () -> Unit = {},
     /** Abre o navegador do login social; `false` quando o aparelho não tem navegador (a navegação avisa). */
     aoAbrirLoginSocial: (String) -> Boolean = { true },
+    /** O toque num push (`frila://aviso`), pendente até a navegação escolher a tela pelo papel ([rotaDoAviso]). */
+    avisoDoToque: StateFlow<AvisoDoToque?>? = null,
+    aoConsumirAvisoDoToque: () -> Unit = {},
     /**
      * Quem é membro de um estabelecimento ganha no perfil os atalhos da equipe de confiança e da
      * publicação de vaga; contratante sem casa ganha o do cadastro. Nulo (grafo sem o serviço) esconde
@@ -438,6 +441,9 @@ fun AppNavegacao(
     var papelDaRaiz by rememberSaveable(stateSaver = SalvadorDoPapelDaRaiz) { mutableStateOf<PapelDaRaiz?>(null) }
     // "Trocar de casa": a casa que a pessoa escolheu vale até ela sair do app; sem escolha, vale a primeira por nome.
     var casaEscolhidaId by rememberSaveable { mutableStateOf<String?>(null) }
+    // O papel veio do servidor nesta abertura. Sem rede a abertura usa o último destino guardado, e o toque num push
+    // não escolhe tela por ele.
+    var papelConfirmadoNoServidor by rememberSaveable { mutableStateOf(false) }
     val padraoAtual = padraoDoTopoDaPilha(navController)
     LaunchedEffect(padraoAtual) {
         if (papelDaRaiz == null) papelPelaRota(padraoAtual)?.let { papelDaRaiz = it }
@@ -449,6 +455,9 @@ fun AppNavegacao(
     fun irParaEntrada() {
         guardaBiometrico.liberarAposLimparSessao()
         papelDaRaiz = null
+        papelConfirmadoNoServidor = false
+        // O aviso pendente era da conta que saiu.
+        aoConsumirAvisoDoToque()
         // A casa escolhida em "Trocar de casa" é da conta que saiu: a próxima abertura vale a padrão do servidor.
         casaEscolhidaId = null
         if (navController.currentDestination?.route == Rotas.ENTRADA && navController.previousBackStackEntry == null) return
@@ -472,6 +481,20 @@ fun AppNavegacao(
     }
     // O relato de ocorrência nasce do turno (antes só o link frila://suporte chegava nele), como a folha de suporte do iOS.
     val pedirSuporte: (String) -> Unit = { turnoId -> navController.navigate(Rotas.ocorrencia(turnoId)) }
+
+    // O toque num push escolhe a tela pelo tipo e pelo papel confirmado no servidor, como o `RoteadorDePush` do iOS.
+    // Enquanto a abertura decide, o aviso espera; sem papel confirmado, o app fica na raiz que a abertura escolheu.
+    val avisoPendente = avisoDoToque?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(avisoPendente, papelDaRaiz, papelConfirmadoNoServidor, padraoAtual) {
+        val aviso = avisoPendente ?: return@LaunchedEffect
+        val papel = papelDaRaiz?.takeIf { papelConfirmadoNoServidor }
+        val abrindo = padraoAtual == null || padraoAtual == Rotas.ABERTURA
+        if (papel == null && abrindo && armazenamentoDeSessao.estaAutenticado()) return@LaunchedEffect
+        aoConsumirAvisoDoToque()
+        val rota = papel?.let { rotaDoAviso(aviso, it) } ?: return@LaunchedEffect
+        // Por cima do que está aberto: um formulário a meio fica embaixo, e "voltar" o devolve.
+        navController.navigate(rota) { launchSingleTop = true }
+    }
 
     // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de
     // rede apaga fora da thread principal quando o Auth recusa o token, e a navegação só anda na principal.
@@ -713,9 +736,10 @@ fun AppNavegacao(
                     if (avaliadorDeDestino != null) {
                         RotaDeAbertura(
                             avaliador = avaliadorDeDestino,
-                            aoDecidir = { destino ->
+                            aoDecidir = { destino, doServidor ->
                                 // Cada abertura decide a casa pelo servidor; uma escolha de antes não vale para esta conta.
                                 casaEscolhidaId = null
+                                papelConfirmadoNoServidor = doServidor
                                 val casa = (destino as? DestinoDaConta.Contratante)?.casa
                                 if (destino is DestinoDaConta.Contratante && casa == null) {
                                     // Contratante ainda sem casa não tem abas: o Perfil (Sair, Excluir conta) fica como
