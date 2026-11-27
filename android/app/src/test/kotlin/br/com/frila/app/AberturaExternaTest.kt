@@ -108,4 +108,52 @@ class AberturaExternaTest {
         rule.onAllNodesWithTag("aviso-abertura-externa-endereco").assertCountEquals(0)
         rule.onNodeWithText(TextosAberturaExterna.ENTENDI).assertExists()
     }
+
+    // ── Cartão bepD1DEV: a loja do app, com o navegador de reserva e o endereço para copiar ─────────────────────────────────
+
+    /** Um contexto que recusa os intents cujo esquema está em [recusados] e guarda os que passaram. */
+    private fun contextoQueRecusa(vararg recusados: String, abertos: MutableList<Intent> = mutableListOf()) =
+        object : ContextWrapper(aplicacao) {
+            override fun startActivity(intent: Intent) {
+                if (intent.data?.scheme in recusados) throw ActivityNotFoundException(intent.data.toString())
+                abertos += intent
+            }
+        }
+
+    @Test
+    fun `a loja abre pelo market e nao aciona o navegador`() {
+        val abertos = mutableListOf<Intent>()
+
+        val aviso = abrirLojaDoApp(contextoQueRecusa(abertos = abertos), "br.com.frila")
+
+        assertEquals(null, aviso)
+        assertEquals(listOf("market://details?id=br.com.frila"), abertos.map { it.data.toString() })
+    }
+
+    @Test
+    fun `sem loja abre a pagina da loja no navegador`() {
+        val abertos = mutableListOf<Intent>()
+
+        val aviso = abrirLojaDoApp(contextoQueRecusa("market", abertos = abertos), "br.com.frila")
+
+        assertEquals(null, aviso)
+        assertEquals(listOf("https://play.google.com/store/apps/details?id=br.com.frila"), abertos.map { it.data.toString() })
+    }
+
+    @Test
+    fun `sem loja e sem navegador devolve o aviso com o endereco da loja, sem lancar`() {
+        val aviso = abrirLojaDoApp(contextoQueRecusa("market", "https"), "br.com.frila")
+
+        assertEquals("https://play.google.com/store/apps/details?id=br.com.frila", aviso?.paraCopiar)
+        assertTrue(aviso!!.mensagem.contains("loja"))
+    }
+
+    @Test
+    fun `recusa do sistema tambem vira aviso, nao excecao`() {
+        val recusa = object : ContextWrapper(aplicacao) {
+            override fun startActivity(intent: Intent) { throw SecurityException("recusado") }
+        }
+
+        assertEquals("https://play.google.com/store/apps/details?id=x", abrirLojaDoApp(recusa, "x")?.paraCopiar)
+    }
 }
