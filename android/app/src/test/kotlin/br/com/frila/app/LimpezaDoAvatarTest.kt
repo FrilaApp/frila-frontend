@@ -286,4 +286,71 @@ class LimpezaDoAvatarTest {
         assertTrue("a entrada de B é barrada enquanto a foto de A não sai", barrada)
         assertEquals("a sessão de A fica como estava", "refresh-a", armazenamento.origem.obterSessao()?.refreshToken)
     }
+
+    // ── Revisão do ANBU no #1087 (8a89ba61): o caso raro não pode prender a pessoa na sessão que ela tentou encerrar ──────────
+
+    /** O caso raro: nem apagar nem esvaziar funcionam (arquivo e pasta sem escrita), com a sessão de A ativa. */
+    private fun sessaoDeAComFotoQueNaoSai(): SessaoComCacheVagas {
+        val armazenamento = SessaoComCacheVagas(
+            ArmazenamentoDeSessaoEmMemoria(), CacheVagasDaSessao(raiz = null, diretorioDosAvatares = filesDir),
+        )
+        armazenamento.salvarSessao(sessao("a"))
+        impedirEsvaziar(avatarNoFilesDir())
+        impedirExclusao(filesDir)
+        return armazenamento
+    }
+
+    private fun liberarAFoto() {
+        filesDir.setWritable(true)
+        filesDir.listFiles()?.forEach { it.setWritable(true) }
+    }
+
+    @Test
+    fun `Sair no caso raro encerra a sessao e chega a Entrada sem lancar`() {
+        val armazenamento = sessaoDeAComFotoQueNaoSai()
+
+        armazenamento.limparSessao() // não pode lançar: o CoordenadorDeLogout seguiria até o fim e a navegação voltaria à Entrada
+
+        assertNull("a sessão de A caiu", armazenamento.origem.obterSessao())
+        assertEquals("a navegação é avisada (C0-8)", 1, armazenamento.encerramentos.value)
+    }
+
+    @Test
+    fun `depois do Sair no caso raro, reabrir o app le a sessao sem lancar de novo`() {
+        val armazenamento = sessaoDeAComFotoQueNaoSai()
+        armazenamento.limparSessao()
+
+        // O observador e o reinício leem a sessão (`estaAutenticado`/`obterSessao`) e antes tentavam a mesma limpeza e lançavam.
+        repeat(3) {
+            assertFalse(armazenamento.estaAutenticado())
+            assertNull(armazenamento.obterSessao())
+        }
+    }
+
+    @Test
+    fun `o Sair pelo CoordenadorDeLogout chega ao fim no caso raro`() {
+        val armazenamento = sessaoDeAComFotoQueNaoSai()
+
+        CoordenadorDeLogout(armazenamento, RuntimeEnvironment.getApplication()).limparSessao()
+
+        assertNull(armazenamento.origem.obterSessao())
+        assertEquals(1, armazenamento.encerramentos.value)
+    }
+
+    @Test
+    fun `no caso raro a proxima gravacao de sessao, de B ou de A de novo, segue barrada ate a foto sair`() {
+        val armazenamento = sessaoDeAComFotoQueNaoSai()
+        armazenamento.limparSessao()
+
+        for (conta in listOf("b", "a")) {
+            val barrada = try { armazenamento.salvarSessao(sessao(conta)); false } catch (_: java.io.IOException) { true }
+            assertTrue("a sessão de $conta é barrada enquanto a foto de A não sai", barrada)
+            assertNull("nada foi gravado", armazenamento.origem.obterSessao())
+        }
+
+        liberarAFoto() // a foto agora pode ser esvaziada: a gravação tenta de novo e passa
+        armazenamento.salvarSessao(sessao("b"))
+        assertEquals("refresh-b", armazenamento.origem.obterSessao()?.refreshToken)
+        assertNull("a foto de A não é legível para B", CompressorDeFotoPerfil.avatarExistente(RuntimeEnvironment.getApplication()))
+    }
 }
