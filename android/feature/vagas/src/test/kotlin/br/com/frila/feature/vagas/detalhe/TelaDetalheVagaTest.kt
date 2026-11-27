@@ -704,7 +704,8 @@ class TelaDetalheVagaTest {
     @Test
     fun `aberta pelo feed, se a leitura do detalhe falha a tela segue com o que veio do feed e sem erro`() {
         compose.setContent {
-            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound)) }
+            // Falha de rede/servidor (um 404 agora diz que a vaga não está mais disponível: item 160).
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError)) }
         }
         compose.waitForIdle()
         Thread.sleep(300)
@@ -751,5 +752,50 @@ class TelaDetalheVagaTest {
     fun `aberta pela lista, sem o detalhe do servidor, a tela nao inventa o rateio`() {
         compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
         assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
+    }
+
+    // ── A vaga aberta pelo feed que já não está disponível (DLjTVc2e, item 160) ──────────────────────────────────────
+
+    @Test
+    fun `404 do detalhe mostra Esta vaga nao esta mais disponivel e esconde o botao Candidatar-se`() {
+        compose.setContent {
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound)) }
+        }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().isNotEmpty() }
+
+        compose.onNodeWithText("Esta vaga não está mais disponível.").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Candidatar-se").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `200 com a vaga encerrada mostra o aviso e esconde o botao`() {
+        val json = ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor(estado = "encerrada"))
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe(json)) } }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().isNotEmpty() }
+
+        assertEquals(0, compose.onAllNodesWithText("Candidatar-se").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `falha de rede do detalhe nao mostra o aviso e o botao segue`() {
+        compose.setContent {
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError)) }
+        }
+        compose.waitForIdle()
+        Thread.sleep(300)
+        compose.waitForIdle()
+
+        assertEquals(0, compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Candidatar-se").assertExists()
+    }
+
+    @Test
+    fun `vaga disponivel (publicada com posicao aberta) nao mostra o aviso e o botao segue`() {
+        val json = ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor())
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe(json)) } }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().isNotEmpty() }
+
+        assertEquals(0, compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Candidatar-se").assertExists()
     }
 }

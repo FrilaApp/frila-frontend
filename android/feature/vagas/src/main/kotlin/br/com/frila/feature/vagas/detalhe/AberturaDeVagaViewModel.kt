@@ -103,7 +103,7 @@ class AberturaDeVagaViewModel(
         else -> EstadoAberturaDeVaga.Falha(TextosAberturaDeVaga.ERRO_GENERICO, podeTentarDeNovo = true)
     }
 
-    private companion object {
+    internal companion object {
         const val ESTADO_PUBLICADA = "publicada"
         const val ESTADO_PREENCHIDA = "preenchida"
         const val ESTADO_CANCELADA = "cancelada"
