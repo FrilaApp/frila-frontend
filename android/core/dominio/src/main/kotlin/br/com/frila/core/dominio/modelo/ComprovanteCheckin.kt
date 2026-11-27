@@ -21,12 +21,13 @@ enum class TipoVerificacaoCheckin(val descricao: String) {
  */
 data class ComprovanteCheckin(
     val turnoId: String,
-    val registradoEm: Instant,
+    /** Nulo quando o servidor registrou o check-in mas a hora veio ilegível: o check-in foi feito, a hora é desconhecida (nunca "agora"). */
+    val registradoEm: Instant?,
     val tipoVerificacao: TipoVerificacaoCheckin,
     val codigoAutenticacao: String,
 ) {
     fun horarioFormatado(fuso: ZoneId = FUSO_BRASILIA): String =
-        FORMATO_DATA_HORA.withZone(fuso).format(registradoEm)
+        registradoEm?.let { FORMATO_DATA_HORA.withZone(fuso).format(it) } ?: HORARIO_INDISPONIVEL
 
     fun textoCompartilhamento(): String = buildString {
         appendLine("Comprovante de Check-in · Frila")
@@ -37,6 +38,8 @@ data class ComprovanteCheckin(
     }
 
     companion object {
+        /** O que a tela e o texto compartilhado dizem quando a hora do check-in é desconhecida. */
+        const val HORARIO_INDISPONIVEL = "indisponível"
         private val FUSO_BRASILIA: ZoneId = ZoneId.of("America/Sao_Paulo")
         private val FORMATO_DATA_HORA: DateTimeFormatter =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
@@ -50,7 +53,7 @@ object GeradorComprovanteCheckin {
 
     fun gerar(
         turnoId: String,
-        registradoEm: Instant,
+        registradoEm: Instant?,
         tipoVerificacao: TipoVerificacaoCheckin,
     ): ComprovanteCheckin = ComprovanteCheckin(
         turnoId = turnoId,
@@ -59,8 +62,8 @@ object GeradorComprovanteCheckin {
         codigoAutenticacao = calcularCodigoAutenticacao(turnoId, registradoEm),
     )
 
-    fun calcularCodigoAutenticacao(turnoId: String, registradoEm: Instant): String {
-        val entrada = "$turnoId:${registradoEm.toEpochMilli()}"
+    fun calcularCodigoAutenticacao(turnoId: String, registradoEm: Instant?): String {
+        val entrada = "$turnoId:${registradoEm?.toEpochMilli() ?: "sem-horario"}"
         val digest = MessageDigest.getInstance("SHA-256").digest(entrada.toByteArray(Charsets.UTF_8))
         val hex = digest.take(4).joinToString("") { "%02X".format(it) }
         return "CHK-$hex"

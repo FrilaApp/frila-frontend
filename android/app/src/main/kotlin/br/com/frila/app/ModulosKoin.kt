@@ -95,6 +95,7 @@ import br.com.frila.feature.chamadas.profissional.PreferenciasChamadaViewModel
 import br.com.frila.feature.chamadas.profissional.ServicoDeEspecialidades
 import br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel
 import br.com.frila.feature.chamadas.casa.BuscaDeProfissionaisViewModel
+import br.com.frila.feature.chamadas.casa.GuardaDaBusca
 import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.chamadas.casa.ServicoDeRegioes
@@ -162,7 +163,11 @@ val moduloSeguranca = module {
             limparTelemetria = fila::limpar,
             diretorioDosAvatares = contexto?.filesDir,
             // A escala pendente é da conta que saiu: logout, troca e expiração a esvaziam (resolvida só na hora de limpar).
-            limparGuardas = { getOrNull<GuardaDaEscala>()?.limpar() },
+            limparGuardas = {
+                // Cada guarda se esvazia sozinha: uma falha numa não deixa a outra com o que é da conta que saiu.
+                runCatching { getOrNull<GuardaDaEscala>()?.limpar() }
+                runCatching { getOrNull<GuardaDaBusca>()?.limpar() }
+            },
         )
     }
     single<ArmazenamentoDeSessao> {
@@ -305,6 +310,8 @@ val moduloRede = module {
                 TipoAcaoPendente.CANCELAMENTO_POSICAO to { a -> turnos.cancelarPosicao(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
                 TipoAcaoPendente.CANCELAMENTO_VAGA to { a -> vagas.cancelarVaga(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
             ),
+            // Check-out recusado com fora_da_janela pode já estar gravado (reenvio depois de fim + 60 min, contrato 0.2.83).
+            checkoutJaGravado = turnos::checkoutGravado,
         )
     }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
@@ -413,6 +420,7 @@ val moduloFeatures = module {
             permitirDominioDeTeste = BuildConfig.DEBUG,
             modo = params.getOrNull<ModoCodigo>() ?: ModoCodigo.ENTRADA,
             desafioIdInicial = params.getOrNull<String>(),
+            reenviarEmSegundosInicial = params.getOrNull<Int>(),
         )
     }
     viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
@@ -423,7 +431,9 @@ val moduloFeatures = module {
         val armazenamento = get<ArmazenamentoDeSessao>()
         MeusTurnosViewModel(get(), filaDeAcoes = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
-            registrarEvento = get<RegistradorDeTelemetria>()::disparar)
+            registrarEvento = get<RegistradorDeTelemetria>()::disparar,
+            // Não há evento de telemetria para isto (o conjunto é fechado pelo contrato): só o log, com o id do turno e nada mais.
+            registrarLinhaDescartada = { Log.w("FrilaTurnos", "Turno com dados ilegíveis ficou fora de Meus turnos: $it") })
     }
     viewModel { (turnoId: String, coordenadaDaVaga: Coordenada?) ->
         val armazenamento = get<ArmazenamentoDeSessao>()
@@ -465,13 +475,19 @@ val moduloFeatures = module {
      */
     viewModel {
         val servicoPerfil = get<ServicoPerfil>()
+        val servicoTurnos = get<ServicoTurnos>()
+        val servicoConta = get<ServicoConta>()
+        val servicoMembros = get<ServicoMembros>()
+        val servicoVagas = get<ServicoVagas>()
         val coordenadorDeLogout = get<CoordenadorDeLogout>()
         ExclusaoDeContaViewModel(
             excluir = { servicoPerfil.excluirConta() },
             aoConcluir = { coordenadorDeLogout.limparSessao() },
+            // Só lê, para a tela listar os turnos futuros que a exclusão cancela: do profissional, ou das casas do contratante.
+            consultarTurnos = { consultarTurnosDaConta(servicoConta, servicoTurnos, servicoMembros, servicoVagas) },
         )
     }
-    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
+    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
         val confianca = get<ServicoConfianca>()
         DenunciaViewModel(
             alvoTipo = alvoTipo,
@@ -480,6 +496,7 @@ val moduloFeatures = module {
             bloquear = confianca::bloquear,
             turnoId = turnoId,
             chamadaId = chamadaId,
+            fotoId = fotoId,
         )
     }
     viewModel { (estabelecimentoId: String) ->
@@ -549,7 +566,12 @@ val moduloFeatures = module {
      * Candidatos de uma vaga em seleção e a escolha (RF09, UC04). `posicoesAbertas` e `inicioDaVaga` vêm
      * da tela de origem, que conhece a vaga; nulos escondem o aviso da última posição e o prazo de escolha.
      */
-    viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: Instant?) ->
+    viewModel { parametros ->
+        val vagaId: String = parametros[0]
+        val posicoesAbertas: Int? = parametros[1]
+        val inicioDaVaga: Instant? = parametros[2]
+        // A casa é opcional: a rota aberta por aviso push só traz a vaga. Sem ela, o ViewModel não confere o painel.
+        val estabelecimentoId: String? = parametros.values.getOrNull(3) as? String
         val vagas = get<ServicoVagas>()
         CandidatosDaVagaViewModel(
             vagaId = vagaId,
@@ -557,6 +579,7 @@ val moduloFeatures = module {
             escolher = vagas::escolherCandidato,
             posicoesAbertas = posicoesAbertas,
             inicioDaVaga = inicioDaVaga,
+            relerVaga = estabelecimentoId?.let { casa -> { relerVagaNoPainel(vagas, casa, vagaId) } },
         )
     }
     /**
@@ -632,6 +655,8 @@ val moduloFeatures = module {
             publicarAPartirDaChamada = chamadas::publicarAPartirDaChamada,
         )
     }
+    /** O envio pendente da busca de cada casa, acima da tela; o logout o esvazia pelo [CacheVagasDaSessao], como a guarda da escala. */
+    single { GuardaDaBusca() }
     /** Busca de profissionais (tela PROVISÓRIA até o high-fi do Fabrício), atrás da chave `busca_profissionais`. */
     viewModel { (estabelecimentoId: String) ->
         val chamadas = get<ServicoChamadaDireta>()
@@ -648,6 +673,7 @@ val moduloFeatures = module {
             listarFuncoes = get<ServicoVagas>()::listarFuncoes,
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
             buscarCasa = get<ServicoMembros>()::meuEstabelecimento,
+            guarda = get(),
         )
     }
     /**
@@ -717,9 +743,15 @@ val moduloFeatures = module {
         PreparadorDaFotoDePerfil { referencia -> PreparadorDeJpegDoAparelho(escopo.get<Context>()).preparar(referencia) }
     }
     viewModel {
-        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), get<ServicoMidia>())
+        val midia = get<ServicoMidia>()
+        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), midia)
         val preparador = get<PreparadorDaFotoDePerfil>()
-        FotoDePerfilViewModel(prepararJpeg = preparador::preparar, enviar = fluxo::enviar)
+        FotoDePerfilViewModel(
+            prepararJpeg = preparador::preparar,
+            enviar = fluxo::enviar,
+            listarMidias = midia::minhasMidias,
+            pedirNovaAnaliseMidia = midia::pedirNovaAnaliseMidia,
+        )
     }
     /**
      * Código de chegada (L1-4b): o profissional digita o código que a casa mostra. A distância é medida no toque, até o ponto da vaga (só ela sai,

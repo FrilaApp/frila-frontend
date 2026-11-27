@@ -165,6 +165,27 @@ describe("conversa com o Supabase Auth", () => {
 
     const limite = authQueResponde(() => Response.json({ code: "limite_excedido" }, { status: 429 })).auth;
     expect(await limite.autenticarSenha({ email: "a@b.co", senha: "s" })).toEqual({ ok: false, motivo: "limite" });
+
+    const com30 = authQueResponde(() =>
+      Response.json({ status: "desafio_otp", desafio_id: "des-30", reenviar_em_segundos: 30 }),
+    ).auth;
+    expect(await com30.autenticarSenha({ email: "a@b.co", senha: "s" })).toEqual({
+      ok: true,
+      status: "desafio_otp",
+      desafioId: "des-30",
+      descartarDeviceToken: false,
+      reenviarEmSegundos: 30,
+    });
+
+    const comInvalido = authQueResponde(() =>
+      Response.json({ status: "desafio_otp", desafio_id: "des-0", reenviar_em_segundos: -5 }),
+    ).auth;
+    expect(await comInvalido.autenticarSenha({ email: "a@b.co", senha: "s" })).toEqual({
+      ok: true,
+      status: "desafio_otp",
+      desafioId: "des-0",
+      descartarDeviceToken: false,
+    });
   });
 
   it("confirmarDispositivoOtp, reenviarDispositivoOtp, definirSenha e revogarDispositivos seguem o contrato", async () => {

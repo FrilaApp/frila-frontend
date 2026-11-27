@@ -3,6 +3,8 @@ package br.com.frila.feature.vagas.painel
 /** Textos de Minhas vagas (paridade com `TextosMinhasVagas` de `MinhasVagas.swift`). */
 object TextosMinhasVagas {
     const val TITULO = "Minhas vagas"
+    /** O mesmo texto de `TextosChamadaCasa.ACOMPANHAR_TITULO` (`:feature:chamadas`) e do iOS (`TextosChamadaDireta.acompanharTitulo`). */
+    const val ACOMPANHAR_CHAMADAS = "Acompanhar chamadas"
     const val ROTULO_VOLTAR = "Voltar"
     const val EM_ALERTA = "Precisa de atenção"
     const val HOJE = "Hoje"

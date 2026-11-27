@@ -22,9 +22,9 @@ import java.util.UUID
  * à RPC `abrir_suporte`; o relato e a foto nunca são enviados a nenhuma RPC/armazenamento do
  * Frila, e seguem só pelo e-mail que a tela abre depois do protocolo (fora deste ViewModel).
  *
- * `geradorDeChave`: chave de idempotência enviada a cada tentativa de envio — uma por toque
- * em "Enviar", não reaproveitada entre toques, para que um reenvio depois de erro não colida
- * com um chamado já aberto por outra tentativa concorrente.
+ * `geradorDeChave`: gera a chave de idempotência do chamado na primeira tentativa; a mesma chave
+ * vai em toda nova tentativa depois de erro, até dar certo (ver `chaveDaTentativa`). Depois do
+ * sucesso, [enviar] não faz nada: o chamado já foi aberto (como o iOS, que só chama com `protocolo == nil`).
  *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel` sobre por que
  * testes injetam um escopo próprio em vez de depender de `viewModelScope`/`Dispatchers.Main`.
@@ -59,10 +59,18 @@ class OcorrenciaTurnoViewModel(
         _estado.update { it.copy(anexoUri = uri) }
     }
 
-    /** `null` sem motivo selecionado — o botão de enviar fica desabilitado nesse caso na tela. */
+    /**
+     * `null` sem motivo selecionado (o botão fica desabilitado na tela), com um envio em voo ou depois do sucesso: nesses
+     * dois casos não sai outro pedido, porque um segundo `abrir_suporte` com chave nova abriria outro chamado.
+     */
     fun enviar(): Job? {
         val motivo = _estado.value.motivo ?: return null
-        _estado.update { it.copy(status = StatusOcorrencia.ENVIANDO, mensagemErro = null) }
+        var comecou = false
+        _estado.update {
+            comecou = it.status != StatusOcorrencia.ENVIANDO && it.status != StatusOcorrencia.SUCESSO
+            if (comecou) it.copy(status = StatusOcorrencia.ENVIANDO, mensagemErro = null) else it
+        }
+        if (!comecou) return null
         return escopoDeTrabalho.launch {
             try {
                 val protocolo = servicoTurnos.abrirSuporte(
@@ -88,7 +96,15 @@ class OcorrenciaTurnoViewModel(
         }
     }
 
-    private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
+    private fun mensagemDeErro(erro: ErroDaApi): String = when {
+        // Contrato: `403 sem_permissao` com `details: conta_suspensa`; o código `conta_suspensa` no topo também vale.
+        erro.codigo == CodigoErroAPI.CONTA_SUSPENSA ||
+            (erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.CONTA_SUSPENSA) ->
+            TextosOcorrencia.CONTA_SUSPENSA
+        else -> mensagemDoCodigo(erro)
+    }
+
+    private fun mensagemDoCodigo(erro: ErroDaApi): String = when (erro.codigo) {
         CodigoErroAPI.LIMITE_EXCEDIDO -> "Limite diário de chamados atingido. Tente de novo amanhã."
         CodigoErroAPI.NAO_ENCONTRADO -> "Não encontramos este turno."
         CodigoErroAPI.SEM_PERMISSAO -> "Você não tem permissão para abrir este chamado."

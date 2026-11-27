@@ -33,4 +33,6 @@ data class EstadoCodigo(
     val lembrarDispositivo: Boolean = false,
     val precisaDefinirSenha: Boolean = false,
     val dispositivoLembrado: Boolean = false,
+    val codigoBloqueadoPorErro: Boolean = false,
+    val atingiuLimiteReenvios: Boolean = false,
 )

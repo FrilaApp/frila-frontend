@@ -147,7 +147,6 @@ class ChamadaRecebidaViewModelTest {
             "expirada" to TextosChamadaProfissional.CHAMADA_EXPIRADA,
             "cancelada" to TextosChamadaProfissional.CHAMADA_CANCELADA,
             "encerrada" to TextosChamadaProfissional.CHAMADA_ENCERRADA,
-            "aceita" to TextosChamadaProfissional.CHAMADA_ENCERRADA,
             "recusada" to TextosChamadaProfissional.CHAMADA_RECUSADA,
         )
         for ((estado, mensagem) in esperados) {
@@ -281,5 +280,244 @@ class ChamadaRecebidaViewModelTest {
         vm.carregar().join()
         vm.abrirRecusa()
         assertFalse(vm.estado.value.mostrarRecusa)
+    }
+
+    // ---- Chamada já aceita: reaberta, ou aceita sem a resposta ter chegado (cartão CeCqMUq9) ----
+
+    private fun detalheAceito() = Fixtures.detalheChamadaJson(
+        estado = "aceita", turnoId = Fixtures.TURNO, local = "SCS Quadra 2", responsavelLocal = "Ana",
+    )
+
+    /** `detalhe_chamada` devolve [primeira] na carga e [depois] nas conferências seguintes. */
+    private fun redeComConferencia(primeira: String, depois: String?): RedeDeTeste {
+        val rede = RedeDeTeste()
+        var chamadas = 0
+        rede.resposta("/rpc/detalhe_chamada") {
+            if (++chamadas == 1 || depois == null) {
+                if (chamadas == 1) respond(primeira, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                else respond(Fixtures.erro("erro_interno"), HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType, "application/json"))
+            } else {
+                respond(depois, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            }
+        }
+        return rede
+    }
+
+    @Test
+    fun `chamada aceita reaberta carrega como aceita, com o turno do detalhe e sem o aviso de encerrada`() = runBlocking {
+        val vm = viewModelCom(rede(detalheAceito()))
+
+        vm.carregar().join()
+
+        val tela = vm.estado.value
+        assertTrue(tela.chamadaAceita)
+        assertEquals(Fixtures.TURNO, tela.turnoAceito)
+        assertNull(tela.mensagemDeConcorrencia)
+        assertFalse(tela.podeResponder)
+    }
+
+    @Test
+    fun `chamada aceita reaberta sem turno no detalhe e aceita, sem turno para abrir`() = runBlocking {
+        val vm = viewModelCom(rede(Fixtures.detalheChamadaJson(estado = "aceita")))
+
+        vm.carregar().join()
+
+        assertTrue(vm.estado.value.chamadaAceita)
+        assertNull(vm.estado.value.turnoAceito)
+        assertNull(vm.estado.value.mensagemDeConcorrencia)
+    }
+
+    @Test
+    fun `erro de rede ao aceitar com o aceite gravado confere no servidor e mostra a chamada aceita`() = runBlocking {
+        val rede = redeComConferencia(Fixtures.detalheChamadaJson(), detalheAceito())
+        rede.resposta("/rpc/responder_chamada") { throw ConnectTimeoutException("sem rede") }
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.aceitar().join()
+
+        val tela = vm.estado.value
+        assertEquals(2, rede.doCaminho("/rpc/detalhe_chamada").size)
+        assertTrue(tela.chamadaAceita)
+        assertEquals(Fixtures.TURNO, tela.turnoAceito)
+        assertNull(tela.erro)
+        assertNull(tela.mensagemDeConcorrencia)
+        assertFalse(tela.respondendo)
+    }
+
+    @Test
+    fun `409 chamada_indisponivel confere no servidor antes do aviso e vale o estado dele`() = runBlocking {
+        data class Caso(val detalhesDoErro: String, val doServidor: String, val aviso: String?, val aceita: Boolean)
+        val casos = listOf(
+            Caso("encerrada", detalheAceito(), null, true),
+            Caso("encerrada", Fixtures.detalheChamadaJson(estado = "expirada"), TextosChamadaProfissional.CHAMADA_EXPIRADA, false),
+            Caso("expirada", Fixtures.detalheChamadaJson(estado = "cancelada"), TextosChamadaProfissional.CHAMADA_CANCELADA, false),
+            Caso("expirada", Fixtures.detalheChamadaJson(estado = "encerrada"), TextosChamadaProfissional.CHAMADA_ENCERRADA, false),
+        )
+        for (caso in casos) {
+            val rede = redeComConferencia(Fixtures.detalheChamadaJson(), caso.doServidor)
+            rede.recusa("/rpc/responder_chamada", HttpStatusCode.Conflict, Fixtures.erro("chamada_indisponivel", caso.detalhesDoErro))
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+
+            vm.aceitar().join()
+
+            val rotulo = "${caso.detalhesDoErro} -> ${caso.aviso}"
+            assertEquals(caso.aviso, vm.estado.value.mensagemDeConcorrencia, rotulo)
+            assertEquals(caso.aceita, vm.estado.value.chamadaAceita, rotulo)
+            assertNull(vm.estado.value.erro, rotulo)
+        }
+    }
+
+    @Test
+    fun `409 sem conseguir conferir cai no aviso do que o servidor disse`() = runBlocking {
+        val rede = redeComConferencia(Fixtures.detalheChamadaJson(), depois = null)
+        rede.recusa("/rpc/responder_chamada", HttpStatusCode.Conflict, Fixtures.erro("chamada_indisponivel", "cancelada"))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.aceitar().join()
+
+        assertEquals(TextosChamadaProfissional.CHAMADA_CANCELADA, vm.estado.value.mensagemDeConcorrencia)
+        assertFalse(vm.estado.value.chamadaAceita)
+    }
+
+    @Test
+    fun `erro de rede que nao chegou ao servidor mostra o erro, deixa a chamada aberta e tentar de novo aceita`() = runBlocking {
+        val rede = redeComConferencia(Fixtures.detalheChamadaJson(), Fixtures.detalheChamadaJson())
+        var tentativa = 0
+        rede.resposta("/rpc/responder_chamada") {
+            if (++tentativa == 1) throw ConnectTimeoutException("sem rede")
+            respond(Fixtures.resultadoJson("aceita"), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.aceitar().join()
+
+        assertEquals(TextosChamadaProfissional.ERRO, vm.estado.value.erro)
+        assertTrue(vm.estado.value.podeResponder)
+        assertFalse(vm.estado.value.chamadaAceita)
+
+        vm.aceitar().join()
+
+        assertTrue(vm.estado.value.chamadaAceita)
+        assertNull(vm.estado.value.erro)
+    }
+
+    @Test
+    fun `depois de um erro sem conseguir conferir o relogio local nao declara a chamada expirada`() = runBlocking {
+        var agora = antesDoPrazo
+        val rede = redeComConferencia(Fixtures.detalheChamadaJson(), depois = null)
+        var tentativa = 0
+        rede.resposta("/rpc/responder_chamada") {
+            if (++tentativa == 1) throw ConnectTimeoutException("sem rede")
+            respond(Fixtures.resultadoJson("aceita"), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val vm = ChamadaRecebidaViewModel(Fixtures.CHAMADA, rede.servico::detalheChamada, rede.servico::responderChamada, { agora }, CoroutineScope(Dispatchers.Unconfined))
+        vm.carregar().join()
+        vm.aceitar().join() // a resposta se perdeu e a conferência também falhou: o aceite pode ter gravado
+        assertEquals(TextosChamadaProfissional.ERRO, vm.estado.value.erro)
+
+        agora = depoisDoPrazo // o prazo passou enquanto isso: quem decide é o servidor, não o relógio do aparelho
+        vm.aceitar().join()
+
+        assertEquals(2, rede.doCaminho("/rpc/responder_chamada").size)
+        assertTrue(vm.estado.value.chamadaAceita)
+        assertNull(vm.estado.value.mensagemDeConcorrencia)
+    }
+
+    // ---- 409 vaga_encerrada e posicao_ja_preenchida ao responder (cartão hdzEoUd2): só teste, a linha já existe ----
+
+    private val codigosDeVagaSemLugar = listOf("vaga_encerrada", "posicao_ja_preenchida")
+
+    @Test
+    fun `409 vaga_encerrada ou posicao_ja_preenchida com a chamada ainda aberta na conferencia mostra o aviso de encerrada e trava os botoes`() = runBlocking {
+        for (codigo in codigosDeVagaSemLugar) {
+            val rede = rede() // a conferência (detalhe_chamada) devolve a chamada ainda aberta: ela não prova nada, vale o erro
+            rede.recusa("/rpc/responder_chamada", HttpStatusCode.Conflict, Fixtures.erro(codigo))
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+
+            vm.aceitar().join()
+
+            val tela = vm.estado.value
+            assertEquals(2, rede.doCaminho("/rpc/detalhe_chamada").size, codigo) // conferiu antes de mostrar o aviso
+            assertEquals(TextosChamadaProfissional.CHAMADA_ENCERRADA, tela.mensagemDeConcorrencia, codigo)
+            assertNull(tela.erro, codigo)
+            assertFalse(tela.respondendo, codigo)
+            assertFalse(tela.podeResponder, codigo)
+            assertFalse(tela.chamadaAceita, codigo)
+        }
+    }
+
+    @Test
+    fun `409 vaga_encerrada ou posicao_ja_preenchida sem conseguir conferir tambem mostra o aviso de encerrada`() = runBlocking {
+        for (codigo in codigosDeVagaSemLugar) {
+            val rede = redeComConferencia(Fixtures.detalheChamadaJson(), depois = null) // a conferência falha (500)
+            rede.recusa("/rpc/responder_chamada", HttpStatusCode.Conflict, Fixtures.erro(codigo))
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+
+            vm.aceitar().join()
+
+            val tela = vm.estado.value
+            assertEquals(TextosChamadaProfissional.CHAMADA_ENCERRADA, tela.mensagemDeConcorrencia, codigo)
+            assertNull(tela.erro, codigo)
+            assertFalse(tela.podeResponder, codigo)
+            assertTrue(rede.doCaminho("/rpc/responder_chamada").size == 1, codigo) // sem os botões, ninguém tenta de novo
+            vm.aceitar().join()
+            vm.recusar().join()
+            assertEquals(1, rede.doCaminho("/rpc/responder_chamada").size, codigo)
+        }
+    }
+
+    /**
+     * Achado do ANBU no #1139 (05LBDttU): a recusa saiu da folha, a resposta não chegou, e a conferência no servidor traz um
+     * estado final. A folha de recusa não pode ficar aberta sobre esse estado.
+     */
+    @Test
+    fun `recusa pela folha que falha sem resposta e a conferencia traz estado final fecha a folha`() = runBlocking {
+        for (estadoFinal in listOf("encerrada", "recusada", "expirada", "cancelada")) {
+            for (falha in listOf<() -> Nothing>({ throw ConnectTimeoutException("sem rede") }, { throw IllegalStateException("resposta perdida") })) {
+                val rede = redeComConferencia(Fixtures.detalheChamadaJson(), Fixtures.detalheChamadaJson(estado = estadoFinal))
+                val vm = ChamadaRecebidaViewModel(
+                    chamadaId = Fixtures.CHAMADA,
+                    detalhar = rede.servico::detalheChamada,
+                    responder = { _, _, _ -> falha() },
+                    agora = { antesDoPrazo },
+                    escopo = CoroutineScope(Dispatchers.Unconfined),
+                )
+                vm.carregar().join()
+                vm.abrirRecusa()
+                assertTrue(vm.estado.value.mostrarRecusa)
+
+                vm.recusar().join()
+
+                val tela = vm.estado.value
+                assertFalse(tela.mostrarRecusa, "$estadoFinal: a folha de recusa ficou aberta sobre o estado final")
+                assertEquals(estadoFinal, tela.detalhe?.estado, estadoFinal)
+                assertFalse(tela.podeResponder, estadoFinal)
+            }
+        }
+    }
+
+    @Test
+    fun `recusa pela folha que falha sem resposta e a chamada segue aberta deixa a folha para tentar de novo`() = runBlocking {
+        val rede = redeComConferencia(Fixtures.detalheChamadaJson(), Fixtures.detalheChamadaJson())
+        val vm = ChamadaRecebidaViewModel(
+            chamadaId = Fixtures.CHAMADA,
+            detalhar = rede.servico::detalheChamada,
+            responder = { _, _, _ -> throw IllegalStateException("resposta perdida") },
+            agora = { antesDoPrazo },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        vm.carregar().join()
+        vm.abrirRecusa()
+
+        vm.recusar().join()
+
+        assertTrue(vm.estado.value.mostrarRecusa)
+        assertEquals(TextosChamadaProfissional.ERRO, vm.estado.value.erro)
     }
 }

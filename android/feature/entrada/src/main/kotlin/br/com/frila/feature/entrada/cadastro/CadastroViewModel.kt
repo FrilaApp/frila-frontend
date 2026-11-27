@@ -28,7 +28,8 @@ const val TERMOS_VERSAO_ANTERIOR = "2026-11-13"
 private const val MENSAGEM_CADASTRO_INDISPONIVEL = "Não foi possível concluir o cadastro. Tente de novo em instantes."
 
 /**
- * Tela de cadastro do profissional: Nome, CPF, Telefone, Data de Nascimento, aceite de termos.
+ * Tela de cadastro: o perfil (profissional ou contratante, fixo na conta: RN25), Nome, CPF, Telefone, Data de Nascimento e
+ * aceite de termos.
  * Validação de maioridade (RN20), dígitos verificadores de CPF e formato de telefone com DDD.
  * Passando a validação local, cria a conta com `criar_conta` (RF01); o CPF não vai: nenhum
  * documento é pedido no cadastro (RN14).
@@ -84,6 +85,11 @@ class CadastroViewModel(
                 erro = if (maiorDeIdade) null else MENSAGEM_MENOR_DE_IDADE,
             )
         }
+    }
+
+    /** Trocar o perfil com `criar_conta` em voo não muda o que já foi enviado: a troca é ignorada. */
+    fun aoEscolherPerfil(perfil: PerfilDaConta) {
+        _estado.update { if (it.enviando) it else it.copy(perfil = perfil, erro = null) }
     }
 
     fun aoMudarAceiteDeTermos(aceitou: Boolean) {
@@ -144,7 +150,7 @@ class CadastroViewModel(
         }
 
         val dados = CriarContaDto(
-            perfil = PERFIL_PROFISSIONAL,
+            perfil = atual.perfil.chave,
             nome = atual.nome.trim(),
             telefone = telefoneE164,
             nascimento = nascimento.data.toString(),
@@ -176,9 +182,5 @@ class CadastroViewModel(
         CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre de novo para continuar."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Confira a internet e tente de novo."
         else -> MENSAGEM_CADASTRO_INDISPONIVEL
-    }
-
-    private companion object {
-        const val PERFIL_PROFISSIONAL = "profissional"
     }
 }

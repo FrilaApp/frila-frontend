@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -58,6 +59,38 @@ class ServicoTurnosTest {
           "cancelamento": null
         }
     """.trimIndent()
+
+    private fun servicoComTurnos(json: String) = ServicoTurnos(
+        ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { respond(json, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+        ),
+    )
+
+    @Test
+    fun `checkoutGravado e verdadeiro so para o turno pedido com checkout_em`() = runTest {
+        val gravado = turnoJson.replace("\"checkout_em\": null", "\"checkout_em\": \"2026-11-02T03:30:00Z\"")
+        val outro = turnoJson.replace("11111111-1111-1111-1111-111111111111", "99999999-9999-9999-9999-999999999999")
+        val servico = servicoComTurnos("[$gravado,$outro]")
+
+        assertTrue(servico.checkoutGravado("11111111-1111-1111-1111-111111111111"))
+        assertFalse(servico.checkoutGravado("99999999-9999-9999-9999-999999999999"), "turno sem checkout_em")
+        assertFalse(servico.checkoutGravado("00000000-0000-0000-0000-000000000000"), "turno que não está na lista")
+    }
+
+    @Test
+    fun `checkoutGravado propaga a falha da leitura, nunca responde gravado`() = runTest {
+        val servico = ServicoTurnos(
+            ClienteSupabase(
+                baseUrl = "https://frila.supabase.co",
+                apiKey = "chave-teste",
+                engine = MockEngine { respond("<html>gateway</html>", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+        )
+
+        assertTrue(runCatching { servico.checkoutGravado("11111111-1111-1111-1111-111111111111") }.isFailure)
+    }
 
     @Test
     fun `listarMeusTurnos chama GET rpc meus_turnos e decodifica a lista`() = runTest {

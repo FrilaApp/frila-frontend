@@ -29,7 +29,13 @@ export type ResultadoRecuperacao =
 
 export type ResultadoAutenticarSenha =
   | { ok: true; status: "autenticado"; sessao: Sessao; precisaDefinirSenha: boolean }
-  | { ok: true; status: "desafio_otp"; desafioId: string; descartarDeviceToken: boolean }
+  | {
+      ok: true;
+      status: "desafio_otp";
+      desafioId: string;
+      descartarDeviceToken: boolean;
+      reenviarEmSegundos?: number;
+    }
   | { ok: false; motivo: "credenciais_invalidas" | "limite" | "indisponivel" };
 
 export type FalhaConfirmarDispositivo =
@@ -241,11 +247,18 @@ export function criarAuth(
             };
           }
           if (dados?.status === "desafio_otp" && typeof dados.desafio_id === "string" && dados.desafio_id.length > 0) {
+            const reenviarEmSegundos =
+              typeof dados.reenviar_em_segundos === "number" &&
+              Number.isFinite(dados.reenviar_em_segundos) &&
+              dados.reenviar_em_segundos > 0
+                ? Math.floor(dados.reenviar_em_segundos)
+                : undefined;
             return {
               ok: true,
               status: "desafio_otp",
               desafioId: dados.desafio_id,
               descartarDeviceToken: dados.descartar_device_token === true,
+              ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
             };
           }
           return { ok: false, motivo: "indisponivel" };

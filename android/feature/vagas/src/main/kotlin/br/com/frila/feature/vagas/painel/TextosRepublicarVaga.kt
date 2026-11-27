@@ -26,6 +26,8 @@ object TextosRepublicarVaga {
     const val HORARIO_INVALIDO = "Horário informado não é válido."
     const val NAO_ENCONTRADO = "A vaga original não foi encontrada."
     const val SEM_PERMISSAO = "Você não tem permissão para republicar esta vaga."
+    /** O mesmo texto de [TextosRepublicarPosicoesRestantes.CONTA_SUSPENSA]. */
+    const val CONTA_SUSPENSA = "Sua conta está suspensa e não pode republicar vagas."
     const val VAGA_OCULTA = "Esta vaga está em revisão pela Equipe Frila e não pode ser republicada."
     const val PERFIL_INCOMPATIVEL = "Apenas contratantes podem republicar vagas."
     const val SEM_REDE = "Sem conexão com a internet. Tente novamente."

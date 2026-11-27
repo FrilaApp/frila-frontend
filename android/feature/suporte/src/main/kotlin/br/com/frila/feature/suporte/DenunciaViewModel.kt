@@ -27,6 +27,8 @@ const val RELATO_MINIMO_CARACTERES = 10
 data class EstadoDenuncia(
     val motivo: MotivoDenuncia = MotivoDenuncia.ASSEDIO,
     val relato: String = "",
+    /** CD-RF12: a denúncia é sobre a foto de perfil que a tela mostrou (`midia_id`), não sobre o perfil. */
+    val sobreAFoto: Boolean = false,
     val enviando: Boolean = false,
     val protocolo: ProtocoloDto? = null,
     val erroDenuncia: String? = null,
@@ -45,9 +47,12 @@ data class EstadoDenuncia(
  * opcionais e só associam a denúncia a um turno ou a uma chamada direta (contrato 0.2.71: a
  * chamada precisa envolver as duas partes, senão `422 campo_invalido` com `details: chamada_id`).
  *
+ * [fotoId] é o `foto_id` do perfil, quando o servidor mandou a foto: só então a tela oferece denunciar a foto, e o
+ * `midia_id` só vai no corpo com essa opção ligada (como o iOS, `SegurancaViewModel`).
+ *
  * A `chave` de idempotência é gerada uma vez por conteúdo: repetir o envio depois de perder a
- * resposta reutiliza a chave e não abre uma segunda ocorrência; editar motivo ou relato inicia
- * outra denúncia, e uma chave nunca serve a dois corpos diferentes.
+ * resposta reutiliza a chave e não abre uma segunda ocorrência; editar motivo, relato ou a opção da
+ * foto inicia outra denúncia, e uma chave nunca serve a dois corpos diferentes.
  *
  * `escopo`: mesma razão do `PerfilViewModel` (teste injeta um escopo próprio).
  */
@@ -58,6 +63,7 @@ class DenunciaViewModel(
     private val bloquear: suspend (alvoTipo: String, alvoId: String) -> BloqueioDto,
     private val turnoId: String? = null,
     private val chamadaId: String? = null,
+    private val fotoId: String? = null,
     private val gerarChave: () -> String = { UUID.randomUUID().toString() },
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
@@ -73,8 +79,17 @@ class DenunciaViewModel(
     val associadaAoTurno: Boolean get() = turnoId != null
     val associadaAChamada: Boolean get() = chamadaId != null
 
+    /** Só há foto para denunciar quando o perfil a trouxe. */
+    val podeDenunciarFoto: Boolean get() = fotoId != null
+
     fun escolherMotivo(motivo: MotivoDenuncia) {
         _estado.update { if (it.enviando || it.protocolo != null) it else it.copy(motivo = motivo) }
+    }
+
+    fun marcarSobreAFoto(sobreAFoto: Boolean) {
+        _estado.update {
+            if (it.enviando || it.protocolo != null || fotoId == null) it else it.copy(sobreAFoto = sobreAFoto, erroDenuncia = null)
+        }
     }
 
     fun editarRelato(relato: String) {
@@ -110,8 +125,11 @@ class DenunciaViewModel(
 
     private fun corpoDe(atual: EstadoDenuncia): DenunciarDto {
         val relato = atual.relato.trim()
+        val midiaId = if (atual.sobreAFoto) fotoId else null
         val anterior = tentativa
-        val chave = if (anterior != null && anterior.motivo == atual.motivo.chave && anterior.relato == relato) {
+        val mesmoCorpo = anterior != null && anterior.motivo == atual.motivo.chave && anterior.relato == relato &&
+            anterior.midiaId == midiaId
+        val chave = if (anterior != null && mesmoCorpo) {
             anterior.chave
         } else {
             gerarChave()
@@ -124,6 +142,7 @@ class DenunciaViewModel(
             relato = relato,
             chave = chave,
             chamadaId = chamadaId,
+            midiaId = midiaId,
         ).also { tentativa = it }
     }
 

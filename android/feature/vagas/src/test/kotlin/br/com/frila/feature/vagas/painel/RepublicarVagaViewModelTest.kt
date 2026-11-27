@@ -117,7 +117,9 @@ class RepublicarVagaViewModelTest {
         val casos = listOf(
             erro(CodigoErroAPI.NAO_ENCONTRADO) to TextosRepublicarVaga.NAO_ENCONTRADO,
             erro(CodigoErroAPI.SEM_PERMISSAO) to TextosRepublicarVaga.SEM_PERMISSAO,
-            erro(CodigoErroAPI.SEM_PERMISSAO, "conta_suspensa") to TextosRepublicarVaga.SEM_PERMISSAO,
+            // Como a tela irmã (RepublicarPosicoesRestantesViewModel): a conta suspensa tem o texto dela, venha como código ou em details.
+            erro(CodigoErroAPI.SEM_PERMISSAO, "conta_suspensa") to TextosRepublicarVaga.CONTA_SUSPENSA,
+            erro(CodigoErroAPI.CONTA_SUSPENSA) to TextosRepublicarVaga.CONTA_SUSPENSA,
             erro(CodigoErroAPI.VAGA_OCULTA) to TextosRepublicarVaga.VAGA_OCULTA,
             erro(CodigoErroAPI.PERFIL_INCOMPATIVEL) to TextosRepublicarVaga.PERFIL_INCOMPATIVEL,
             erro(CodigoErroAPI.SELECAO_SEM_ANTECEDENCIA) to TextosRepublicarVaga.SELECAO_SEM_ANTECEDENCIA,

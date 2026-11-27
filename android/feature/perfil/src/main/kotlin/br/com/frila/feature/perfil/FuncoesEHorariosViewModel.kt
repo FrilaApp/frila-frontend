@@ -97,7 +97,7 @@ class FuncoesEHorariosViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: ErroDaApi) {
-                _estado.update { it.copy(carregando = false, erro = e.detalhes ?: e.mensagemCrua) }
+                _estado.update { it.copy(carregando = false, erro = mensagemDoErro(e)) }
             } catch (e: Exception) {
                 _estado.update { it.copy(carregando = false, erro = TextosFuncoesEHorarios.ERRO_CARREGAR) }
             }
@@ -203,11 +203,20 @@ class FuncoesEHorariosViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: ErroDaApi) {
-                _estado.update { it.copy(salvando = false, erro = e.detalhes ?: e.mensagemCrua) }
+                _estado.update { it.copy(salvando = false, erro = mensagemDoErro(e)) }
             } catch (e: Exception) {
                 _estado.update { it.copy(salvando = false, erro = TextosFuncoesEHorarios.ERRO_SALVAR) }
             }
         }
+    }
+
+    /** Texto fixo por código, como o iOS (`MensagemDoErroAPI.texto`): o campo e a mensagem técnica da recusa nunca vão para a tela. */
+    private fun mensagemDoErro(erro: ErroDaApi): String = when (erro.codigo) {
+        CodigoErroAPI.SEM_REDE -> TextosFuncoesEHorarios.ERRO_SEM_REDE
+        CodigoErroAPI.NAO_AUTENTICADO -> TextosFuncoesEHorarios.ERRO_SESSAO
+        CodigoErroAPI.SEM_PERMISSAO, CodigoErroAPI.PERFIL_INCOMPATIVEL -> TextosFuncoesEHorarios.ERRO_SEM_PERMISSAO
+        CodigoErroAPI.LIMITE_EXCEDIDO -> TextosFuncoesEHorarios.ERRO_LIMITE
+        else -> TextosFuncoesEHorarios.ERRO_GENERICO
     }
 
     internal fun padronizarHora(hora: String): String {

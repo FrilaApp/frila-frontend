@@ -43,7 +43,7 @@ data class RascunhoDeVagaDaBusca(
 )
 
 /** O trabalho de uma chamada sem profissional nem chave de idempotência, mais a região da busca (a vaga a guarda). */
-private data class ChaveDoTrabalho(val trabalho: TrabalhoDaChamada, val regiaoId: Int?)
+internal data class ChaveDoTrabalho(val trabalho: TrabalhoDaChamada, val regiaoId: Int?)
 
 sealed interface EstadoDaBusca {
     data object Ocioso : EstadoDaBusca
@@ -96,7 +96,7 @@ data class TermosDaVagaAberta(
 )
 
 /** A vaga aberta tem termos diferentes: o que a confirmação da casa precisa para mandar quem ficou esperando. */
-private data class ConfirmacaoDosTermos(
+internal data class ConfirmacaoDosTermos(
     val termos: TermosDaVagaAberta,
     val chaveDoTrabalho: ChaveDoTrabalho,
     val trabalho: TrabalhoDaChamada,
@@ -104,7 +104,7 @@ private data class ConfirmacaoDosTermos(
 )
 
 /** O serviço e o horário de uma busca feita: cada par é um trabalho (decisão do O2, paridade com o #905 do iOS). */
-private data class BuscaFeita(val funcaoId: String, val horario: HorarioDaBusca?)
+internal data class BuscaFeita(val funcaoId: String, val horario: HorarioDaBusca?)
 
 /** Lançada no envio quando os termos da vaga aberta não batem com os digitados (0.2.95). */
 private class TermosDiferentesDaVagaAberta(val termos: TermosDaVagaAberta) : Exception()
@@ -203,15 +203,22 @@ class BuscaDeProfissionaisViewModel(
     private val listarRegioes: suspend () -> List<RegiaoAdministrativaDto> = { emptyList() },
     private val buscarCasa: (suspend (estabelecimentoId: String) -> MeuEstabelecimentoDto)? = null,
     escopo: CoroutineScope? = null,
+    /** O envio pendente de cada casa, acima da tela: ver [GuardaDaBusca]. Sem ela, a pendência some com o view model. */
+    private val guarda: GuardaDaBusca? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
-    private val _estado = MutableStateFlow(EstadoBusca())
+    /** O envio pendente que a visita anterior desta casa deixou (nulo sem [guarda] ou sem pendência), e a geração em que esta visita nasceu. */
+    private val visitaGuardada: Pair<BuscaGuardada?, Int>? = guarda?.abrir(estabelecimentoId)
+    private val restaurado: BuscaGuardada? = visitaGuardada?.first
+    private val geracaoDaVisita: Int = visitaGuardada?.second ?: 0
+
+    private val _estado = MutableStateFlow(restaurado?.estado ?: EstadoBusca())
     val estado: StateFlow<EstadoBusca> = _estado.asStateFlow()
 
-    private var proximoCursor: String? = null
-    private var recursoConfirmado = false
+    private var proximoCursor: String? = restaurado?.proximoCursor
+    private var recursoConfirmado = restaurado?.recursoConfirmado ?: false
 
     /** Os filtros da busca que o servidor barrou por `termos_pendentes`: o aceite repete esta mesma busca. */
     private var filtroBarradoPorTermos: RascunhoDeVagaDaBusca? = null
@@ -219,7 +226,7 @@ class BuscaDeProfissionaisViewModel(
      * Pedidos guardados (incerto, J7 ou que nem saiu), por profissional E por trabalho: a chave de idempotência só
      * se repete para o MESMO trabalho. Não são apagados por nova busca nem pelo refazer do cursor.
      */
-    private val tentativas = mutableMapOf<Pair<String, ChaveDoTrabalho>, ChamarProfissionalDto>()
+    private val tentativas = mutableMapOf<Pair<String, ChaveDoTrabalho>, ChamarProfissionalDto>().also { restaurado?.let { r -> it.putAll(r.tentativas) } }
 
     /**
      * A vaga direta por TRABALHO (comparado sem profissional nem chave, com a região da busca): vale entre buscas na
@@ -227,7 +234,7 @@ class BuscaDeProfissionaisViewModel(
      * que já existe pelo `vaga_id`; se o servidor barrar
      * (`422 por_vaga`, `409 vaga_encerrada`), o trabalho só começa ciclo novo quando a pessoa o muda.
      */
-    private val vagasPorTrabalho = mutableMapOf<ChaveDoTrabalho, String>()
+    private val vagasPorTrabalho = mutableMapOf<ChaveDoTrabalho, String>().also { restaurado?.let { r -> it.putAll(r.vagasPorTrabalho) } }
 
     /**
      * O trabalho e o recado do 1º envio de cada busca feita (serviço e horário). DINHEIRO: depois dele, todo reenvio dessa busca (Chamar de novo,
@@ -235,16 +242,67 @@ class BuscaDeProfissionaisViewModel(
      * abrir uma 2ª vaga. Outro serviço ou outro horário é outro trabalho: abre a folha e guarda o seu. Numa busca nova (fechar e abrir) o servidor
      * recusa a 2ª vaga com `409 trabalho_ja_aberto` e a pessoa entra na que já existe.
      */
-    private val enviadosPorBusca = mutableMapOf<BuscaFeita, Pair<TrabalhoDaChamada, String?>>()
+    private val enviadosPorBusca = mutableMapOf<BuscaFeita, Pair<TrabalhoDaChamada, String?>>().also { restaurado?.let { r -> it.putAll(r.enviadosPorBusca) } }
 
     private fun trabalhoGuardadoDe(filtro: RascunhoDeVagaDaBusca?): TrabalhoDaChamada? =
         filtro?.let { enviadosPorBusca[BuscaFeita(it.funcaoId, it.horario)]?.first }
 
     /** O último trabalho e recado enviados: o reenvio e o J7 usam estes, mesmo com a folha fechada e reaberta. */
-    private var ultimoEnvio: Pair<TrabalhoDaChamada, String?>? = null
+    private var ultimoEnvio: Pair<TrabalhoDaChamada, String?>? = restaurado?.ultimoEnvio
 
     /** 0.2.95: a vaga aberta do trabalho tem termos diferentes dos digitados. Nada do trabalho sai até a casa confirmar. */
-    private var confirmacaoDosTermos: ConfirmacaoDosTermos? = null
+    private var confirmacaoDosTermos: ConfirmacaoDosTermos? = restaurado?.confirmacaoDosTermos
+
+    // --- Guarda do envio pendente ------------------------------------------------------------------
+
+    /**
+     * A pessoa saiu da tela. Com envio em voo, incerto, a reenviar ou à espera de confirmação, o que segura a chave de cada pedido vai para a
+     * [GuardaDaBusca] (a visita seguinte reenvia com as mesmas chaves e o mesmo trabalho); sem pendência, a casa sai da guarda e a busca recomeça limpa.
+     */
+    override fun onCleared() {
+        val guarda = guarda ?: return
+        val tela = _estado.value
+        val aguardandoConfirmacao = tela.termosParaConfirmar != null || tela.resultadosDaChamada.values.any {
+            it == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia || it is ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos
+        }
+        if (!tela.enviando && !tela.temEnvioPendente && !aguardandoConfirmacao) {
+            guarda.remover(estabelecimentoId, geracaoDaVisita)
+            return
+        }
+        guarda.guardar(
+            estabelecimentoId,
+            BuscaGuardada(
+                estado = tela.copy(
+                    enviando = false, carregandoMais = false, carregandoCatalogos = false,
+                    resultadosDaChamada = resultadosSemEnvioEmVoo(tela),
+                ),
+                tentativas = tentativas.toMap(),
+                vagasPorTrabalho = vagasPorTrabalho.toMap(),
+                enviadosPorBusca = enviadosPorBusca.toMap(),
+                ultimoEnvio = ultimoEnvio,
+                confirmacaoDosTermos = confirmacaoDosTermos,
+                proximoCursor = proximoCursor,
+                recursoConfirmado = recursoConfirmado,
+            ),
+            geracaoDaVisita,
+        )
+    }
+
+    /**
+     * Saiu com o envio em voo: quem já tinha o pedido guardado (a chave existe) pode ter sido criado, então volta como incerto; quem ainda nem
+     * tinha pedido volta como não enviado. Nos dois casos "Tentar de novo" reenvia, repetindo a chave de cada um.
+     */
+    private fun resultadosSemEnvioEmVoo(tela: EstadoBusca): Map<String, ResultadoDaChamadaDaBusca> {
+        if (!tela.enviando) return tela.resultadosDaChamada
+        val semResposta = tela.selecionados.filter { it !in tela.resultadosDaChamada }
+        return tela.resultadosDaChamada + semResposta.associateWith { id ->
+            if (tentativas.keys.any { it.first == id }) {
+                ResultadoDaChamadaDaBusca.Erro(TextosChamadaCasa.ERRO, incerto = true)
+            } else {
+                ResultadoDaChamadaDaBusca.NaoEnviada
+            }
+        }
+    }
 
     // --- Catálogos ---------------------------------------------------------------------------------
 

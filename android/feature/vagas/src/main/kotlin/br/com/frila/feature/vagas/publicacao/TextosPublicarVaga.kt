@@ -49,6 +49,9 @@ object TextosPublicarVaga {
     const val RESPONSAVEL = "Quem recebe o profissional no local"
     const val MAIS_OPCOES = "Mais opções"
     const val MAIS_OPCOES_AJUDA = "Traje, rateio dos 10% e observações"
+    /** O estado que o leitor de tela anuncia na linha "Mais opções" (iOS `maisOpcoesAberto`/`maisOpcoesFechado`, `PublicarVaga.swift:47-48`). */
+    const val MAIS_OPCOES_ABERTO = "Aberto"
+    const val MAIS_OPCOES_FECHADO = "Fechado"
     const val TRAJE = "Traje"
     const val RATEIO = "Participa do rateio dos 10%"
     const val OBSERVACOES = "Observações"
@@ -62,6 +65,9 @@ object TextosPublicarVaga {
 
     const val CAMPO_OBRIGATORIO = "Preencha este campo."
     const val CAMPO_INVALIDO = "Confira o valor informado."
+
+    /** `422 campo_invalido` em `observacoes`: o filtro de contato (diretriz 1.2). Paridade com `TextosPublicarVaga.erroAntiContato` do iOS. */
+    const val ERRO_ANTI_CONTATO = "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila."
     const val FUNCAO_CAMPO = "Escolha uma função."
     const val LOCAL_CAMPO = "Informe o endereço."
     const val VALOR_CAMPO = "Informe um valor maior que zero."

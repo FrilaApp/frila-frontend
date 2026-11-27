@@ -364,9 +364,52 @@ class AppNavegacaoTurnoDoContratanteTest {
     }
 
     @Test
+    fun `2AumESuF - a rota do aviso acha o turno pelo turno_id no painel da casa e abre a tela`() {
+        montar(servicoCom { Result.success(painel()) }, Rotas.turnoDoContratanteAviso("est-1", "t1"))
+
+        esperar(TextosTurnoDoContratante.CONFIRMAR_PRESENCA)
+
+        rule.runOnIdle {
+            assertEquals(Rotas.TURNO_DO_CONTRATANTE_AVISO, rotaAtual())
+            assertEquals(listOf("est-1"), pedidos)
+            assertEquals("t1", contextos.single().turnoId)
+        }
+    }
+
+    private fun turnoDeOutraCasaCaiEmMinhasVagas(resposta: PainelDto) {
+        montar(servicoCom { Result.success(resposta) }, Rotas.turnoDoContratanteAviso("est-1", "t1"))
+
+        rule.waitUntil(5_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        rule.runOnIdle {
+            assertTrue("a casa ficou no turno da rota do aviso", nav.currentBackStack.value.none { it.destination.route == Rotas.TURNO_DO_CONTRATANTE_AVISO })
+            assertTrue(contextos.isEmpty())
+        }
+        assertEquals(0, rule.onAllNodesWithText(TextosTurnoDoContratanteDaRota.NAO_ENCONTRADO).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `2AumESuF - turno que nao esta no painel da casa em uso cai em Minhas vagas, nunca em nao encontrado`() =
+        turnoDeOutraCasaCaiEmMinhasVagas(painel(turnoId = "t-de-outra-casa"))
+
+    @Test
+    fun `2AumESuF - painel de outra casa tambem cai em Minhas vagas`() =
+        turnoDeOutraCasaCaiEmMinhasVagas(painel(estabelecimentoId = "outra-casa"))
+
+    @Test
+    fun `2AumESuF - falha de leitura na rota do aviso mostra a falha com nova tentativa, nao Minhas vagas`() {
+        montar(servicoCom { Result.failure(RuntimeException("rede")) }, Rotas.turnoDoContratanteAviso("est-1", "t1"))
+
+        esperar(TextosTurnoDoContratanteDaRota.FALHA)
+
+        rule.runOnIdle { assertEquals(Rotas.TURNO_DO_CONTRATANTE_AVISO, rotaAtual()) }
+    }
+
+    @Test
     fun `construtor de rota monta e codifica o caminho`() {
         assertEquals("turno_do_contratante/est-1/v1/p1", Rotas.turnoDoContratante("est-1", "v1", "p1"))
         assertEquals("turno_do_contratante/a%2Fb/c%20d/e%26f", Rotas.turnoDoContratante("a/b", "c d", "e&f"))
         assertEquals("turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}", Rotas.TURNO_DO_CONTRATANTE)
+        assertEquals("turno_do_contratante_aviso/a%2Fb/t%201", Rotas.turnoDoContratanteAviso("a/b", "t 1"))
     }
 }

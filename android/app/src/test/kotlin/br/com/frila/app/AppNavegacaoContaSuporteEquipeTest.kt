@@ -142,7 +142,7 @@ class AppNavegacaoContaSuporteEquipeTest {
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
-                        viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
+                        viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
                             DenunciaViewModel(
                                 alvoTipo = alvoTipo,
                                 alvoId = alvoId,
@@ -150,6 +150,7 @@ class AppNavegacaoContaSuporteEquipeTest {
                                 bloquear = { tipo, id -> BloqueioDto(tipo, id, "2026-11-10T12:00:00Z") },
                                 turnoId = turnoId,
                                 chamadaId = chamadaId,
+                                fotoId = fotoId,
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
@@ -385,6 +386,25 @@ class AppNavegacaoContaSuporteEquipeTest {
     }
 
     @Test
+    fun rotaDeDenunciaComFotoOfereceAFotoEMandaOMidiaIdQuandoLigada() {
+        montar(inicio = Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, "prof-1", fotoId = "foto-7"))
+
+        rule.onNodeWithTag("denuncia-sobre-a-foto").performScrollTo().performClick()
+        rule.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("Relato com mais de dez caracteres.")
+        rule.onNodeWithText(TextosSuporte.ENVIAR).performClick()
+
+        rule.runOnIdle { assertEquals("foto-7", denuncias.single().midiaId) }
+    }
+
+    @Test
+    fun rotaDeDenunciaSemFotoNaoOfereceAFoto() {
+        montar(inicio = Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, "prof-1"))
+
+        rule.onNodeWithText(TextosSuporte.ENVIAR).assertExists()
+        rule.onNodeWithTag("denuncia-sobre-a-foto").assertDoesNotExist()
+    }
+
+    @Test
     fun denunciaComTipoDeAlvoForaDoContratoVoltaSemMontarATela() {
         montar(inicio = "denuncia/invalido/abc")
 
@@ -472,6 +492,7 @@ class AppNavegacaoContaSuporteEquipeTest {
         assertEquals("denuncia/profissional/p1", Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, "p1"))
         assertEquals("denuncia/estabelecimento/e1?turnoId=t1&chamadaId=c1", Rotas.denuncia(TipoDeAlvo.ESTABELECIMENTO, "e1", "t1", "c1"))
         assertEquals("denuncia/profissional/p1?chamadaId=c1", Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, "p1", chamadaId = "c1"))
+        assertEquals("denuncia/profissional/p1?fotoId=f%2F1", Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, "p1", fotoId = "f/1"))
         assertEquals("equipe/casa-1", Rotas.equipe("casa-1"))
         assertTrue(Rotas.EXCLUSAO_DE_CONTA.isNotEmpty())
     }

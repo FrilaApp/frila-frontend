@@ -90,6 +90,18 @@ class CoordenadorDeLogout(
         if (tokenDeAcesso != null) removerDispositivoEmSegundoPlano(tokenDeAcesso)
     }
 
+    /**
+     * Sair condicional: só encerra se a sessão guardada ainda tem o refresh token [esperado], e então passa pela mesma
+     * limpeza completa do [limparSessao] ([deslogar]). Se a sessão mudou (outra conta entrou), não apaga nem limpa nada.
+     */
+    override fun limparSeRefreshTokenIgual(esperado: String): Boolean {
+        val tokenDeAcesso = armazenamentoDeSessao.obterSessao()?.accessToken
+        if (!armazenamentoDeSessao.limparSeRefreshTokenIgual(esperado)) return false
+        completarLimpezaDoLogout()
+        if (tokenDeAcesso != null) removerDispositivoEmSegundoPlano(tokenDeAcesso)
+        return true
+    }
+
     /** Só uma tentativa, com prazo: falha (rede, API, token do FCM) vira [registrarFalha] e nunca lança. */
     private fun removerDispositivoEmSegundoPlano(tokenDeAcesso: String) {
         val escopo = escopoDaRemocao ?: return
@@ -140,7 +152,11 @@ class CoordenadorDeLogout(
     fun deslogar(): ResultadoLimpezaLogout {
         // 1. Sessão vazia: limpa tokens, biometria e cache de vagas
         armazenamentoDeSessao.limparSessao()
+        return completarLimpezaDoLogout()
+    }
 
+    /** Passos 2 a 4 do [deslogar], depois que a sessão já saiu do armazenamento. */
+    private fun completarLimpezaDoLogout(): ResultadoLimpezaLogout {
         // 2. Cache de imagens limpo: expurga arquivos de imagem/temporários
         val arquivosRemovidos = limparCacheDeImagens()
 
@@ -174,7 +190,8 @@ class CoordenadorDeLogout(
                 arquivo.name.endsWith(".tmp") ||
                 arquivo.name.startsWith("avatar_")
         }?.forEach { arquivo ->
-            if (arquivo.delete()) {
+            // Que não pôde ser apagado é esvaziado (descartar): a foto de quem saiu não pode seguir legível para a próxima conta.
+            if (CompressorDeFotoPerfil.descartar(arquivo)) {
                 removidos++
             }
         }

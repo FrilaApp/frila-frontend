@@ -155,6 +155,80 @@ class FeedVagasViewModelTest {
         assertTrue(!viewModel.estado.value.semPontoBase)
     }
 
+    // ZffCGTCS: conta de contratante recebe `422 perfil_incompativel`; "tentar de novo" falharia sempre (paridade com `FalhaDaLista.perfilIncompativel` do iOS).
+
+    private val textoPerfilIncompativel = "Esta lista é para quem trabalha como profissional."
+
+    @Test
+    fun `422 perfil_incompativel marca perfilIncompativel, com o texto da lista e sem virar falta de ponto base`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = """{"code":"perfil_incompativel","message":"perfil_incompativel","details":null}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.perfilIncompativel)
+        assertEquals(textoPerfilIncompativel, viewModel.estado.value.mensagemErro)
+        assertTrue(!viewModel.estado.value.semPontoBase)
+    }
+
+    @Test
+    fun `outros erros nao marcam perfilIncompativel e recarregar com sucesso limpa a marca`() = runBlocking {
+        var resposta = """{"code":"perfil_incompativel","message":"x"}"""
+        var status = HttpStatusCode.UnprocessableEntity
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = resposta, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.carregar().join()
+        assertTrue(viewModel.estado.value.perfilIncompativel)
+
+        // Recarregar com sucesso, logo depois do erro de perfil, limpa a marca (sem passar por outro erro antes).
+        resposta = "[]"
+        status = HttpStatusCode.OK
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.VAZIO, viewModel.estado.value.status)
+        assertTrue(!viewModel.estado.value.perfilIncompativel)
+
+        for ((corpo, http) in listOf(
+            """{"code":"campo_invalido","message":"x","details":"limite"}""" to HttpStatusCode.UnprocessableEntity,
+            """{"code":"sem_permissao","message":"x"}""" to HttpStatusCode.Forbidden,
+            """{"code":"PGRST500","message":"erro"}""" to HttpStatusCode.InternalServerError,
+        )) {
+            resposta = corpo
+            status = http
+            viewModel.carregar().join()
+            assertEquals(StatusFeed.ERRO, viewModel.estado.value.status, corpo)
+            assertTrue(!viewModel.estado.value.perfilIncompativel, corpo)
+            assertTrue(viewModel.estado.value.mensagemErro != textoPerfilIncompativel, corpo)
+        }
+
+    }
+
+    @Test
+    fun `um erro de perfil seguido de outro erro tambem desmarca perfilIncompativel`() = runBlocking {
+        var resposta = """{"code":"perfil_incompativel","message":"x"}"""
+        var status = HttpStatusCode.UnprocessableEntity
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = resposta, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.carregar().join()
+        assertTrue(viewModel.estado.value.perfilIncompativel)
+
+        resposta = """{"code":"PGRST500","message":"erro"}"""
+        status = HttpStatusCode.InternalServerError
+        viewModel.carregar().join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        assertTrue(!viewModel.estado.value.perfilIncompativel)
+    }
+
     @Test
     fun `filtro de distancia 5km exclui vaga mais distante`() = runBlocking {
         val viewModel = viewModelComEngine(

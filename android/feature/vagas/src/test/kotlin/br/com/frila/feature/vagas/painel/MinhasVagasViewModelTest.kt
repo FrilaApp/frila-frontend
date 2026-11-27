@@ -57,9 +57,10 @@ class MinhasVagasViewModelTest {
         oculta: Boolean = false,
         posicoes: List<String> = listOf("aberta"),
         emAtraso: Boolean = false,
+        origem: String? = null,
     ) = """
         {"vaga":{"id":"$id","funcao":"$funcao","local":"SQN 108","regiao_administrativa":"Asa Norte",
-                 "inicio_em":"$inicio","fim_em":"$fim","valor_centavos":16000},
+                 "inicio_em":"$inicio","fim_em":"$fim","valor_centavos":16000${origem?.let { ",\"origem\":\"$it\"" } ?: ""}},
          "modo":"$modo","estado":"$estado","oculta":$oculta,"alerta_vaga_vazia":$alerta,"candidatos_pendentes":$pendentes,
          "posicoes":[${posicoes.joinToString(",") { posicao(it, emAtraso) }}]}
     """.trimIndent()
@@ -479,5 +480,22 @@ class MinhasVagasViewModelTest {
         vm.carregar().join()
 
         assertEquals(listOf(TurnoDoItem("a", "Ana"), TurnoDoItem("b", null)), vm.itens().single().turnos)
+    }
+
+    @Test
+    fun `so a vaga com origem chamada_direta e marcada como direta`() = runBlocking {
+        val corpo = painel(
+            vaga("direta", inicio = "2026-11-12T21:00:00Z", fim = "2026-11-13T03:00:00Z", origem = "chamada_direta"),
+            vaga("publicada", inicio = "2026-11-12T21:00:00Z", fim = "2026-11-13T03:00:00Z", origem = "publicacao"),
+            vaga("sem-origem", inicio = "2026-11-12T21:00:00Z", fim = "2026-11-13T03:00:00Z"),
+        )
+        val vm = viewModelCom(redeCom(corpo))
+
+        vm.carregar().join()
+
+        assertEquals(
+            mapOf("direta" to true, "publicada" to false, "sem-origem" to false),
+            vm.itens().associate { it.id to it.chamadaDireta },
+        )
     }
 }

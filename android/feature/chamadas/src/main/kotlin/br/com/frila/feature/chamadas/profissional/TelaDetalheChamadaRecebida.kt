@@ -101,7 +101,9 @@ fun ConteudoDaChamadaRecebida(
 ) {
     val detalhe = tela.detalhe
     val resultado = tela.resultado
-    val aceita = resultado != null && resultado.chamada.estado == "aceita"
+    // Aceita pelo resultado deste toque ou pelo detalhe de uma chamada reaberta (push, lista) ou conferida depois de um erro.
+    val aceita = tela.chamadaAceita
+    val turnoAceito = tela.turnoAceito
     val recusada = resultado != null && resultado.chamada.estado == "recusada"
     // Decidindo: a chamada está aberta e sem resposta. Respondendo, o aceite continua no lugar, só desligado.
     val decidindo = detalhe != null && !aceita && !recusada &&
@@ -128,11 +130,11 @@ fun ConteudoDaChamadaRecebida(
                         modifier = Modifier.fillMaxWidth().testTag("recusar-chamada"),
                     )
                 }
-            } else if (aceita && resultado?.turnoId != null) {
+            } else if (aceita && turnoAceito != null) {
                 RodapeAncorado {
                     BotaoPrimario(
                         texto = TextosChamadaProfissional.VER_TURNO,
-                        aoClicar = { aoAbrirTurno(resultado.turnoId!!) },
+                        aoClicar = { aoAbrirTurno(turnoAceito) },
                         modifier = Modifier.fillMaxWidth().testTag("ver-turno-aceito"),
                     )
                 }
@@ -155,7 +157,7 @@ fun ConteudoDaChamadaRecebida(
                     aoTentarNovamente = aoTentarNovamente,
                     modifierDoBotao = Modifier.testTag("tentar-novamente-chamada"),
                 )
-                aceita -> Aceita(resultado!!.local, resultado.responsavelLocal)
+                aceita -> Aceita(resultado?.local ?: detalhe.local, resultado?.responsavelLocal ?: detalhe.responsavelLocal)
                 recusada -> {
                     AvisoFrila(
                         tom = TomAviso.INFORMATIVO,

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -33,11 +34,15 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
 import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.componentes.RodapeAncorado
 import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.mascara.CpfVisualTransformation
 import br.com.frila.core.designsystem.mascara.TelefoneVisualTransformation
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
@@ -48,15 +53,16 @@ import br.com.frila.core.dominio.modelo.DataCivil
 import br.com.frila.feature.entrada.fraseComLinksLegais
 
 /**
- * Cadastro do profissional (o que vem depois do código, para conta nova), no mesmo sistema da entrada:
- * título e os campos com o rótulo acima, o aceite dos termos e, ancorado embaixo, o único botão laranja.
+ * Cadastro (o que vem depois do código, para conta nova), no mesmo sistema da entrada:
+ * título, a escolha do perfil como no iOS, os campos com o rótulo acima, o aceite dos termos e, ancorado embaixo, o único botão laranja.
  * O erro de cada campo fica junto dele; o do aceite e o da ação (rede, servidor) ficam junto ao botão.
  * Sem desenho dele (extrapolada do mesmo sistema).
  */
 @Composable
 fun TelaCadastro(
     viewModel: CadastroViewModel,
-    aoConcluir: () -> Unit,
+    /** Recebe o perfil com que a conta foi criada: quem chama decide o destino (profissional ou casa). */
+    aoConcluir: (PerfilDaConta) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -71,7 +77,7 @@ fun TelaCadastro(
 
     LaunchedEffect(estado.concluido) {
         if (estado.concluido) {
-            aoConcluir()
+            aoConcluir(estado.perfil)
         }
     }
 
@@ -116,6 +122,8 @@ fun TelaCadastro(
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
             TituloDaTela("Complete seu cadastro")
+
+            EscolhaDoPerfil(perfil = estado.perfil, aoEscolher = viewModel::aoEscolherPerfil)
 
             CampoDeTexto(
                 valor = estado.nome,
@@ -199,6 +207,39 @@ fun TelaCadastro(
                 )
             }
         }
+    }
+}
+
+/** Escolha única, como no iOS: duas linhas num grupo, com o check na marcada, e o aviso de que o perfil fica fixo (RN25). */
+@Composable
+private fun EscolhaDoPerfil(perfil: PerfilDaConta, aoEscolher: (PerfilDaConta) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco)) {
+        FrilaGrupoDeLinhas(titulo = TextosEscolhaDoPerfil.PERGUNTA) {
+            linha {
+                FrilaLinhaDeOpcao(
+                    titulo = TextosEscolhaDoPerfil.PROFISSIONAL_TITULO,
+                    subtitulo = TextosEscolhaDoPerfil.PROFISSIONAL_DESCRICAO,
+                    marcada = perfil == PerfilDaConta.PROFISSIONAL,
+                    aoClicar = { aoEscolher(PerfilDaConta.PROFISSIONAL) },
+                    modifier = Modifier.testTag("cadastro-perfil-profissional"),
+                )
+            }
+            linha {
+                FrilaLinhaDeOpcao(
+                    titulo = TextosEscolhaDoPerfil.CONTRATANTE_TITULO,
+                    subtitulo = TextosEscolhaDoPerfil.CONTRATANTE_DESCRICAO,
+                    marcada = perfil == PerfilDaConta.CONTRATANTE,
+                    aoClicar = { aoEscolher(PerfilDaConta.CONTRATANTE) },
+                    modifier = Modifier.testTag("cadastro-perfil-contratante"),
+                )
+            }
+        }
+        AvisoFrila(
+            tom = TomAviso.ALERTA,
+            titulo = TextosEscolhaDoPerfil.AVISO_FIXO_TITULO,
+            mensagem = TextosEscolhaDoPerfil.AVISO_FIXO,
+            modifier = Modifier.testTag("cadastro-aviso-fixo"),
+        )
     }
 }
 

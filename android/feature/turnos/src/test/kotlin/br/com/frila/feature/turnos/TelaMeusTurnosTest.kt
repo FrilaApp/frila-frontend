@@ -5,7 +5,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -571,6 +573,7 @@ class TelaMeusTurnosTest {
         verificacao: String,
         checkinConfirmadoEm: String? = null,
         distanciaM: Int? = null,
+        checkinEm: String? = "2026-11-01T20:55:00Z",
     ) = """
         {
           "id": "$id",
@@ -592,7 +595,7 @@ class TelaMeusTurnosTest {
           },
           "contato_visivel_ate": "2026-11-09T03:00:00Z",
           "a_caminho_em": "2026-11-01T20:30:00Z",
-          "checkin_em": "2026-11-01T20:55:00Z",
+          "checkin_em": ${checkinEm?.let { "\"$it\"" } ?: "null"},
           "checkin_tipo": ${checkinTipo?.let { "\"$it\"" } ?: "null"},
           "checkin_distancia_m": $distanciaM,
           "checkin_confirmado_em": ${checkinConfirmadoEm?.let { "\"$it\"" } ?: "null"},
@@ -668,5 +671,29 @@ class TelaMeusTurnosTest {
 
         compose.onNodeWithText("Check-in sem verificação").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Ver comprovante").performScrollTo().assertIsDisplayed().assertHasClickAction()
+    }
+
+    @Test
+    fun `check-in com hora ilegivel segue como check-in feito, sem Fazer check-in, com check-out e sem hora inventada`() {
+        val json = "[" + turnoComCheckinJson("t-ilegivel", "geolocalizado", "verificado", distanciaM = 80, checkinEm = "ontem") + "]"
+        val viewModel = criarViewModel(json)
+        runBlocking { viewModel.carregar().join() }
+
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
+                    // Dentro da janela do turno (21:00 a 03:00): o check-out está disponível quando o check-in foi feito.
+                    relogio = { Instant.parse("2026-11-01T22:00:00Z") },
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Check-in verificado").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ver comprovante").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(TextosCheckoutECodigo.BOTAO_CHECKOUT).performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText(TextosCheckin.BOTAO_FAZER_CHECKIN).assertCountEquals(0)
     }
 }

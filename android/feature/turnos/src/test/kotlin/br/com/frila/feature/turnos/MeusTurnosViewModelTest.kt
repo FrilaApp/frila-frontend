@@ -550,4 +550,82 @@ class MeusTurnosViewModelTest {
         assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
         assertEquals(listOf("a"), viewModel.estado.value.agendados.map { it.turnoId })
     }
+
+    // ── Cartão YGSOToXy: uma linha ruim não derruba a tela inteira ────────────────────────────────────────────────────────
+
+    private fun turnoComInicioIlegivel(id: String, estado: String) =
+        turnoJson(id, estado).replace("\"inicio_em\": \"2026-11-01T21:00:00Z\"", "\"inicio_em\": \"ontem\"")
+
+    private fun viewModelComUmaLinhaRuim(descartadas: MutableList<String>): MeusTurnosViewModel {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine {
+                respond(
+                    "[${turnoJson("bom", "confirmada")}, ${turnoComInicioIlegivel("ruim", "confirmada")}, " +
+                        "${turnoJson("antigo", "cumprida")}, ${turnoComInicioIlegivel("antigo-ruim", "cancelada")}]",
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        return MeusTurnosViewModel(
+            ServicoTurnos(cliente),
+            escopo = CoroutineScope(Dispatchers.Default),
+            registrarLinhaDescartada = { descartadas += it },
+        )
+    }
+
+    @Test
+    fun `carregar com uma linha de inicio ilegivel mostra as outras e registra a descartada`() = runBlocking {
+        val descartadas = mutableListOf<String>()
+        val viewModel = viewModelComUmaLinhaRuim(descartadas)
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(listOf("bom"), viewModel.estado.value.agendados.map { it.turnoId })
+        assertEquals(listOf("antigo"), viewModel.estado.value.historicoCompleto.map { it.turnoId })
+        assertEquals(listOf("ruim", "antigo-ruim"), descartadas)
+    }
+
+    @Test
+    fun `atualizar com uma linha ruim mantem as outras, sem mensagem de erro`() = runBlocking {
+        val descartadas = mutableListOf<String>()
+        val viewModel = viewModelComUmaLinhaRuim(descartadas)
+
+        viewModel.atualizar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(listOf("bom"), viewModel.estado.value.agendados.map { it.turnoId })
+        assertEquals(null, viewModel.estado.value.mensagemErro)
+    }
+
+    @Test
+    fun `atualizarSemPiscar com uma linha ruim mantem as outras`() = runBlocking {
+        val descartadas = mutableListOf<String>()
+        val viewModel = viewModelComUmaLinhaRuim(descartadas)
+
+        viewModel.atualizarSemPiscar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(listOf("bom"), viewModel.estado.value.agendados.map { it.turnoId })
+    }
+
+    @Test
+    fun `se todas as linhas sao ruins a lista fica vazia mas a tela nao vira erro`() = runBlocking {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine {
+                respond("[${turnoComInicioIlegivel("ruim", "confirmada")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        val viewModel = MeusTurnosViewModel(ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Default))
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.agendados.isEmpty())
+    }
 }

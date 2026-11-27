@@ -46,6 +46,7 @@ enum class ErroGlobalEscala(val mensagem: String) {
     CONTA_SUSPENSA(TextosEscala.ERRO_CONTA_SUSPENSA),
     SESSAO_EXPIRADA(TextosEscala.ERRO_SESSAO),
     SEM_REDE(TextosEscala.ERRO_SEM_REDE),
+    LIMITE_EXCEDIDO(TextosEscala.ERRO_LIMITE_EXCEDIDO),
     GENERICO(TextosEscala.ERRO_GENERICO),
 }
 
@@ -119,8 +120,8 @@ data class EstadoEscalaDeEvento(
  *
  * Idempotência: a `chave` é uma só para a escala inteira e nasce uma vez por publicação. Se a resposta se perde
  * (sem rede, corpo que não é JSON), o formulário trava e "Tentar novamente" reenvia o mesmo corpo com a mesma
- * `chave`: o servidor devolve a mesma escala. Só uma recusa definitiva ([CodigoErroAPI.recusaDefinitivaDePublicacao])
- * descarta o corpo e libera a edição, com `chave` nova na próxima tentativa. Nenhuma falha deixa o botão preso.
+ * `chave`: o servidor devolve a mesma escala. Só uma recusa que prova que nada foi gravado descarta o corpo e libera a
+ * edição, com `chave` nova na próxima tentativa (ver [soltaAEscala], igual ao iOS). Nenhuma falha deixa o botão preso.
  *
  * [buscarFuncoes] é `ServicoVagas.listarFuncoes`; [enviarEscala] é `ServicoVagas.publicarEscala`. [relogio] e
  * [novaChave] existem para o teste. [escopo]: mesma razão do `PublicarVagaViewModel`.
@@ -142,7 +143,11 @@ class EscalaDeEventoViewModel(
     /** O endereço da casa, onde o evento acontece (vem do cadastro; a tela só o mostra). */
     val enderecoDoEvento: String get() = estabelecimento.endereco
 
-    private val _estado = MutableStateFlow(guarda?.obter(estabelecimento.id)?.let(::restaurar) ?: estadoInicial())
+    /** A escala que a visita anterior desta casa deixou e a geração em que esta visita nasceu ([GuardaDaEscala]), lidas juntas. */
+    private val visitaGuardada: Pair<EstadoEscalaDeEvento?, Int>? = guarda?.abrir(estabelecimento.id)
+    private val geracaoDaVisita: Int = visitaGuardada?.second ?: 0
+
+    private val _estado = MutableStateFlow(visitaGuardada?.first?.let(::restaurar) ?: estadoInicial())
     val estado: StateFlow<EstadoEscalaDeEvento> = _estado.asStateFlow()
 
     private fun estadoInicial(): EstadoEscalaDeEvento {
@@ -163,7 +168,11 @@ class EscalaDeEventoViewModel(
     /** Muda o estado e mantém a guarda em dia: com pendência ela guarda o estado; sem (sucesso, recusa definitiva), a casa sai. */
     private fun atualizarGuardando(mudar: (EstadoEscalaDeEvento) -> EstadoEscalaDeEvento) {
         val novo = _estado.updateAndGet(mudar)
-        if (novo.pendente != null) guarda?.guardar(estabelecimento.id, novo) else guarda?.remover(estabelecimento.id)
+        if (novo.pendente != null) {
+            guarda?.guardar(estabelecimento.id, novo, geracaoDaVisita)
+        } else {
+            guarda?.remover(estabelecimento.id, geracaoDaVisita)
+        }
     }
 
     private fun itemNovo(data: LocalDate, modelo: ItemDaEscala? = null): ItemDaEscala {
@@ -299,6 +308,8 @@ class EscalaDeEventoViewModel(
         val atual = _estado.value
         if (atual.enviando || atual.concluida) return escopoDeTrabalho.launch { }
 
+        // Com um corpo pendente este envio é o reenvio de uma tentativa que pode ter gravado (resposta perdida, app reaberto).
+        val reenvio = atual.pendente != null
         val corpo = atual.pendente ?: run {
             val hora = relogio()
             val validado = atual.copy(agora = hora)
@@ -324,7 +335,7 @@ class EscalaDeEventoViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                atualizarGuardando { aplicarRecusa(it.copy(enviando = false), erro) }
+                atualizarGuardando { aplicarRecusa(it.copy(enviando = false), erro, reenvio) }
             } catch (_: Exception) {
                 // Corpo não-JSON de gateway ou campo ausente escapam do ErroDaApi; sem isto o botão ficaria em
                 // "Publicando…" para sempre. O resultado é incerto: o corpo (e a chave) ficam pendentes para um
@@ -407,9 +418,24 @@ class EscalaDeEventoViewModel(
         if (item.responsavelLocal.isBlank()) put(CampoDoItem.RESPONSAVEL, TextosEscala.RESPONSAVEL_CAMPO)
     }
 
-    private fun aplicarRecusa(estado: EstadoEscalaDeEvento, erro: ErroDaApi): EstadoEscalaDeEvento {
-        // Recusa definitiva: repetir o mesmo corpo não pode virar sucesso, então ele sai e a edição volta. Nada foi gravado.
-        val liberado = if (erro.codigo.recusaDefinitivaDePublicacao) estado.copy(pendente = null) else estado
+    /**
+     * Quando a recusa solta o corpo e a `chave` (a edição volta, a próxima tentativa nasce com `chave` nova). O servidor confere, nesta
+     * ordem: autenticação (401), quem pode (perfil, conta suspensa, membro), a `chave` (já usada: devolve a escala gravada e para) e só
+     * então o corpo. O limite de escrita (429) sai antes da função rodar.
+     *  - Recusa de CONTEÚDO vem depois da `chave`: prova que nada foi gravado, na primeira tentativa e no reenvio.
+     *  - As demais recusas definitivas, 401 e 429 saem antes de a `chave` ser olhada: na primeira tentativa nada foi gravado e soltam;
+     *    no reenvio de uma tentativa incerta não provam nada sobre ela. Soltar então deixaria o próximo envio sair com `chave` nova e
+     *    publicar a escala em dobro; o corpo e a `chave` ficam (PublicarEscalaViewModel.swift:293-327).
+     */
+    private fun soltaAEscala(erro: ErroDaApi, reenvio: Boolean): Boolean = when {
+        erro.codigo in RECUSAS_DE_CONTEUDO -> true
+        reenvio -> false
+        else -> erro.codigo.recusaDefinitivaDePublicacao || erro.codigo == CodigoErroAPI.LIMITE_EXCEDIDO ||
+            erro.codigo == CodigoErroAPI.NAO_AUTENTICADO
+    }
+
+    private fun aplicarRecusa(estado: EstadoEscalaDeEvento, erro: ErroDaApi, reenvio: Boolean): EstadoEscalaDeEvento {
+        val liberado = if (soltaAEscala(erro, reenvio)) estado.copy(pendente = null) else estado
         val caminho = CaminhoDoErro.de(erro.detalhes)
         val idDoItem = caminho.indice?.let { liberado.itens.getOrNull(it)?.id }
         return when (erro.codigo) {
@@ -433,6 +459,8 @@ class EscalaDeEventoViewModel(
             )
             CodigoErroAPI.NAO_AUTENTICADO -> liberado.copy(erro = ErroGlobalEscala.SESSAO_EXPIRADA)
             CodigoErroAPI.SEM_REDE -> liberado.copy(erro = ErroGlobalEscala.SEM_REDE)
+            // 429: o limite de escrita. Só a mensagem; quem solta a escala é soltaAEscala (primeira tentativa solta, reenvio mantém).
+            CodigoErroAPI.LIMITE_EXCEDIDO -> liberado.copy(erro = ErroGlobalEscala.LIMITE_EXCEDIDO)
             else -> liberado.copy(erro = ErroGlobalEscala.GENERICO)
         }
     }
@@ -475,6 +503,12 @@ class EscalaDeEventoViewModel(
         const val DIAS_ATE_O_EVENTO = 7L
         val INICIO_PADRAO: LocalTime = LocalTime.of(18, 0)
         val DURACAO_PADRAO: Duration = Duration.ofHours(4)
+
+        /** Recusas da conferência do corpo, que o servidor faz depois de olhar a `chave` (iguais às do iOS, `recusaDeConteudo`). */
+        val RECUSAS_DE_CONTEUDO = setOf(
+            CodigoErroAPI.CAMPO_OBRIGATORIO, CodigoErroAPI.CAMPO_INVALIDO, CodigoErroAPI.HORARIO_INVALIDO,
+            CodigoErroAPI.SELECAO_SEM_ANTECEDENCIA, CodigoErroAPI.FUNCAO_INCOMPATIVEL,
+        )
 
         val CAMPOS_DO_ITEM = mapOf(
             "funcao_id" to CampoDoItem.FUNCAO,

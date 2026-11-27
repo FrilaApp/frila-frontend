@@ -14,8 +14,20 @@ import { action as dadosAction } from "../app/rotas/conta/dados";
 import { action as criarContaAction, loader as criarContaLoader } from "../app/rotas/criar-conta";
 import { action as definirSenhaAction, loader as definirSenhaLoader } from "../app/rotas/definir-senha";
 import Entrar, { action as entrarAction, loader as entrarLoader } from "../app/rotas/entrar";
+import {
+  deveAutoSubmeterCodigoOtp,
+  ESPERA_REENVIO_PADRAO_SEGUNDOS,
+  formatarContagemReenvio,
+  LIMITE_REENVIOS_OTP,
+  normalizarCodigoOtp,
+  PassoCodigoOtp,
+  podeConfirmarCodigoOtp,
+  processarConclusaoTentativaOtp,
+  resolverEsperaReenvioSegundos,
+} from "../app/rotas/passo-codigo-otp";
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
 import { action as sairAction } from "../app/rotas/sair";
+import { lerEsperaOtpDiretoSegundos, type LeituraDaConfiguracao } from "../app/servidor/configuracao";
 import { middlewareDeSessao } from "../app/servidor/middleware-de-sessao";
 import { argumentos } from "./contratante-apoio";
 
@@ -56,6 +68,10 @@ const authMock = vi.hoisted(() => ({
   encerrar: vi.fn(),
 }));
 
+const aberturaMock = vi.hoisted(() => ({
+  lerEsperaOtpDiretoDesteAmbiente: vi.fn<() => Promise<number | undefined>>(),
+}));
+
 const contaMock = vi.hoisted(() => ({
   lerMinhaConta: vi.fn(),
 }));
@@ -67,6 +83,7 @@ vi.mock("../app/servidor/deste-ambiente", () => ({
   googleLigadoNesteAmbiente: () => false,
   apiDoUsuario: () => ({}),
   funcoesDoUsuario: () => ({}),
+  lerEsperaOtpDiretoDesteAmbiente: () => aberturaMock.lerEsperaOtpDiretoDesteAmbiente(),
 }));
 
 vi.mock("../app/servidor/conta", () => ({
@@ -259,7 +276,13 @@ describe("rotas: login por senha, dispositivo confiável 30d e desafio OTP (rota
       intencao: "reenviar_desafio",
     });
     const res = await entrarAction(args as never);
-    expect(res).toEqual({ passo: "desafio", email: "usuario@frila.test", desafioId: "des-123", reenviado: true });
+    expect(res).toEqual({
+      passo: "desafio",
+      email: "usuario@frila.test",
+      desafioId: "des-123",
+      reenviado: true,
+      reenviarEmSegundos: 60,
+    });
     expect(authMock.reenviarDispositivoOtp).toHaveBeenCalledWith({
       desafioId: "des-123",
       visitante: "198.51.100.77",
@@ -565,5 +588,320 @@ describe("Decisão A1: CTA 'Criar ou recuperar senha' e erro codigo_apenas_demo 
     expect(htmlExistente.replace("existente@frila.test", "x")).toBe(
       htmlInexistente.replace("naoexiste@frila.test", "x"),
     );
+  });
+});
+
+describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo <6, auto-submit 6 dígitos e pausa após erro", () => {
+  it("normalizarCodigoOtp extrai apenas dígitos até 6 e podeConfirmarCodigoOtp exige 6 dígitos", () => {
+    expect(normalizarCodigoOtp("12-34 5678")).toBe("123456");
+    expect(normalizarCodigoOtp("ab12cd")).toBe("12");
+    expect(podeConfirmarCodigoOtp("", false)).toBe(false);
+    expect(podeConfirmarCodigoOtp("12345", false)).toBe(false);
+    expect(podeConfirmarCodigoOtp("123456", true)).toBe(false);
+    expect(podeConfirmarCodigoOtp("123456", false)).toBe(true);
+    expect(podeConfirmarCodigoOtp("123456", false, "123456")).toBe(false);
+    expect(podeConfirmarCodigoOtp("654321", false, "123456")).toBe(true);
+  });
+
+  it("deveAutoSubmeterCodigoOtp evita submissão duplicada e loop após erro até nova digitação", () => {
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "123456", enviando: false, codigoComErro: null, ultimoSubmetido: null }),
+    ).toBe(true);
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "123456", enviando: false, codigoComErro: "123456", ultimoSubmetido: null }),
+    ).toBe(false);
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "123456", enviando: false, codigoComErro: null, ultimoSubmetido: "123456" }),
+    ).toBe(false);
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "654321", enviando: false, codigoComErro: "123456", ultimoSubmetido: "123456" }),
+    ).toBe(true);
+    expect(
+      deveAutoSubmeterCodigoOtp({
+        codigo: "654321",
+        enviando: false,
+        emComposicao: true,
+        codigoComErro: null,
+        ultimoSubmetido: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("usa fallback conservador 60s quando servidor não informa reenviarEmSegundos e respeita valor real quando informado", () => {
+    expect(ESPERA_REENVIO_PADRAO_SEGUNDOS).toBe(60);
+    expect(LIMITE_REENVIOS_OTP).toBe(3);
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+    expect(resolverEsperaReenvioSegundos(0)).toBe(60);
+    expect(resolverEsperaReenvioSegundos(30)).toBe(30);
+    expect(formatarContagemReenvio(60)).toBe("Reenviar código em 1:00");
+    expect(formatarContagemReenvio(30)).toBe("Reenviar código em 0:30");
+
+    const handler = createStaticHandler(
+      [
+        {
+          id: "otp",
+          path: "entrar",
+          loader: () => null,
+          Component: () =>
+            createElement(PassoCodigoOtp, {
+              titulo: "Digite o código",
+              descricao: "Teste",
+              email: "pessoa@frila.test",
+              rotuloDoCodigo: "Código de 6 dígitos",
+              textoConfirmar: "Entrar",
+              textoConferindo: "Conferindo…",
+              textoReenviar: "Mandar outro código",
+              intencaoConfirmar: "confirmar",
+              intencaoReenviar: "pedir",
+              enviando: false,
+              erro: "Muitos pedidos. Aguarde antes de tentar de novo.",
+              acaoVoltar: null,
+            }),
+        },
+      ],
+      { basename: "/app" },
+    );
+    return handler.query(new Request("https://frilabr.com/app/entrar")).then((contexto) => {
+      if (contexto instanceof Response) throw contexto;
+      const roteador = createStaticRouter(handler.dataRoutes, contexto);
+      const html = renderToStaticMarkup(
+        createElement(StaticRouterProvider, { router: roteador, context: contexto, hydrate: false }),
+      );
+      expect(html).toContain('maxLength="6"');
+      expect(html).toContain("disabled=\"\"");
+      expect(html).toContain('role="alert"');
+      expect(html).toContain("Muitos pedidos. Aguarde antes de tentar de novo.");
+    });
+  });
+
+  it("processarConclusaoTentativaOtp trava erros iguais consecutivos por tentativa, aplica teto 3 e reinicia espera conservadora em 429", () => {
+    const primeiraFalha = processarConclusaoTentativaOtp({
+      intencao: "confirmar",
+      codigoAtual: "111111",
+      erro: "Código inválido.",
+      reenviado: false,
+      esperaEfetiva: 60,
+      reenviosRealizados: 0,
+    });
+    expect(primeiraFalha).toEqual({ codigoComErro: "111111" });
+
+    const segundaFalhaIdentica = processarConclusaoTentativaOtp({
+      intencao: "confirmar",
+      codigoAtual: "222222",
+      erro: "Código inválido.",
+      reenviado: false,
+      esperaEfetiva: 60,
+      reenviosRealizados: 0,
+    });
+    expect(segundaFalhaIdentica).toEqual({ codigoComErro: "222222" });
+
+    const erro429SemEspera = processarConclusaoTentativaOtp({
+      intencao: "reenviar",
+      codigoAtual: "",
+      erro: "Muitos pedidos.",
+      reenviado: false,
+      esperaEfetiva: resolverEsperaReenvioSegundos(undefined),
+      reenviosRealizados: 1,
+    });
+    expect(erro429SemEspera).toEqual({ segundosRestantes: 60 });
+
+    const terceiroReenvio = processarConclusaoTentativaOtp({
+      intencao: "reenviar",
+      codigoAtual: "123456",
+      erro: null,
+      reenviado: true,
+      esperaEfetiva: resolverEsperaReenvioSegundos(30),
+      reenviosRealizados: 2,
+    });
+    expect(terceiroReenvio).toEqual({
+      reenviosRealizados: 3,
+      segundosRestantes: 30,
+      codigoComErro: null,
+      limparCodigo: true,
+    });
+  });
+
+  it("actions propagam tentativaId em erros iguais consecutivos e em reenviar_desafio sem depender de render intermediário", async () => {
+    authMock.confirmarDispositivoOtp
+      .mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" })
+      .mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" });
+
+    const r1 = await entrarAction(
+      argumentos(
+        "/entrar",
+        { email: "pessoa@frila.test", desafio_id: "des-1", codigo: "111111", intencao: "confirmar_desafio", tentativa_id: "t-1" },
+        false,
+      ),
+    );
+    const r2 = await entrarAction(
+      argumentos(
+        "/entrar",
+        { email: "pessoa@frila.test", desafio_id: "des-1", codigo: "222222", intencao: "confirmar_desafio", tentativa_id: "t-2" },
+        false,
+      ),
+    );
+    expect(r1).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "codigo_invalido", tentativaId: "t-1" });
+    expect(r2).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "codigo_invalido", tentativaId: "t-2" });
+  });
+
+  it("entrarAction propaga reenviarEmSegundos real do servidor em reenviar_desafio", async () => {
+    authMock.reenviarDispositivoOtp.mockResolvedValueOnce({ ok: true, reenviarEmSegundos: 60 });
+    const res = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", intencao: "reenviar_desafio" }, false),
+    );
+    expect(res).toEqual({
+      passo: "desafio",
+      email: "pessoa@frila.test",
+      desafioId: "des-1",
+      reenviado: true,
+      reenviarEmSegundos: 60,
+    });
+  });
+
+  it("entrarAction propaga reenviarEmSegundos opcional na criação do desafio e mantém fallback 60 quando ausente", async () => {
+    authMock.autenticarSenha
+      .mockResolvedValueOnce({
+        ok: true,
+        status: "desafio_otp",
+        desafioId: "des-30",
+        descartarDeviceToken: false,
+        reenviarEmSegundos: 30,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: "desafio_otp",
+        desafioId: "des-sem",
+        descartarDeviceToken: false,
+      });
+
+    const com30 = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", senha: "segredo" }, false),
+    );
+    expect(com30).toEqual({
+      passo: "desafio",
+      email: "pessoa@frila.test",
+      desafioId: "des-30",
+      reenviarEmSegundos: 30,
+    });
+
+    const semValor = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", senha: "segredo" }, false),
+    );
+    expect(semValor).toEqual({
+      passo: "desafio",
+      email: "pessoa@frila.test",
+      desafioId: "des-sem",
+    });
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+  });
+
+  it("lerEsperaOtpDiretoSegundos valida reenviar_otp_em_segundos opcional de configuracao_do_app e cai para undefined/60 se ausente/inválido/erro", () => {
+    const baseConfig = {
+      plataforma: "web" as const,
+      versao_minima: "1.0.0",
+      versao_recomendada: "1.0.0",
+      url_da_loja: "https://frilabr.com",
+    };
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: 30 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBe(30);
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: 60 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBe(60);
+    expect(lerEsperaOtpDiretoSegundos({ estado: "ok", configuracao: baseConfig })).toBeUndefined();
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: 0 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBeUndefined();
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: -10 } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBeUndefined();
+    expect(
+      lerEsperaOtpDiretoSegundos({
+        estado: "ok",
+        configuracao: { ...baseConfig, reenviar_otp_em_segundos: Number.NaN } as LeituraDaConfiguracao extends { estado: "ok"; configuracao: infer C } ? C : never,
+      }),
+    ).toBeUndefined();
+    expect(lerEsperaOtpDiretoSegundos({ estado: "indisponivel" })).toBeUndefined();
+  });
+
+  it("criarContaAction e recuperarSenhaAction propagam reenviar_otp_em_segundos válido (30/60), preservam fallback 60 se ausente e em 429", async () => {
+    authMock.pedirCodigo
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    authMock.pedirCodigoRecuperacao
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, motivo: "limite" });
+
+    aberturaMock.lerEsperaOtpDiretoDesteAmbiente
+      .mockResolvedValueOnce(30)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(undefined);
+
+    const criar30 = await criarContaAction(argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir" }, false));
+    expect(criar30).toEqual({ passo: "codigo", email: "ana@frila.test", reenviarEmSegundos: 30 });
+
+    const criarSem = await criarContaAction(
+      argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(criarSem).toEqual({ passo: "codigo", email: "ana@frila.test", reenviado: true });
+
+    const criar429 = await criarContaAction(
+      argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(criar429).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite" });
+
+    const rec60 = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir" }, false),
+    );
+    expect(rec60).toEqual({ passo: "codigo", email: "ana@frila.test", reenviarEmSegundos: 60 });
+
+    const recSem = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(recSem).toEqual({ passo: "codigo", email: "ana@frila.test", reenviado: true });
+
+    const rec429 = await recuperarSenhaAction(
+      argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+    );
+    expect(rec429).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite" });
+  });
+
+  it("entrarAction (entrada por código) propaga reenviar_otp_em_segundos válido (30) e mantém fallback 60 se ausente ou em 429", async () => {
+    aberturaMock.lerEsperaOtpDiretoDesteAmbiente
+      .mockResolvedValueOnce(30)
+      .mockResolvedValueOnce(undefined);
+
+    const inicial30 = await entrarAction(
+      argumentos("/entrar", { email: "demo@frila.test", intencao: "pedir" }, false),
+    );
+    expect(inicial30).toEqual({ passo: "codigo", email: "demo@frila.test", reenviarEmSegundos: 30 });
+
+    const reenvioAusente = await entrarAction(
+      argumentos("/entrar", { email: "demo@frila.test", intencao: "pedir" }, false),
+    );
+    expect(reenvioAusente).toEqual({ passo: "codigo", email: "demo@frila.test" });
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+
+    authMock.reenviarDispositivoOtp.mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    const limite429 = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", intencao: "reenviar_desafio" }, false),
+    );
+    expect(limite429).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "limite" });
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
   });
 });

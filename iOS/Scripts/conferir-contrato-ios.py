@@ -257,6 +257,7 @@ def conferir_rpcs(
         "detalhe_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
         "minhas_chamadas": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
         "publicar_a_partir_da_chamada": "Pendente de adoção no PR I5b (chamadas diretas, contrato 0.2.55)",
+        "solicitar_upload_midia_v2": "Introduzida no contrato 0.2.119 (frila-docs#309); pendente de adoção no cliente iOS.",
     }
 
     faltando = openapi_rpcs - swift_rpcs
@@ -564,6 +565,12 @@ def conferir_dtos(
             "contato": (
                 "Descontinuado no contrato 0.2.49 (decisão de produto de 04/11/2026: contato fora do app); "
                 "o app iOS deixou de ler e armazenar contatos em conformidade com a Fase 2 (issue #396)."
+            )
+        },
+        "ConfiguracaoDoApp": {
+            "reenviar_otp_em_segundos": (
+                "Campo opcional introduzido no contrato 0.2.120 (frila-docs#342); "
+                "pendente de adoção no PR #1122."
             )
         },
     }

@@ -6,6 +6,9 @@ object TextosOcorrencia {
     const val CONFIRMACAO = "Agora envie seu relato por e-mail para que a Equipe Frila possa ajudar. O e-mail abre com ele já escrito."
     const val ABRIR_EMAIL = "Abrir e-mail de suporte"
 
+    /** `403 sem_permissao` com `details: conta_suspensa` (paridade com `TextosDoSuporte.contaSuspensa` do iOS; o canal da conta suspensa é a contestação ou o e-mail). */
+    const val CONTA_SUSPENSA = "Sua conta está suspensa. Acesse a contestação ou escreva para o suporte."
+
     /** `%s` = e-mail de suporte, `%s` = protocolo curto. */
     const val FALHA_AO_ABRIR_EMAIL =
         "Não foi possível abrir um app de e-mail. Escreva para %s e informe o protocolo #%s. O relato está logo abaixo, para copiar."

@@ -56,6 +56,7 @@ import br.com.frila.feature.conta.TelaContestarDespacho
 import br.com.frila.feature.conta.TextosContestarDespacho
 import br.com.frila.feature.conta.TelaExclusaoDeConta
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
+import br.com.frila.feature.entrada.cadastro.PerfilDaConta
 import br.com.frila.feature.entrada.cadastro.TelaCadastro
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.codigo.ModoCodigo
@@ -169,7 +170,7 @@ object Rotas {
     const val ENTRADA = "entrada"
     const val CRIAR_CONTA = "criar_conta?email={email}"
     const val RECUPERAR_SENHA = "recuperar_senha?email={email}"
-    const val CODIGO = "codigo/{email}?modo={modo}&desafioId={desafioId}"
+    const val CODIGO = "codigo/{email}?modo={modo}&desafioId={desafioId}&reenviarEmSegundos={reenviarEmSegundos}"
     const val DEFINIR_SENHA = "definir_senha?origem={origem}&manterDispositivo={manterDispositivo}&email={email}"
     const val CADASTRO = "cadastro"
     /** Pergunta ao servidor quem é a conta e segue para a tela do papel (#782, #783). */
@@ -197,7 +198,7 @@ object Rotas {
     const val TURNO_AVISO = "meus_turnos/{turnoId}"
     const val EXCLUSAO_DE_CONTA = "exclusao_de_conta"
     const val CONTA_SUSPENSA = "conta_suspensa?motivo={motivo}&desde={desde}"
-    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}"
+    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}&fotoId={fotoId}"
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
@@ -207,7 +208,9 @@ object Rotas {
     const val TROCAR_DE_CASA = "trocar_de_casa?atual={atual}"
     const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
-    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
+    /** O turno da casa aberto pelo toque num push, que traz o `turno_id` e não a vaga nem a posição. */
+    const val TURNO_DO_CONTRATANTE_AVISO = "turno_do_contratante_aviso/{estabelecimentoId}/{turnoId}"
+    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}&estabelecimentoId={estabelecimentoId}"
 
     // Lote 2 do Android (L2-8).
     const val CANCELAR_VAGA = "cancelar_vaga/{vagaId}?inicioDaVaga={inicioDaVaga}"
@@ -222,21 +225,31 @@ object Rotas {
     const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
     const val VAGA_PREENCHIDA = "vaga_preenchida/{vagaId}"
     const val VAGA_ENCERRADA = "vaga_encerrada/{vagaId}"
-    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}"
+    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}?estabelecimentoId={estabelecimentoId}"
 
     fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
     fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
     fun vagaPreenchida(vagaId: String) = "vaga_preenchida/$vagaId"
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
-    fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
+    fun avaliacaoDoContratante(turnoId: String, estabelecimentoId: String? = null): String {
+        val base = "avaliacao_contratante/$turnoId"
+        return if (estabelecimentoId == null) base else "$base?estabelecimentoId=${Uri.encode(estabelecimentoId)}"
+    }
 
-    fun codigo(email: String, modo: ModoCodigo = ModoCodigo.ENTRADA, desafioId: String? = null): String {
-        val base = if (modo == ModoCodigo.ENTRADA && desafioId.isNullOrBlank()) {
+    fun codigo(
+        email: String,
+        modo: ModoCodigo = ModoCodigo.ENTRADA,
+        desafioId: String? = null,
+        reenviarEmSegundos: Int? = null,
+    ): String {
+        val esperaValida = reenviarEmSegundos?.takeIf { it > 0 }
+        val base = if (modo == ModoCodigo.ENTRADA && desafioId.isNullOrBlank() && esperaValida == null) {
             "codigo/$email"
         } else {
             val params = buildList {
                 if (modo != ModoCodigo.ENTRADA) add("modo=${modo.chave}")
                 if (!desafioId.isNullOrBlank()) add("desafioId=${Uri.encode(desafioId)}")
+                if (esperaValida != null) add("reenviarEmSegundos=$esperaValida")
             }
             "codigo/$email?${params.joinToString("&")}"
         }
@@ -267,11 +280,21 @@ object Rotas {
         return if (parametros.isEmpty()) "conta_suspensa" else "conta_suspensa?" + parametros.joinToString("&")
     }
 
-    /** `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). */
-    fun denuncia(alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String? = null, chamadaId: String? = null): String {
+    /**
+     * `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). `fotoId` é o
+     * `foto_id` do perfil, quando ele veio com foto: só com ele a tela oferece denunciar a foto (`midia_id`, 0.2.54).
+     */
+    fun denuncia(
+        alvoTipo: TipoDeAlvo,
+        alvoId: String,
+        turnoId: String? = null,
+        chamadaId: String? = null,
+        fotoId: String? = null,
+    ): String {
         val parametros = listOfNotNull(
             turnoId?.let { "turnoId=${Uri.encode(it)}" },
             chamadaId?.let { "chamadaId=${Uri.encode(it)}" },
+            fotoId?.let { "fotoId=${Uri.encode(it)}" },
         )
         val base = "denuncia/${alvoTipo.chave}/${Uri.encode(alvoId)}"
         return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
@@ -298,6 +321,9 @@ object Rotas {
     fun trocarDeCasa(atual: String? = null) = if (atual == null) "trocar_de_casa" else "trocar_de_casa?atual=${Uri.encode(atual)}"
 
     /** O turno da posição `posicaoId` da vaga `vagaId`, lido do painel do estabelecimento. */
+    fun turnoDoContratanteAviso(estabelecimentoId: String, turnoId: String) =
+        "turno_do_contratante_aviso/${Uri.encode(estabelecimentoId)}/${Uri.encode(turnoId)}"
+
     fun turnoDoContratante(estabelecimentoId: String, vagaId: String, posicaoId: String) =
         "turno_do_contratante/${Uri.encode(estabelecimentoId)}/${Uri.encode(vagaId)}/${Uri.encode(posicaoId)}"
 
@@ -315,10 +341,11 @@ object Rotas {
      * `posicoesAbertas` e `inicioDaVaga` são opcionais: a tela de origem os informa quando conhece a vaga.
      * O início vai em ISO-8601 UTC, como o contrato o entrega.
      */
-    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null): String {
+    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null, estabelecimentoId: String? = null): String {
         val parametros = listOfNotNull(
             posicoesAbertas?.let { "posicoesAbertas=$it" },
             inicioDaVaga?.let { "inicioDaVaga=${Uri.encode(it.toString())}" },
+            estabelecimentoId?.let { "estabelecimentoId=${Uri.encode(it)}" },
         )
         val base = "candidatos_da_vaga/${Uri.encode(vagaId)}"
         return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
@@ -415,6 +442,8 @@ fun AppNavegacao(
     perfilRicoHabilitado: Boolean = false,
     /** Chave `foto_de_perfil` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Foto de perfil". Desligada (padrão), não vê. */
     fotoDePerfilHabilitada: Boolean = false,
+    /** Política opcional de espera (segundos) para fluxos GoTrue direto, vinda de `configuracao_do_app.reenviar_otp_em_segundos`. */
+    reenviarOtpEmSegundos: Int? = null,
     gerenciadorConsentimento: GerenciadorConsentimentoCrashlytics = getKoin().getOrNull() ?: object : GerenciadorConsentimentoCrashlytics {
         override fun coletaAtiva(): Boolean = false
         override fun precisaPerguntar(): Boolean = false
@@ -492,6 +521,12 @@ fun AppNavegacao(
         if (papel == null && abrindo && armazenamentoDeSessao.estaAutenticado()) return@LaunchedEffect
         aoConsumirAvisoDoToque()
         val rota = papel?.let { rotaDoAviso(aviso, it) } ?: return@LaunchedEffect
+        if (rota == Rotas.ABERTURA) {
+            // Suspensão ou reativação: a abertura relê a conta no servidor e leva à tela da situação dela, com a pilha
+            // de antes fora (ela é da conta como estava).
+            if (avaliadorDeDestino != null) navController.navigate(Rotas.ABERTURA) { popUpTo(0) { inclusive = true } }
+            return@LaunchedEffect
+        }
         // Por cima do que está aberto: um formulário a meio fica embaixo, e "voltar" o devolve.
         navController.navigate(rota) { launchSingleTop = true }
     }
@@ -580,8 +615,10 @@ fun AppNavegacao(
                         aoEntrarDemonstracao = { email ->
                             navController.navigate(Rotas.codigo(email, ModoCodigo.DEMO))
                         },
-                        aoExigirDesafioOtp = { email, desafioId ->
-                            navController.navigate(Rotas.codigo(email, ModoCodigo.LOGIN_DISPOSITIVO, desafioId))
+                        aoExigirDesafioOtpComEspera = { email, desafioId, reenviarEmSegundos ->
+                            navController.navigate(
+                                Rotas.codigo(email, ModoCodigo.LOGIN_DISPOSITIVO, desafioId, reenviarEmSegundos),
+                            )
                         },
                         aoExigirDefinirSenha = {
                             navController.navigate(Rotas.definirSenha(origem = "pendente", manterDispositivoAtual = true)) {
@@ -597,7 +634,12 @@ fun AppNavegacao(
                     TelaEntrada(
                         viewModel = viewModel,
                         aoReceberCodigo = {
-                            navController.navigate(Rotas.codigo(viewModel.estado.value.email))
+                            navController.navigate(
+                                Rotas.codigo(
+                                    viewModel.estado.value.email,
+                                    reenviarEmSegundos = reenviarOtpEmSegundos,
+                                ),
+                            )
                         },
                     )
                 }
@@ -611,7 +653,15 @@ fun AppNavegacao(
                 val viewModel: CriarContaViewModel = koinViewModel(parameters = { parametersOf(emailInicial) })
                 TelaCriarConta(
                     viewModel = viewModel,
-                    aoEnviarCodigo = { email -> navController.navigate(Rotas.codigo(email, ModoCodigo.CRIACAO)) },
+                    aoEnviarCodigo = { email ->
+                        navController.navigate(
+                            Rotas.codigo(
+                                email,
+                                ModoCodigo.CRIACAO,
+                                reenviarEmSegundos = reenviarOtpEmSegundos,
+                            ),
+                        )
+                    },
                     aoVoltarParaLogin = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }
@@ -624,7 +674,15 @@ fun AppNavegacao(
                 val viewModel: RecuperacaoSenhaViewModel = koinViewModel(parameters = { parametersOf(emailInicial) })
                 TelaRecuperacaoSenha(
                     viewModel = viewModel,
-                    aoAvancarParaCodigo = { email -> navController.navigate(Rotas.codigo(email, ModoCodigo.RECUPERACAO)) },
+                    aoAvancarParaCodigo = { email ->
+                        navController.navigate(
+                            Rotas.codigo(
+                                email,
+                                ModoCodigo.RECUPERACAO,
+                                reenviarEmSegundos = reenviarOtpEmSegundos,
+                            ),
+                        )
+                    },
                     aoVoltarParaLogin = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }
@@ -635,12 +693,16 @@ fun AppNavegacao(
                     navArgument("email") { type = NavType.StringType },
                     navArgument("modo") { type = NavType.StringType; defaultValue = ModoCodigo.ENTRADA.chave },
                     navArgument("desafioId") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("reenviarEmSegundos") { type = NavType.IntType; defaultValue = 0 },
                 ),
             ) { entrada ->
                 val email = entrada.arguments?.getString("email").orEmpty()
                 val modo = ModoCodigo.deChave(entrada.arguments?.getString("modo"))
                 val desafioId = entrada.arguments?.getString("desafioId")?.takeIf { it.isNotBlank() }
-                val viewModel: CodigoViewModel = koinViewModel(parameters = { parametersOf(email, modo, desafioId) })
+                val reenviarEmSegundos = entrada.arguments?.getInt("reenviarEmSegundos")?.takeIf { it > 0 }
+                val viewModel: CodigoViewModel = koinViewModel(
+                    parameters = { parametersOf(email, modo, desafioId, reenviarEmSegundos) },
+                )
                 TelaCodigo(
                     viewModel = viewModel,
                     aoAutenticar = {
@@ -752,7 +814,7 @@ fun AppNavegacao(
                                 } else {
                                     // Profissional e casa abrem na primeira aba; a Conta (Sair, Equipe) é a última aba.
                                     if (destino == DestinoDaConta.Profissional) papelDaRaiz = PapelDaRaiz.Profissional
-                                    if (casa != null) papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(casa.id, casa.nome))
+                                    if (casa != null) papelDaRaiz = PapelDaRaiz.Contratante(casa.id, Rotas.minhasVagas(casa.id, casa.nome))
                                     navController.navigate(destino.rota()) {
                                         popUpTo(Rotas.ABERTURA) { inclusive = true }
                                     }
@@ -771,11 +833,28 @@ fun AppNavegacao(
 
             composable(Rotas.CADASTRO) {
                 val viewModel: CadastroViewModel = koinViewModel()
+                val koinDoCadastro = getKoin()
+                val destinoGuardado = remember(koinDoCadastro) { koinDoCadastro.getOrNull<DestinoGuardado>() }
                 TelaCadastro(
                     viewModel = viewModel,
-                    aoConcluir = {
-                        navController.navigate(Rotas.FEED) {
-                            popUpTo(Rotas.CADASTRO) { inclusive = true }
+                    // #784: o destino segue o perfil criado e fica guardado, como o iOS (`DestinoGuardado.salvar`).
+                    aoConcluir = { perfil ->
+                        when (perfil) {
+                            PerfilDaConta.PROFISSIONAL -> {
+                                destinoGuardado?.salvar(DestinoDaConta.Profissional)
+                                navController.navigate(Rotas.FEED) {
+                                    popUpTo(Rotas.CADASTRO) { inclusive = true }
+                                }
+                            }
+                            PerfilDaConta.CONTRATANTE -> {
+                                destinoGuardado?.salvar(DestinoDaConta.Contratante(casa = null))
+                                // Como na abertura de quem ainda não tem casa: o Perfil (Sair, Excluir conta) fica como
+                                // raiz e o cadastro da casa entra por cima; "Voltar" do cadastro leva ao Perfil.
+                                navController.navigate(Rotas.PERFIL) {
+                                    popUpTo(Rotas.CADASTRO) { inclusive = true }
+                                }
+                                navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO)
+                            }
                         }
                     },
                 )
@@ -1107,12 +1186,23 @@ fun AppNavegacao(
                 }
             }
 
-            composable(Rotas.AVALIACAO_DO_CONTRATANTE) { entrada ->
+            composable(
+                route = Rotas.AVALIACAO_DO_CONTRATANTE,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId")
                     val viewModel: AvaliacaoViewModel = koinViewModel()
                     TelaAvaliacaoDoContratante(
                         turnoId = turnoId,
+                        estabelecimentoId = estabelecimentoId,
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
                     )
@@ -1411,6 +1501,7 @@ fun AppNavegacao(
                     navArgument("alvoId") { type = NavType.StringType },
                     navArgument("turnoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("chamadaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("fotoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
@@ -1422,8 +1513,9 @@ fun AppNavegacao(
                     } else {
                         val turnoId = entrada.arguments?.getString("turnoId")
                         val chamadaId = entrada.arguments?.getString("chamadaId")
+                        val fotoId = entrada.arguments?.getString("fotoId")
                         val viewModel: DenunciaViewModel = koinViewModel(
-                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId) },
+                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId, fotoId) },
                         )
                         TelaDenuncia(
                             viewModel = viewModel,
@@ -1460,7 +1552,7 @@ fun AppNavegacao(
                         },
                         // Denúncia sem turno associado: o alvo é o perfil público do membro da equipe.
                         aoDenunciar = { profissional ->
-                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
                     )
                 }
@@ -1478,7 +1570,7 @@ fun AppNavegacao(
                         // publicação leva ao perfil, não de volta ao formulário já concluído.
                         aoConcluir = { criado ->
                             // A casa acabou de nascer: a partir daqui a raiz tem as abas dela.
-                            papelDaRaiz = PapelDaRaiz.Contratante(Rotas.minhasVagas(criado.id, criado.nome))
+                            papelDaRaiz = PapelDaRaiz.Contratante(criado.id, Rotas.minhasVagas(criado.id, criado.nome))
                             navController.navigate(Rotas.publicarVaga(criado.id)) {
                                 popUpTo(Rotas.CADASTRO_ESTABELECIMENTO) { inclusive = true }
                             }
@@ -1597,10 +1689,16 @@ fun AppNavegacao(
                         },
                         aoRepublicarPosicoesRestantes = { item -> restantesDe = item },
                         aoVerCandidatos = { vagaId, posicoesAbertas, inicioDaVaga ->
-                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
+                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga, estabelecimentoId))
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
                         aoPublicarEscala = { id -> navController.navigate(Rotas.publicarEscala(id)) },
+                        // CD-RF09: da vaga que nasceu de uma chamada direta a casa acompanha as chamadas; só com a chave `chamada_direta` ligada.
+                        aoAcompanharChamadas = if (chamadaDiretaHabilitada) {
+                            { vagaId -> navController.navigate(RotasChamadaCasa.acompanhar(vagaId)) }
+                        } else {
+                            null
+                        },
                         aoAcompanharTurno = { vagaId, posicaoId ->
                             navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
                         },
@@ -1686,8 +1784,9 @@ fun AppNavegacao(
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
                     RotaTurnoDoContratante(
-                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        estabelecimentoId = estabelecimentoId,
                         vagaId = entrada.arguments?.getString("vagaId").orEmpty(),
                         posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
                         buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
@@ -1699,7 +1798,44 @@ fun AppNavegacao(
                         },
                         aoPedirSuporte = pedirSuporte,
                         aoAvaliarTurno = { turnoId ->
-                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId, estabelecimentoId))
+                        },
+                    )
+                }
+            }
+
+            // O toque num push da casa: o turno é achado pelo `turno_id` no painel da casa em uso. Fora dele (aviso de outra
+            // casa), a entrada dá lugar a Minhas vagas, e o que estava embaixo fica.
+            composable(
+                route = Rotas.TURNO_DO_CONTRATANTE_AVISO,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") { type = NavType.StringType },
+                    navArgument("turnoId") { type = NavType.StringType },
+                ),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    RotaTurnoDoContratante(
+                        estabelecimentoId = estabelecimentoId,
+                        vagaId = "",
+                        posicaoId = "",
+                        turnoId = entrada.arguments?.getString("turnoId").orEmpty(),
+                        buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
+                        aoVoltar = { navController.popBackStack() },
+                        checkinPorCodigoHabilitado = checkinPorCodigoHabilitado,
+                        aoDenunciarProfissional = { profissionalId, turnoId ->
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissionalId, turnoId = turnoId))
+                        },
+                        aoPedirSuporte = pedirSuporte,
+                        aoAvaliarTurno = { turnoId ->
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId, estabelecimentoId))
+                        },
+                        aoNaoEncontrar = {
+                            val minhasVagas = (papelDaRaiz as? PapelDaRaiz.Contratante)?.rotaDeMinhasVagas ?: Rotas.minhasVagas(estabelecimentoId)
+                            navController.navigate(minhasVagas) {
+                                popUpTo(Rotas.TURNO_DO_CONTRATANTE_AVISO) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         },
                     )
                 }
@@ -1711,23 +1847,26 @@ fun AppNavegacao(
                     navArgument("vagaId") { type = NavType.StringType },
                     navArgument("posicoesAbertas") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("inicioDaVaga") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("estabelecimentoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    // A casa, quando quem abriu a tela a conhece (Minhas vagas); o aviso push só traz a vaga.
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId")
                     // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
                     // só perde o aviso da última posição e o prazo, nunca recebe lixo.
                     val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
                     val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { instanteDoServidor(it) }.getOrNull() }
                     val viewModel: CandidatosDaVagaViewModel = koinViewModel(
-                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
+                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga, estabelecimentoId) },
                     )
                     TelaCandidatosDaVaga(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
                         // Denúncia sem turno associado: a candidatura ainda não virou turno.
                         aoDenunciar = { profissional ->
-                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
                     )
                 }

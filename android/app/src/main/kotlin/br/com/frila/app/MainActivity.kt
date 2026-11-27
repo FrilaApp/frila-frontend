@@ -124,29 +124,13 @@ class MainActivity : FragmentActivity() {
                         registrarAbertura("abertura saiu de cena", inicioDaActivity, cobrindo = false)
                     },
                 ) {
-                    PortaoDeAtualizacao(
+                    PortaoDeAtualizacaoDaLoja(
                         versaoAtual = BuildConfig.VERSION_NAME,
                         versaoMinima = estadoConfig.versaoMinima,
                         verificando = verificando,
                         mensagem = estadoConfig.mensagemBloqueio,
-                        aoAtualizar = {
-                            val uriLoja = Uri.parse("market://details?id=$packageName")
-                            val intent = Intent(Intent.ACTION_VIEW, uriLoja).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            try {
-                                startActivity(intent)
-                            } catch (e: Exception) {
-                                startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://play.google.com/store/apps/details?id=$packageName"),
-                                    ).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    },
-                                )
-                            }
-                        },
+                        pacote = packageName,
+                        contexto = this@MainActivity,
                     ) {
                         AppNavegacao(
                             perfilRicoHabilitado = estadoConfig.perfilRico,
@@ -154,6 +138,7 @@ class MainActivity : FragmentActivity() {
                             chamadaDiretaHabilitada = estadoConfig.chamadaDireta,
                             buscaProfissionaisHabilitada = estadoConfig.buscaProfissionais,
                             checkinPorCodigoHabilitado = estadoConfig.checkinPorCodigo,
+                            reenviarOtpEmSegundos = estadoConfig.reenviarOtpEmSegundos,
                             callbackOAuthSocial = callbackOAuthSocial,
                             aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
                             aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(this@MainActivity, url) },

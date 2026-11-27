@@ -227,4 +227,144 @@ class TelasContaTest {
         rule.onNodeWithText("Denúncia de assédio confirmada").assertIsDisplayed()
         rule.onNodeWithText("09/11/2026").performScrollTo().assertIsDisplayed()
     }
+
+    // ---- 9NpQTfGG: os turnos futuros que a exclusão cancela, listados antes de confirmar ----
+
+    private fun turnoFuturo(id: String, funcao: String, contraparte: String, local: String, inicio: String, fim: String) =
+        TurnoFuturoDaExclusao(id, funcao, contraparte, java.time.Instant.parse(inicio), java.time.Instant.parse(fim), local)
+
+    @Test
+    fun listaOsTurnosFuturosComFuncaoContraparteHorarioELocal() {
+        montarExclusao(
+            inicial = EstadoExclusaoDeConta(
+                turnosFuturos = TurnosFuturosDaExclusao.Lista(
+                    listOf(
+                        turnoFuturo("t1", "garçom", "Bar do Zé", "CLS 405 Bloco C", "2026-11-25T21:00:00Z", "2026-11-26T02:00:00Z"),
+                        turnoFuturo("t2", "bartender", "Restaurante Sol", "SCLN 406", "2026-12-02T21:00:00Z", "2026-12-03T05:00:00Z"),
+                    ),
+                ),
+            ),
+        )
+
+        rule.onNodeWithText(TextosExclusaoDeConta.TITULO_TURNOS_FUTUROS).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("garçom").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Bar do Zé").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("CLS 405 Bloco C").performScrollTo().assertIsDisplayed()
+        // 21:00Z é 18:00 em São Paulo e 02:00Z do dia seguinte é 23:00 do mesmo dia: o fim leva só a hora.
+        rule.onNodeWithText("25/11/2026 18:00 – 23:00").performScrollTo().assertIsDisplayed()
+        // O segundo termina às 02:00 do dia seguinte em São Paulo: o fim leva a data.
+        rule.onNodeWithText("02/12/2026 18:00 – 03/12/2026 02:00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("bartender").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Restaurante Sol").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosExclusaoDeConta.SEM_TURNOS_FUTUROS).assertDoesNotExist()
+        rule.onNodeWithText(TextosExclusaoDeConta.LISTA_TURNOS_INDISPONIVEL).assertDoesNotExist()
+    }
+
+    @Test
+    fun consultaLimitadaDaCasaAvisaQueAListaPodeEstarIncompleta() {
+        montarExclusao(
+            inicial = EstadoExclusaoDeConta(
+                turnosFuturos = TurnosFuturosDaExclusao.Lista(
+                    listOf(turnoFuturo("t1", "garçom", "Maria", "CLS 405", "2026-11-25T21:00:00Z", "2026-11-26T02:00:00Z")),
+                    limitada = true,
+                ),
+            ),
+        )
+
+        rule.onNodeWithText(TextosExclusaoDeConta.LISTA_LIMITADA).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Maria").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun consultaCompletaDoProfissionalNaoMostraOAvisoDeLimitada() {
+        montarExclusao(
+            inicial = EstadoExclusaoDeConta(
+                turnosFuturos = TurnosFuturosDaExclusao.Lista(
+                    listOf(turnoFuturo("t1", "garçom", "Bar do Zé", "CLS 405", "2026-11-25T21:00:00Z", "2026-11-26T02:00:00Z")),
+                ),
+            ),
+        )
+
+        rule.onNodeWithText("Bar do Zé").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosExclusaoDeConta.LISTA_LIMITADA).assertDoesNotExist()
+    }
+
+    @Test
+    fun semTurnosFuturosDizOQueFoiConsultado() {
+        montarExclusao(inicial = EstadoExclusaoDeConta(turnosFuturos = TurnosFuturosDaExclusao.Lista(emptyList())))
+
+        rule.onNodeWithText(TextosExclusaoDeConta.TITULO_TURNOS_FUTUROS).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosExclusaoDeConta.SEM_TURNOS_FUTUROS).assertIsDisplayed()
+    }
+
+    @Test
+    fun enquantoLeMostraVerificando() {
+        montarExclusao(inicial = EstadoExclusaoDeConta(turnosFuturos = TurnosFuturosDaExclusao.Carregando))
+
+        rule.onNodeWithText(TextosExclusaoDeConta.CARREGANDO_TURNOS).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun listaIndisponivelAvisaEAindaDeixaExcluir() {
+        var pedidos = 0
+        montarExclusao(
+            inicial = EstadoExclusaoDeConta(turnosFuturos = TurnosFuturosDaExclusao.Indisponivel),
+            aoExcluir = { pedidos++ },
+        )
+
+        rule.onNodeWithText(TextosExclusaoDeConta.LISTA_TURNOS_INDISPONIVEL).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosExclusaoDeConta.CONFIRMACAO_CHECK).performScrollTo().performClick()
+        rule.onNodeWithText(TextosExclusaoDeConta.BOTAO_EXCLUIR).performScrollTo().assertIsEnabled().performClick()
+        rule.onNodeWithText(TextosExclusaoDeConta.DIALOGO_CONFIRMAR).performClick()
+
+        assertEquals(1, pedidos)
+    }
+
+    @Test
+    fun semConsultaATelaNaoMostraASecaoDeTurnos() {
+        montarExclusao()
+
+        rule.onNodeWithText(TextosExclusaoDeConta.TITULO_TURNOS_FUTUROS).assertDoesNotExist()
+        rule.onNodeWithText(TextosExclusaoDeConta.SEM_TURNOS_FUTUROS).assertDoesNotExist()
+        rule.onNodeWithText(TextosExclusaoDeConta.CONSEQUENCIA_TURNOS, substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun intervaloDoTurnoUsaOFusoDeSaoPauloEOmiteADataDoFimNoMesmoDia() {
+        fun instante(texto: String) = java.time.Instant.parse(texto)
+        assertEquals("25/11/2026 18:00 – 23:00", intervaloDoTurno(instante("2026-11-25T21:00:00Z"), instante("2026-11-26T02:00:00Z")))
+        assertEquals("25/11/2026 22:30 – 03/12/2026 01:00", intervaloDoTurno(instante("2026-11-26T01:30:00Z"), instante("2026-12-03T04:00:00Z")))
+        // Meia-noite UTC ainda é o dia anterior em São Paulo.
+        assertEquals("24/11/2026 21:00 – 23:59", intervaloDoTurno(instante("2026-11-25T00:00:00Z"), instante("2026-11-25T02:59:00Z")))
+    }
+
+    @Test
+    fun aTelaDispararALeituraDosTurnosAoAbrirSemQuemChamaFazerNada() {
+        var leituras = 0
+        val viewModel = ExclusaoDeContaViewModel(
+            excluir = { error("ler a lista não exclui") },
+            consultarTurnos = {
+                leituras++
+                ConsultaDeTurnosDaExclusao(
+                    listOf(
+                        TurnoFuturoDaExclusao(
+                            id = "t1", funcao = "garçom", contraparte = "Bar do Zé",
+                            inicio = java.time.Instant.parse("2026-12-02T21:00:00Z"),
+                            fim = java.time.Instant.parse("2026-12-03T02:00:00Z"), local = "CLS 405",
+                        ),
+                    ),
+                )
+            },
+            relogio = { java.time.Instant.parse("2026-11-20T15:00:00Z") },
+            escopo = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+        )
+
+        rule.setContent { FrilaTheme { TelaExclusaoDeConta(viewModel = viewModel, aoVoltar = {}) } }
+        rule.waitForIdle()
+
+        assertEquals(1, leituras)
+        rule.onNodeWithText("Bar do Zé").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("garçom").performScrollTo().assertIsDisplayed()
+    }
 }
+

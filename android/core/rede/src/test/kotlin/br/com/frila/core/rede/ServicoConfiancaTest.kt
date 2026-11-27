@@ -27,14 +27,60 @@ class ServicoConfiancaTest {
         }
     """.trimIndent()
 
-    private fun denuncia(chamadaId: String?) = DenunciarDto(
+    private fun denuncia(chamadaId: String?, midiaId: String? = null) = DenunciarDto(
         alvoTipo = "estabelecimento",
         alvoId = "11111111-1111-1111-1111-111111111111",
         motivo = "assedio",
         relato = "Relato com mais de dez caracteres.",
         chave = "22222222-2222-2222-2222-222222222222",
         chamadaId = chamadaId,
+        midiaId = midiaId,
     )
+
+    /** Manda [dto] por `denunciar` e devolve o corpo que saiu. */
+    private suspend fun corpoEnviado(dto: DenunciarDto): JsonObject {
+        var corpo: JsonObject? = null
+        val engine = MockEngine { request ->
+            corpo = ClienteSupabase.jsonFrila.parseToJsonElement((request.body as TextContent).text).jsonObject
+            respond(protocoloJson, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine)).denunciar(dto)
+        return corpo!!
+    }
+
+    @Test
+    fun `denuncia sobre a foto manda midia_id no corpo`() = runTest {
+        val corpo = corpoEnviado(denuncia(chamadaId = null, midiaId = "44444444-4444-4444-4444-444444444444"))
+
+        assertEquals("44444444-4444-4444-4444-444444444444", corpo["midia_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `denuncia sobre o perfil nao manda midia_id, porque o contrato nao aceita null`() = runTest {
+        val corpo = corpoEnviado(denuncia(chamadaId = null, midiaId = null))
+
+        assertFalse(corpo.containsKey("midia_id"))
+        assertEquals("assedio", corpo["motivo"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `midia_id que nao e foto do alvo propaga 422 campo_invalido com o campo em details`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"code":"campo_invalido","message":"midia nao e do alvo","details":"midia_id"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val servico = ServicoConfianca(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = engine))
+
+        val excecao = runCatching { servico.denunciar(denuncia(chamadaId = null, midiaId = "55555555-5555-5555-5555-555555555555")) }
+            .exceptionOrNull()
+
+        assertTrue(excecao is ErroDaApi)
+        assertEquals(CodigoErroAPI.CAMPO_INVALIDO, (excecao as ErroDaApi).codigo)
+        assertEquals("midia_id", excecao.detalhes)
+    }
 
     @Test
     fun `denunciar com chamada_id manda o campo no corpo de POST rpc denunciar`() = runTest {

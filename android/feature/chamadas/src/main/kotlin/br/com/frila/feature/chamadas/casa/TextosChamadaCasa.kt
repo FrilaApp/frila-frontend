@@ -61,6 +61,8 @@ object TextosChamadaCasa {
     const val LIMITE = "Você atingiu o limite de chamadas. Aguarde antes de tentar novamente."
     const val DESLIGADO = "A chamada direta está indisponível no momento."
     const val ERRO = "Não foi possível concluir a chamada. Verifique sua conexão e tente novamente."
+    /** `422 campo_invalido`, `details: valor_centavos`: valor zero ou negativo na vaga direta nova (contrato 0.2.116). */
+    const val VALOR_INVALIDO = "Confira o valor informado."
 
     // --- Acompanhar -------------------------------------------------------------------------------
     const val ACOMPANHAR_TITULO = "Acompanhar chamadas"
@@ -197,6 +199,7 @@ object TextosChamadaCasa {
     const val SEM_REFEICAO_NEM_TRANSPORTE = "Sem refeição nem transporte"
 
     fun buscaSelecionar(nome: String) = "Selecionar $nome"
+    fun buscaVerPerfil(nome: String) = "Ver perfil de $nome"
     fun buscaChamar(quantos: Int) = "Chamar ($quantos)"
     fun buscaSelecionados(quantos: Int) = if (quantos == 1) "1 selecionado de 3" else "$quantos selecionados de 3"
 }

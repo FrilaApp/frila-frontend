@@ -102,7 +102,7 @@ fun TelaCodigo(
                 BotaoPrimario(
                     texto = if (estado.carregando) "Confirmando…" else "Confirmar código",
                     aoClicar = viewModel::confirmarCodigo,
-                    habilitado = !estado.carregando,
+                    habilitado = !estado.carregando && estado.codigo.length == 6 && !estado.codigoBloqueadoPorErro,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -156,7 +156,19 @@ fun TelaCodigo(
                     style = FrilaTipo.apoio,
                     color = cores.tintaSuave,
                 )
-                if (segundosParaReenviar > 0) {
+                if (estado.atingiuLimiteReenvios) {
+                    Box(
+                        modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        Text(
+                            text = "Limite de reenvios atingido. Tente entrar novamente mais tarde.",
+                            style = FrilaTipo.corpo,
+                            color = cores.tintaSuave,
+                            modifier = Modifier.semantics { disabled() },
+                        )
+                    }
+                } else if (segundosParaReenviar > 0) {
                     // Contagem, não link: sem toque até acabar os 60 s.
                     Box(
                         modifier = Modifier.heightIn(min = FrilaMetricas.alvoMinimo),

@@ -81,6 +81,7 @@ internal fun ConfiguracaoDoAppDto.paraJson(): JsonObject = buildJsonObject {
             put("busca_profissionais", JsonPrimitive(recursos.buscaProfissionais))
         },
     )
+    reenviarOtpEmSegundos?.takeIf { it > 0 }?.let { put("reenviar_otp_em_segundos", JsonPrimitive(it)) }
 }
 
 /** Estado da configuração aplicada pelo portão de versão e pelas chaves de recurso do app. */
@@ -92,6 +93,7 @@ internal data class EstadoDaConfiguracaoDoApp(
     val perfilRico: Boolean = false,
     val checkinPorCodigo: Boolean = false,
     val buscaProfissionais: Boolean = false,
+    val reenviarOtpEmSegundos: Int? = null,
 )
 
 /** Converte o DTO no estado aplicado em tela, voltando para [TextosAtualizacaoObrigatoria.MENSAGEM_PADRAO] quando `mensagem` vier nula ou em branco. */
@@ -103,6 +105,7 @@ internal fun ConfiguracaoDoAppDto.paraEstado(): EstadoDaConfiguracaoDoApp = Esta
     perfilRico = recursos.perfilRico,
     checkinPorCodigo = recursos.checkinPorCodigo,
     buscaProfissionais = recursos.buscaProfissionais,
+    reenviarOtpEmSegundos = reenviarOtpEmSegundos?.takeIf { it > 0 },
 )
 
 /** A última configuração guardada para esta plataforma e versão, ou `null` (sem guardado ou guardado ilegível). */

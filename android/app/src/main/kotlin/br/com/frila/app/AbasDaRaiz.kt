@@ -26,8 +26,8 @@ import br.com.frila.feature.vagas.candidaturas.TextosCandidaturas
 internal sealed interface PapelDaRaiz {
     data object Profissional : PapelDaRaiz
 
-    /** A casa em uso. `rotaDeMinhasVagas` já vem montada por [Rotas.minhasVagas], com o id e o nome da casa. */
-    data class Contratante(val rotaDeMinhasVagas: String) : PapelDaRaiz
+    /** A casa em uso: o id dela e a rota de Minhas vagas já montada por [Rotas.minhasVagas], com o id e o nome. */
+    data class Contratante(val estabelecimentoId: String, val rotaDeMinhasVagas: String) : PapelDaRaiz
 }
 
 /** Uma aba: o rótulo, o ícone, o padrão da rota (o que o grafo conhece) e a rota para onde o toque leva. */
@@ -69,13 +69,15 @@ internal val SalvadorDoPapelDaRaiz: Saver<PapelDaRaiz?, String> = Saver(
         when (papel) {
             null -> ""
             PapelDaRaiz.Profissional -> "profissional"
-            is PapelDaRaiz.Contratante -> "casa:" + papel.rotaDeMinhasVagas
+            // O id é um UUID e a rota leva o nome codificado: nenhum dos dois tem "|".
+            is PapelDaRaiz.Contratante -> "casa:" + papel.estabelecimentoId + "|" + papel.rotaDeMinhasVagas
         }
     },
     restore = { texto ->
         when {
             texto == "profissional" -> PapelDaRaiz.Profissional
-            texto.startsWith("casa:") -> PapelDaRaiz.Contratante(texto.removePrefix("casa:"))
+            texto.startsWith("casa:") && "|" in texto ->
+                texto.removePrefix("casa:").let { PapelDaRaiz.Contratante(it.substringBefore("|"), it.substringAfter("|")) }
             else -> null
         }
     },

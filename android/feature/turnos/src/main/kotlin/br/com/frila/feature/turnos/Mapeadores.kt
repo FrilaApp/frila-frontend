@@ -7,7 +7,6 @@ import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.TurnoDto
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -48,7 +47,10 @@ fun mapearTipoVerificacaoCheckin(
 
 fun TurnoDto.paraItem(): ItemTurno {
     val comprovanteMapeado: ComprovanteCheckin? = checkinEm?.let { feitoEm ->
-        val instanteCheckin = runCatching { instanteDoServidor(feitoEm) }.getOrDefault(Instant.now())
+        // `checkin_em` não nulo: o check-in foi feito. Se a hora não lê, o comprovante existe (a tela segue em "presença marcada", com o
+        // check-out disponível) e a hora fica desconhecida; nunca "agora", que mostraria um horário que ninguém registrou. Só
+        // `checkin_em` nulo é "sem check-in".
+        val instanteCheckin = runCatching { instanteDoServidor(feitoEm) }.getOrNull()
         val tipoVerificacao = mapearTipoVerificacaoCheckin(
             verificacao = verificacao,
             checkinTipo = checkinTipo,

@@ -23,11 +23,12 @@ import java.time.Duration
 import java.time.Instant
 
 private const val TAMANHO_CODIGO = 6
+private const val LIMITE_REENVIOS = 3
 
 /** Quanto tempo o código vale depois de enviado: 10 min, igual a `CodigoViewModel.validadeDoCodigo` do iOS. */
 private val VALIDADE_DO_CODIGO: Duration = Duration.ofSeconds(600)
 
-/** Espera entre um pedido de código e o próximo: 60 s, igual ao temporizador do iOS. */
+/** Espera conservadora padrão entre um pedido de código e o próximo: 60 s (usa `reenviarEmSegundos` real quando devolvido pelo servidor). */
 private val ESPERA_PARA_REENVIAR: Duration = Duration.ofSeconds(60)
 
 /** O Auth responde `otp_expired` tanto para o código errado quanto para o vencido. */
@@ -54,6 +55,7 @@ class CodigoViewModel(
     private val permitirDominioDeTeste: Boolean = false,
     val modo: ModoCodigo = ModoCodigo.ENTRADA,
     desafioIdInicial: String? = null,
+    reenviarEmSegundosInicial: Int? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -64,7 +66,9 @@ class CodigoViewModel(
 
     /** Quando o último código foi pedido (primeiro envio ou reenvio): separa "incorreto" de "expirado". */
     private var codigoPedidoEm: Instant = agora()
-    private var esperaParaReenviarAtual: Duration = ESPERA_PARA_REENVIAR
+    private val esperaPoliticaDireta: Duration =
+        reenviarEmSegundosInicial?.takeIf { it > 0 }?.let { Duration.ofSeconds(it.toLong()) } ?: ESPERA_PARA_REENVIAR
+    private var esperaParaReenviarAtual: Duration = esperaPoliticaDireta
     private var desafioIdAtual: String? = desafioIdInicial?.takeIf { it.isNotBlank() }
 
     /**
@@ -84,13 +88,28 @@ class CodigoViewModel(
 
     /** A verificação em voo: um segundo toque não manda de novo. */
     private var verificacao: Job? = null
+    private var codigoComErro: String? = null
 
     /** Devolve a verificação disparada quando o código chega aos 6 dígitos (como o iOS), ou `null`. */
     fun aoMudarCodigo(novoCodigo: String): Job? {
         val somenteDigitos = novoCodigo.filter { it.isDigit() }.take(TAMANHO_CODIGO)
         val mudou = somenteDigitos != _estado.value.codigo
-        _estado.update { it.copy(codigo = somenteDigitos, erro = null) }
-        return if (mudou && somenteDigitos.length == TAMANHO_CODIGO) confirmarCodigo() else null
+        if (mudou) {
+            codigoComErro = null
+        }
+        _estado.update {
+            it.copy(
+                codigo = somenteDigitos,
+                erro = null,
+                codigoBloqueadoPorErro = codigoComErro != null && somenteDigitos == codigoComErro,
+            )
+        }
+        val podeAutoSubmeter =
+            mudou &&
+                somenteDigitos.length == TAMANHO_CODIGO &&
+                !_estado.value.carregando &&
+                somenteDigitos != codigoComErro
+        return if (podeAutoSubmeter) confirmarCodigo() else null
     }
 
     fun confirmarCodigo(): Job? {
@@ -99,6 +118,9 @@ class CodigoViewModel(
 
         if (estadoAtual.codigo.length != TAMANHO_CODIGO) {
             _estado.update { it.copy(erro = "Informe os 6 dígitos do código.") }
+            return null
+        }
+        if (codigoComErro != null && estadoAtual.codigo == codigoComErro) {
             return null
         }
 
@@ -152,13 +174,21 @@ class CodigoViewModel(
                 } catch (_: Exception) {
                 }
             } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(carregando = false, erro = mensagemDaVerificacao(erro)) }
+                codigoComErro = estadoAtual.codigo
+                _estado.update {
+                    it.copy(carregando = false, erro = mensagemDaVerificacao(erro), codigoBloqueadoPorErro = true)
+                }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (_: Exception) {
                 // Resposta 200 que não decodifica não é ErroDaApi: sem isto a tela ficava em "Confirmando…".
+                codigoComErro = estadoAtual.codigo
                 _estado.update {
-                    it.copy(carregando = false, erro = "Não foi possível confirmar o código. Tente de novo em instantes.")
+                    it.copy(
+                        carregando = false,
+                        erro = "Não foi possível confirmar o código. Tente de novo em instantes.",
+                        codigoBloqueadoPorErro = true,
+                    )
                 }
             }
         }.also { verificacao = it }
@@ -166,6 +196,10 @@ class CodigoViewModel(
 
     fun reenviarCodigo(): Job? {
         if (segundosParaReenviar() > 0 || _estado.value.carregando) return null
+        if (_estado.value.reenviosFeitos >= LIMITE_REENVIOS) {
+            _estado.update { it.copy(erro = "Limite de reenvios atingido. Tente novamente mais tarde.") }
+            return null
+        }
         val email = _estado.value.email
 
         if (modo == ModoCodigo.DEMO || (modo == ModoCodigo.ENTRADA && DemonstracaoContas.ehContaDeDemonstracao(email, permitirDominioDeTeste))) {
@@ -187,7 +221,7 @@ class CodigoViewModel(
                 when (modo) {
                     ModoCodigo.RECUPERACAO -> {
                         servicoAutenticacao.solicitarOtpRecuperacao(email)
-                        esperaParaReenviarAtual = ESPERA_PARA_REENVIAR
+                        esperaParaReenviarAtual = esperaPoliticaDireta
                         concluirReenvio(MENSAGEM_REENVIO_NEUTRA_RECUPERACAO)
                     }
                     ModoCodigo.LOGIN_DISPOSITIVO -> {
@@ -203,7 +237,7 @@ class CodigoViewModel(
                     }
                     else -> {
                         servicoAutenticacao.solicitarOtp(email)
-                        esperaParaReenviarAtual = ESPERA_PARA_REENVIAR
+                        esperaParaReenviarAtual = esperaPoliticaDireta
                         concluirReenvio(MENSAGEM_REENVIO_PADRAO)
                     }
                 }
@@ -229,13 +263,16 @@ class CodigoViewModel(
     private fun concluirReenvio(mensagem: String) {
         codigoPedidoEm = agora()
         _estado.update {
+            val novoTotal = it.reenviosFeitos + 1
             it.copy(
                 carregando = false,
                 reenviado = true,
                 mensagemReenvio = mensagem,
                 erro = null,
                 codigo = "",
-                reenviosFeitos = it.reenviosFeitos + 1,
+                codigoBloqueadoPorErro = false,
+                reenviosFeitos = novoTotal,
+                atingiuLimiteReenvios = novoTotal >= LIMITE_REENVIOS,
             )
         }
     }

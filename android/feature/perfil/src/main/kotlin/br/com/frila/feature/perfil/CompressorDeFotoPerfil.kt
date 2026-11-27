@@ -6,6 +6,8 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.io.RandomAccessFile
 
 /**
  * Compressão defensiva do avatar de perfil (RF03/RNF04). Mesmo algoritmo de subamostragem já
@@ -34,8 +36,24 @@ object CompressorDeFotoPerfil {
      */
     fun avatarExistente(contexto: Context): File? =
         contexto.filesDir
-            .listFiles { arquivo -> arquivo.isFile && arquivo.name.startsWith(PREFIXO_ARQUIVO_AVATAR) }
+            // Arquivo vazio é avatar que não pôde ser apagado e foi esvaziado (ver [descartar]): não há foto para mostrar.
+            .listFiles { arquivo -> arquivo.isFile && arquivo.length() > 0 && arquivo.name.startsWith(PREFIXO_ARQUIVO_AVATAR) }
             ?.maxByOrNull { it.lastModified() }
+
+    /**
+     * Tira a foto de [arquivo] do aparelho: apaga e, se o sistema não deixar apagar (`File.delete()` devolve `false`; por exemplo
+     * erro de E/S ou pasta sem permissão de escrita), esvazia o conteúdo, que só exige permissão no próprio arquivo. Devolve `true`
+     * quando a foto não pode mais ser lida (apagada, esvaziada ou já inexistente) e `false` quando nem apagar nem esvaziar funcionou.
+     */
+    fun descartar(arquivo: File): Boolean {
+        if (arquivo.delete() || !arquivo.exists()) return true
+        return try {
+            RandomAccessFile(arquivo, "rw").use { it.setLength(0) }
+            true
+        } catch (_: IOException) {
+            false
+        }
+    }
 
     /** Ver doc idêntica em `CompressorDeFoto.calcularInSampleSize`. */
     fun calcularInSampleSize(largura: Int, altura: Int, ladoMaximo: Int = LADO_MAXIMO_PX): Int {

@@ -92,6 +92,59 @@ class OcorrenciaTurnoViewModelTest {
     }
 
     @Test
+    fun `depois do sucesso, enviar de novo nao abre outro chamado`() = runBlocking {
+        val chaves = mutableListOf<String>()
+        var chamadas = 0
+        val engine = MockEngine { request ->
+            chamadas++
+            val corpo = (request.body as io.ktor.http.content.TextContent).text
+            chaves += Regex("\"chave\"\\s*:\\s*\"([^\"]+)\"").find(corpo)?.groupValues?.get(1).orEmpty()
+            respond(content = protocoloJson(), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        var sequencia = 0
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val viewModel = OcorrenciaTurnoViewModel(
+            turnoId = turnoId,
+            servicoTurnos = ServicoTurnos(cliente),
+            geradorDeChave = { "chave-${++sequencia}" },
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        viewModel.selecionarMotivo(MotivoOcorrencia.entries.first())
+        viewModel.enviar()!!.join()
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+        val protocolo = viewModel.estado.value.protocolo
+
+        viewModel.enviar()?.join()
+
+        assertEquals("o segundo enviar() abriu outro chamado, com as chaves $chaves", 1, chamadas)
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+        assertEquals(protocolo, viewModel.estado.value.protocolo)
+    }
+
+    @Test
+    fun `com um envio em voo, enviar de novo nao manda um segundo pedido`() = runBlocking {
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamadas = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamadas++
+                liberar.await()
+                respond(content = protocoloJson(), status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.selecionarMotivo(MotivoOcorrencia.entries.first())
+
+        val primeiro = viewModel.enviar()!!
+        val segundo = viewModel.enviar()
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo?.join()
+
+        assertEquals(1, chamadas)
+        assertEquals(StatusOcorrencia.SUCESSO, viewModel.estado.value.status)
+    }
+
+    @Test
     fun `o relato e cortado no limite que o e-mail aguenta`() {
         val viewModel = viewModelComEngine(MockEngine { respond(content = protocoloJson(), status = HttpStatusCode.OK) })
 
@@ -189,4 +242,65 @@ class OcorrenciaTurnoViewModelTest {
         assertTrue(corpos[0].contains("\"chave\":\"chave-1\""))
         assertTrue(corpos[1].contains("\"chave\":\"chave-1\""))
     }
+
+    // zbOnlFil: `403 sem_permissao` com `details: conta_suspensa` ganha texto próprio (paridade com `TextosDoSuporte.contaSuspensa` do iOS).
+
+    private fun mensagemDoErro(status: HttpStatusCode, corpo: String): String? = runBlocking {
+        val engine = MockEngine {
+            respond(content = corpo, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val viewModel = viewModelComEngine(engine)
+        viewModel.selecionarMotivo(MotivoOcorrencia.ATRASO_OU_IMPREVISTO)
+        viewModel.enviar()?.join()
+        assertEquals(StatusOcorrencia.ERRO, viewModel.estado.value.status)
+        viewModel.estado.value.mensagemErro
+    }
+
+    private val textoContaSuspensa = "Sua conta está suspensa. Acesse a contestação ou escreva para o suporte."
+    private val textoSemPermissao = "Você não tem permissão para abrir este chamado."
+
+    @Test
+    fun `403 sem_permissao com details conta_suspensa mostra o texto da conta suspensa`() {
+        val mensagem = mensagemDoErro(
+            HttpStatusCode.Forbidden,
+            """{"code":"sem_permissao","message":"sem_permissao","details":"conta_suspensa","hint":null}""",
+        )
+        assertEquals(textoContaSuspensa, mensagem)
+    }
+
+    @Test
+    fun `o codigo conta_suspensa no topo do erro tambem mostra o texto da conta suspensa`() {
+        val mensagem = mensagemDoErro(HttpStatusCode.Forbidden, """{"code":"conta_suspensa","message":"conta_suspensa"}""")
+        assertEquals(textoContaSuspensa, mensagem)
+    }
+
+    @Test
+    fun `403 sem_permissao sem details segue com o texto de falta de permissao`() {
+        val mensagem = mensagemDoErro(HttpStatusCode.Forbidden, """{"code":"sem_permissao","message":"sem_permissao","details":null}""")
+        assertEquals(textoSemPermissao, mensagem)
+    }
+
+    @Test
+    fun `403 sem_permissao com outro details nao vira conta suspensa`() {
+        for (detalhe in listOf("recurso_desligado", "outro_motivo", "")) {
+            val mensagem = mensagemDoErro(
+                HttpStatusCode.Forbidden,
+                """{"code":"sem_permissao","message":"sem_permissao","details":"$detalhe"}""",
+            )
+            assertEquals("details=$detalhe", textoSemPermissao, mensagem)
+        }
+    }
+
+    @Test
+    fun `limite excedido e turno nao encontrado seguem com os textos de antes`() {
+        assertEquals(
+            "Limite diário de chamados atingido. Tente de novo amanhã.",
+            mensagemDoErro(HttpStatusCode.TooManyRequests, """{"code":"limite_excedido","message":"x"}"""),
+        )
+        assertEquals(
+            "Não encontramos este turno.",
+            mensagemDoErro(HttpStatusCode.NotFound, """{"code":"nao_encontrado","message":"x"}"""),
+        )
+    }
 }
+
