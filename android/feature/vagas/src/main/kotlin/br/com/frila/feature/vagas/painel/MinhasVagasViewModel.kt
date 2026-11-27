@@ -74,6 +74,20 @@ data class ItemMinhaVaga(
     val republicavelEmUrgencia: Int = 0,
 )
 
+/**
+ * Um check-in manual esperando a confirmação da casa (`Painel.checkins_pendentes`), com o que o cartão de "Presenças a confirmar"
+ * mostra e o que abre o turno (paridade com `pendentes` do `AcompanhamentoViewModel` do iOS).
+ */
+data class PresencaAConfirmar(
+    val turnoId: String,
+    val vagaId: String,
+    val posicaoId: String,
+    val nomeProfissional: String?,
+    val funcao: String,
+    val inicio: Instant?,
+    val fim: Instant?,
+)
+
 sealed interface ListaMinhasVagas {
     data object Carregando : ListaMinhasVagas
     data object Vazio : ListaMinhasVagas
@@ -89,6 +103,8 @@ data class EstadoMinhasVagas(
     val atualizando: Boolean = false,
     /** A última releitura falhou com vagas na tela: o que aparece pode estar velho. */
     val desatualizada: Boolean = false,
+    /** Os check-ins manuais que esperam a casa, na ordem do painel; o topo da tela os mostra antes das seções. */
+    val presencasAConfirmar: List<PresencaAConfirmar> = emptyList(),
 )
 
 /**
@@ -184,9 +200,28 @@ class MinhasVagasViewModel(
                 lista = if (itens.isEmpty()) ListaMinhasVagas.Vazio else ListaMinhasVagas.Sucesso(itens),
                 atualizando = false,
                 desatualizada = false,
+                presencasAConfirmar = presencasAConfirmar(painel),
             )
         }
     }
+
+    /** Cada turno de `checkins_pendentes` com a vaga e a posição dele no painel; um id que o painel não traz fica de fora. */
+    private fun presencasAConfirmar(painel: PainelDto): List<PresencaAConfirmar> =
+        painel.checkinsPendentes.distinct().mapNotNull { turnoId ->
+            painel.vagas.firstNotNullOfOrNull { vagaNoPainel ->
+                vagaNoPainel.posicoes.firstOrNull { it.turnoId == turnoId }?.let { posicao ->
+                    PresencaAConfirmar(
+                        turnoId = turnoId,
+                        vagaId = vagaNoPainel.vaga.id,
+                        posicaoId = posicao.id,
+                        nomeProfissional = posicao.profissional?.nome,
+                        funcao = vagaNoPainel.vaga.funcao,
+                        inicio = lerInstante(vagaNoPainel.vaga.inicioEm),
+                        fim = lerInstante(vagaNoPainel.vaga.fimEm),
+                    )
+                }
+            }
+        }
 
     private fun falhar(erro: Throwable?, tipo: ErroMinhasVagas = tipoDoErro(erro)) {
         _estado.update {

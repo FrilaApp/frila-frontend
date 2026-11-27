@@ -300,6 +300,10 @@ fun TelaDetalheVaga(
                                 TextosAberturaDeVaga.POSICOES_DE.format(detalhe.posicoesAbertas, detalhe.posicoes),
                             )
                             LinhaDeTexto(TextosAberturaDeVaga.RESPONSAVEL_NO_LOCAL, detalhe.responsavelLocal)
+                            // O rateio dos 10% (Lei 13.419/2017) vem só do detalhe, e só quando a casa disse (iOS: `if let rateio`).
+                            detalhe.participaRateio?.let { rateio ->
+                                LinhaDeTexto(TextosAberturaDeVaga.RATEIO, if (rateio) TextosAberturaDeVaga.SIM else TextosAberturaDeVaga.NAO)
+                            }
                             detalhe.observacoes?.takeIf { it.isNotBlank() }?.let {
                                 LinhaDeTexto(TextosAberturaDeVaga.OBSERVACOES, it)
                             }

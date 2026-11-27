@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.runtime.mutableStateOf
@@ -420,6 +421,37 @@ class TelaTurnoDoContratanteTest {
         montarAvaliacao(estado(verificacao = "pendente", checkinTipo = "manual").copy(avaliacaoDoServidor = true))
         assertEquals(0, contar("Ver avaliação"))
         assertEquals(0, contar("Avaliar turno"))
+    }
+
+    // ── O efeito do cancelamento (Vmfnk4gQ, fatia 2) ──────────────────────────────────────────────────────────────────
+
+    private fun efeitoNaFolha(agoraDoTurno: Instant, inicio: Instant?): String {
+        val base = estadoComFolha()
+        montarFolha(base.copy(contexto = base.contexto.copy(inicio = inicio), agora = { agoraDoTurno }))
+        return rule.onNodeWithTag("efeito-do-cancelamento").fetchSemanticsNode().config
+            .let { androidx.compose.ui.semantics.SemanticsProperties.Text.let { chave -> it[chave].joinToString("") { t -> t.text } } }
+    }
+
+    @Test
+    fun `a folha antes do inicio diz que a posicao volta a ser oferecida`() {
+        val agora = Instant.parse("2026-11-12T16:00:00Z")
+        val texto = efeitoNaFolha(agora, inicio = Instant.parse("2026-11-12T21:00:00Z"))
+        assertEquals(
+            "Faltam 5 h para o início. A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado. " +
+                "Não conta como falta para o profissional.",
+            texto,
+        )
+    }
+
+    @Test
+    fun `a folha depois do inicio diz que nao reabre e o turno fica descoberto`() {
+        val agora = Instant.parse("2026-11-12T22:00:00Z")
+        val texto = efeitoNaFolha(agora, inicio = Instant.parse("2026-11-12T21:00:00Z"))
+        assertEquals(
+            "O turno já começou. A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado. " +
+                "Não conta como falta para o profissional.",
+            texto,
+        )
     }
 
     // ── A avaliação só libera depois do fim previsto (rWpiTL8g) ───────────────────────────────────────────────────────
