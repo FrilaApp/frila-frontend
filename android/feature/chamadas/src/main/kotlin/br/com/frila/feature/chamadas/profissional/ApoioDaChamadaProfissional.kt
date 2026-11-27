@@ -1,6 +1,7 @@
 package br.com.frila.feature.chamadas.profissional
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.rede.ErroDaApi
 import java.time.Instant
 import java.time.LocalDate
@@ -38,11 +39,6 @@ internal object FormatoChamada {
 
     fun data(dia: LocalDate): String = data.format(dia)
 
-    /** "R$ 1.234,56" a partir de centavos. */
-    fun dinheiro(centavos: Long): String {
-        val reais = centavos / 100
-        val resto = (centavos % 100).toString().padStart(2, '0')
-        val milhares = reais.toString().reversed().chunked(3).joinToString(".").reversed()
-        return "R$ $milhares,$resto"
-    }
+    /** "R$ 1.234,56" a partir de centavos, o mesmo texto de [Dinheiro.formatado]. */
+    fun dinheiro(centavos: Long): String = Dinheiro(centavos).formatado()
 }
