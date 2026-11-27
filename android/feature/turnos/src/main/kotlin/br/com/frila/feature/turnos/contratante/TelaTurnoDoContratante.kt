@@ -1,7 +1,6 @@
 package br.com.frila.feature.turnos.contratante
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
 import br.com.frila.core.designsystem.componentes.LinkFrila
 import androidx.compose.foundation.layout.Arrangement
@@ -460,51 +459,60 @@ internal object TextosCancelarPosicao {
 @Composable
 private fun FolhaDeMotivosDoCancelamento(estado: EstadoTurnoDoContratante, acoes: AcoesTurnoDoContratante, modifier: Modifier = Modifier) {
     BackHandler(onBack = acoes.aoDesistir)
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(FrilaTema.cores.fundo)
-            .verticalScroll(rememberScrollState())
-            .padding(FrilaEspacamento.grupo),
-        verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
-    ) {
-        TituloDaTela(TextosCancelarPosicao.TITULO)
-        Text(
-            text = avisoDoEfeitoDoCancelamento(estado.contexto.inicio, estado.agora()),
-            style = FrilaTipo.corpo,
-            color = FrilaTema.cores.tinta,
-            modifier = Modifier.testTag("efeito-do-cancelamento"),
-        )
-        FrilaGrupoDeLinhas(titulo = TextosCancelarPosicao.MOTIVO_TITULO) {
-            MotivoDeCancelamentoDaCasa.entries.forEach { motivo ->
-                linha {
-                    FrilaLinhaDeOpcao(
-                        titulo = motivo.texto,
-                        marcada = estado.motivoDoCancelamento == motivo,
-                        aoClicar = { acoes.aoEscolherMotivoDoCancelamento(motivo) },
-                    )
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = FrilaTema.cores.fundo,
+        bottomBar = {
+            RodapeAncorado {
+                estado.avisoDoCancelamento?.let { MensagemJuntoAoBotao(it) }
+                BotaoPrimario(
+                    texto = TextosCancelarPosicao.CONFIRMAR,
+                    aoClicar = acoes.aoConfirmarCancelamento,
+                    habilitado = estado.motivoCompletoDoCancelamento != null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                LinkFrila(texto = TextosCancelarPosicao.VOLTAR, aoClicar = acoes.aoDesistir)
+            }
+        },
+    ) { preenchimento ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(preenchimento)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.grupo),
+            verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
+        ) {
+            TituloDaTela(TextosCancelarPosicao.TITULO)
+            Text(
+                text = avisoDoEfeitoDoCancelamento(estado.contexto.inicio, estado.agora()),
+                style = FrilaTipo.corpo,
+                color = FrilaTema.cores.tinta,
+                modifier = Modifier.testTag("efeito-do-cancelamento"),
+            )
+            FrilaGrupoDeLinhas(titulo = TextosCancelarPosicao.MOTIVO_TITULO) {
+                MotivoDeCancelamentoDaCasa.entries.forEach { motivo ->
+                    linha {
+                        FrilaLinhaDeOpcao(
+                            titulo = motivo.texto,
+                            marcada = estado.motivoDoCancelamento == motivo,
+                            aoClicar = { acoes.aoEscolherMotivoDoCancelamento(motivo) },
+                        )
+                    }
                 }
             }
+            CampoDeTexto(
+                valor = estado.detalhesDoCancelamento,
+                aoMudar = acoes.aoMudarDetalhesDoCancelamento,
+                rotulo = if (estado.motivoDoCancelamento?.exigeDetalhes == true) {
+                    TextosCancelarPosicao.DETALHES_OBRIGATORIOS
+                } else {
+                    TextosCancelarPosicao.DETALHES_OPCIONAIS
+                },
+                umaLinha = false,
+                linhasMinimas = 3,
+            )
         }
-        CampoDeTexto(
-            valor = estado.detalhesDoCancelamento,
-            aoMudar = acoes.aoMudarDetalhesDoCancelamento,
-            rotulo = if (estado.motivoDoCancelamento?.exigeDetalhes == true) {
-                TextosCancelarPosicao.DETALHES_OBRIGATORIOS
-            } else {
-                TextosCancelarPosicao.DETALHES_OPCIONAIS
-            },
-            umaLinha = false,
-            linhasMinimas = 3,
-        )
-        estado.avisoDoCancelamento?.let { Text(it, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta) }
-        BotaoPrimario(
-            texto = TextosCancelarPosicao.CONFIRMAR,
-            aoClicar = acoes.aoConfirmarCancelamento,
-            habilitado = estado.motivoCompletoDoCancelamento != null,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        LinkFrila(texto = TextosCancelarPosicao.VOLTAR, aoClicar = acoes.aoDesistir)
     }
 }
 
