@@ -23,6 +23,8 @@ class PontoBaseViewModelTest {
 
     private val planoPiloto = OpcaoDePontoBase("Plano Piloto", Coordenada(-15.793889, -47.882778))
     private val taguatinga = OpcaoDePontoBase("Taguatinga", Coordenada(-15.833333, -48.056944))
+    /** Fora do DF: a lista do app só tem regiões do DF, mas o ViewModel não pode depender disso para aceitar e avisar. */
+    private val goiania = OpcaoDePontoBase("Goiânia", Coordenada(-16.6869, -49.2648))
     private val garcom = FuncaoDto(id = "f-garcom", nome = "garçom", categoria = "Salão")
     private val cozinheiro = FuncaoDto(id = "f-cozinheiro", nome = "cozinheiro", categoria = "Cozinha")
 
@@ -47,8 +49,8 @@ class PontoBaseViewModelTest {
         val alteracoes = mutableListOf<AlteracaoDoPerfilProfissionalDto>()
         var pedidosDeFuncoes = 0
 
-        fun viewModel() = PontoBaseViewModel(
-            opcoes = listOf(planoPiloto, taguatinga),
+        fun viewModel(opcoes: List<OpcaoDePontoBase> = listOf(planoPiloto, taguatinga)) = PontoBaseViewModel(
+            opcoes = opcoes,
             carregarPerfil = { falhaAoCarregar?.let { throw it }; perfilSalvo ?: throw erro(CodigoErroAPI.NAO_ENCONTRADO) },
             carregarFuncoes = { pedidosDeFuncoes++; listOf(garcom, cozinheiro) },
             criarPerfil = { dados -> criacoes += dados; falhaAoCriar?.let { throw it }; perfil(dados.pontoBase) },
@@ -93,6 +95,58 @@ class PontoBaseViewModelTest {
 
         assertNull(viewModel.estado.value.escolhida)
         assertTrue(viewModel.estado.value.temPontoBaseSalvo)
+    }
+
+    @Test
+    fun `ponto base salvo fora do DF avisa, sem erro e sem travar a tela`() = runBlocking {
+        val servidor = Servidor(perfilSalvo = perfil(CoordenadaDto(-16.6869, -49.2648)))
+        val viewModel = servidor.viewModel()
+
+        viewModel.carregar().join()
+
+        val estado = viewModel.estado.value
+        assertTrue(estado.avisoForaDoDF)
+        assertTrue(estado.temPontoBaseSalvo)
+        assertNull(estado.erro)
+        assertFalse(estado.carregando)
+    }
+
+    @Test
+    fun `ponto base salvo dentro do DF nao avisa`() = runBlocking {
+        val servidor = Servidor(perfilSalvo = perfil(CoordenadaDto(-15.833333, -48.056944)))
+        val viewModel = servidor.viewModel()
+
+        viewModel.carregar().join()
+
+        assertFalse(viewModel.estado.value.avisoForaDoDF)
+    }
+
+    @Test
+    fun `escolher um ponto fora do DF avisa e salvar continua permitido`() = runBlocking {
+        val servidor = Servidor()
+        val viewModel = servidor.viewModel(opcoes = listOf(planoPiloto, goiania))
+        viewModel.carregar().join()
+
+        viewModel.escolher(goiania)
+        assertTrue(viewModel.estado.value.avisoForaDoDF)
+
+        viewModel.salvar().join()
+
+        assertEquals(listOf(AlteracaoDoPerfilProfissionalDto(pontoBase = CoordenadaDto(-16.6869, -49.2648))), servidor.alteracoes)
+        assertTrue(viewModel.estado.value.salvo)
+        assertNull(viewModel.estado.value.erro)
+        assertTrue(viewModel.estado.value.avisoForaDoDF)
+    }
+
+    @Test
+    fun `escolher uma regiao do DF tira o aviso do ponto salvo fora`() = runBlocking {
+        val servidor = Servidor(perfilSalvo = perfil(CoordenadaDto(-16.6869, -49.2648)))
+        val viewModel = servidor.viewModel()
+        viewModel.carregar().join()
+
+        viewModel.escolher(planoPiloto)
+
+        assertFalse(viewModel.estado.value.avisoForaDoDF)
     }
 
     @Test

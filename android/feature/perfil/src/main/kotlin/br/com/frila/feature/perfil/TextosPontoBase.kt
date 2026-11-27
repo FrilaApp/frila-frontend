@@ -6,6 +6,10 @@ object TextosPontoBase {
     const val DICA = "Para calcular a distância até as vagas. Não é sua localização em tempo real."
     const val ESCOLHA_A_REGIAO = "Escolha a região onde você fica"
     const val PONTO_BASE_SALVO = "Ponto base salvo"
+
+    /** Igual a `TextosDeCobertura.profissional` do iOS (`AvisoForaDoDF.swift`, decisão A6 da PO). */
+    const val AVISO_FORA_DO_DF =
+        "Este endereço fica fora do Distrito Federal. Você pode salvar, mas por enquanto o foco e a cobertura do Frila são só do Distrito Federal."
     const val FUNCOES = "Funções"
     const val FUNCOES_DICA = "Selecione ao menos uma função para criar o seu perfil."
     const val SALVAR = "Salvar"

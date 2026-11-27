@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.Coordenada
+import br.com.frila.core.dominio.regra.CoberturaDoDF
 import br.com.frila.core.rede.AlteracaoDoPerfilProfissionalDto
 import br.com.frila.core.rede.CoordenadaDto
 import br.com.frila.core.rede.DadosDoPerfilProfissionalDto
@@ -36,7 +37,16 @@ data class EstadoPontoBase(
     val semPerfil: Boolean = false,
     val funcoes: List<FuncaoDto> = emptyList(),
     val funcoesEscolhidas: Set<String> = emptySet(),
-)
+    /** O ponto base salvo ao abrir fica fora do DF (gravado por outro app, como o iOS, que aceita e avisa: decisão A6 da PO). */
+    val pontoSalvoForaDoDF: Boolean = false,
+) {
+    /**
+     * Aviso informativo, nunca bloqueante: o ponto que vale agora (o escolhido ou, sem escolha, o salvo) fica fora do DF.
+     * Salvar continua permitido; o servidor aceita qualquer ponto base dentro da faixa de latitude e longitude.
+     */
+    val avisoForaDoDF: Boolean
+        get() = escolhida?.let { CoberturaDoDF.estaForaDoDF(it.coordenada) } ?: pontoSalvoForaDoDF
+}
 
 /**
  * Ponto base do profissional: de onde o servidor mede a distância até as vagas. A pessoa escolhe uma região numa lista que já
@@ -76,6 +86,7 @@ class PontoBaseViewModel(
                     it.copy(
                         carregando = false,
                         temPontoBaseSalvo = pontoSalvo != null,
+                        pontoSalvoForaDoDF = pontoSalvo != null && CoberturaDoDF.estaForaDoDF(pontoSalvo.latitude, pontoSalvo.longitude),
                         escolhida = it.escolhida ?: pontoSalvo?.let(::opcaoNoPonto),
                     )
                 }

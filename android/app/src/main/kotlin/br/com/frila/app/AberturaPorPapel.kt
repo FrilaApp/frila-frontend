@@ -34,7 +34,8 @@ internal object TextosAbertura {
 @Composable
 internal fun RotaDeAbertura(
     avaliador: AvaliadorDeDestino,
-    aoDecidir: (DestinoDaConta) -> Unit,
+    /** O segundo argumento diz se o destino veio do servidor agora ou do último guardado. */
+    aoDecidir: (DestinoDaConta, Boolean) -> Unit,
     aoSessaoVencida: () -> Unit = {},
     aoTerminarDeAvaliar: () -> Unit = {},
 ) {
@@ -47,7 +48,7 @@ internal fun RotaDeAbertura(
         withContext(Dispatchers.Main.immediate) {
             aoTerminarDeAvaliar()
             when (novo) {
-                is ResultadoDaAbertura.Destino -> aoDecidir(novo.destino)
+                is ResultadoDaAbertura.Destino -> aoDecidir(novo.destino, novo.doServidor)
                 ResultadoDaAbertura.SessaoVencida -> aoSessaoVencida()
                 else -> resultado = novo
             }

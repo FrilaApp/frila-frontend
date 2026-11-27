@@ -60,7 +60,8 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
             .setAutoCancel(true)
 
         ResolvedorDeDeepLinkPush.resolver(notificacao)?.let { deepLink ->
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).setPackage(packageName)
+            // Explícito e para a entrada não exportada: só este PendingIntent põe um aviso na fila.
+            val intent = Intent(this, EntradaDoAvisoActivity::class.java).setData(Uri.parse(deepLink))
             val pendingIntent = PendingIntent.getActivity(
                 this,
                 deepLink.hashCode(),
