@@ -18,7 +18,12 @@ import br.com.frila.core.designsystem.abertura.AberturaAnimada
 import br.com.frila.core.designsystem.abertura.aquecerAberturaAnimada
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.SegurancaOAuthSocial
+import br.com.frila.core.notificacoes.CaixaDoAvisoDoToque
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,13 +44,11 @@ internal fun extrairCallbackOAuthSocialDoIntent(
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */
 class MainActivity : FragmentActivity() {
     private val callbackOAuthSocial = MutableStateFlow<String?>(null)
-    private val avisoDoToque = MutableStateFlow<AvisoDoToque?>(null)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
-        avisoDoIntent(intent)?.let { avisoDoToque.value = it }
     }
 
     private fun abrirNavegadorLoginSocial(url: String) {
@@ -58,8 +61,6 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         extrairCallbackOAuthSocialDoIntent(intent)?.let { callbackOAuthSocial.value = it }
-        // Recriada (rotação, processo restaurado), a activity recebe o mesmo Intent: o aviso já foi atendido.
-        if (savedInstanceState == null) avisoDoIntent(intent)?.let { avisoDoToque.value = it }
         // O app desenha de borda a borda em todas as versões (no Android 15+ já é obrigatório): as telas recuam para as
         // barras do sistema e o rodapé ancorado sobe com o teclado. Sem isto, no Android 14 ou menos o teclado cobria o botão.
         enableEdgeToEdge()
@@ -71,6 +72,7 @@ class MainActivity : FragmentActivity() {
         val aberturaCobrindo = AtomicBoolean(tocarAbertura)
         if (tocarAbertura) aquecerAberturaAnimada()
         val preferenciasAparencia = GlobalContext.getOrNull()?.getOrNull<PreferenciasAparencia>()
+        val avisosDoToque = CaixaDoAvisoDoToque.link.map(::avisoDoLink).stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         setContent {
             TemaDoAparelho(preferenciasAparencia?.temaEscuro ?: remember { flowOf(false) }) {
                 val cliente = remember {
@@ -153,8 +155,9 @@ class MainActivity : FragmentActivity() {
                             callbackOAuthSocial = callbackOAuthSocial,
                             aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
                             aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(url) },
-                            avisoDoToque = avisoDoToque,
-                            aoConsumirAvisoDoToque = { avisoDoToque.value = null },
+                            // O toque num push chega pela entrada não exportada, nunca pelo Intent desta activity.
+                            avisoDoToque = avisosDoToque,
+                            aoConsumirAvisoDoToque = CaixaDoAvisoDoToque::consumir,
                             aoPronto = {
                                 MedidorDeColdStart.marcarInterfacePronta(this@MainActivity)
                                 registrarAbertura("interface do app pronta", inicioDaActivity, aberturaCobrindo.get())

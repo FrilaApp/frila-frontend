@@ -491,13 +491,8 @@ fun AppNavegacao(
         if (papel == null && abrindo && armazenamentoDeSessao.estaAutenticado()) return@LaunchedEffect
         aoConsumirAvisoDoToque()
         val rota = papel?.let { rotaDoAviso(aviso, it) } ?: return@LaunchedEffect
-        val minhasVagasNaPilha = papel is PapelDaRaiz.Contratante &&
-            runCatching { navController.getBackStackEntry(Rotas.MINHAS_VAGAS) }.isSuccess
-        navController.navigate(rota) {
-            // A casa volta à raiz dela, que relê o painel: o aviso diz que algo mudou.
-            if (minhasVagasNaPilha) popUpTo(Rotas.MINHAS_VAGAS) { inclusive = true }
-            launchSingleTop = true
-        }
+        // Por cima do que está aberto: um formulário a meio fica embaixo, e "voltar" o devolve.
+        navController.navigate(rota) { launchSingleTop = true }
     }
 
     // N3 e N16: confere ao abrir (link frila:// sem sessão, pilha restaurada) e a cada sessão apagada. O cliente de

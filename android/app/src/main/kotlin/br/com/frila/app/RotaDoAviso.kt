@@ -1,6 +1,6 @@
 package br.com.frila.app
 
-import android.content.Intent
+import android.net.Uri
 
 /** O toque num push: o `tipo` e os ids que o `ResolvedorDeDeepLinkPush` põe em `frila://aviso`. */
 data class AvisoDoToque(
@@ -11,10 +11,12 @@ data class AvisoDoToque(
     val chamadaId: String? = null,
 )
 
-/** O aviso do `frila://aviso` que abriu a activity; outro link (vaga, OAuth, lançador) não é aviso. */
-internal fun avisoDoIntent(intent: Intent?): AvisoDoToque? {
-    if (intent?.action != Intent.ACTION_VIEW) return null
-    val uri = intent.data?.takeIf { it.scheme == "frila" && it.host == HOST_DO_AVISO } ?: return null
+/**
+ * O aviso do link que a `EntradaDoAvisoActivity` (não exportada) pôs na `CaixaDoAvisoDoToque`. Nunca do Intent da
+ * `MainActivity`: ela é exportada, e outro app consegue mandar um `frila://aviso` direto a ela.
+ */
+internal fun avisoDoLink(link: String?): AvisoDoToque? {
+    val uri = link?.let(Uri::parse)?.takeIf { it.scheme == "frila" && it.host == HOST_DO_AVISO } ?: return null
     val tipo = uri.getQueryParameter("tipo")?.takeIf(String::isNotBlank) ?: return null
     return AvisoDoToque(
         tipo = tipo,
@@ -48,7 +50,7 @@ internal fun rotaDoAviso(aviso: AvisoDoToque, papel: PapelDaRaiz): String? {
         // Como estava antes do toque decidir pelo tipo; a tela da avaliação vem depois.
         "avaliacao_disponivel" -> aviso.turnoId.uuid()?.let(Rotas::turnoAviso) ?: Rotas.MEUS_TURNOS
         "chamada_recebida", "chamada_lembrete", "chamada_cancelada", "chamada_expirada", "chamada_encerrada" ->
-            aviso.chamadaId?.takeIf(String::isNotBlank)?.let(RotasChamadaProfissional::recebida)
+            aviso.chamadaId.uuid()?.let(RotasChamadaProfissional::recebida)
         // Os da casa (`vaga_sem_elegiveis`, `atraso_15min`, `vaga_vazia`, `checkin`, `checkin_manual_pendente`,
         // `selecao_lembrete`, `chamada_aceita`, `chamada_recusada`, lembretes de fim de turno), `midia_recusada`,
         // `vagas_agrupadas`, `suspensao`, `reativacao` e tipo desconhecido não abrem tela.

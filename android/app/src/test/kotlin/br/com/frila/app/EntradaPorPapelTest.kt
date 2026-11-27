@@ -299,6 +299,21 @@ class EntradaPorPapelTest {
     }
 
     @Test
+    fun `9E0Pgqmw - com o formulario de vaga aberto, o aviso da casa abre Minhas vagas por cima e voltar devolve o formulario`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+        rule.runOnIdle { nav.navigate(Rotas.publicarVaga("33333333-3333-4333-8333-333333333333")) }
+        aguardar { rotaAtual() == Rotas.PUBLICAR_VAGA }
+
+        avisoDoToque.value = confirmacao
+
+        assertTrue("o aviso não abriu Minhas vagas (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MINHAS_VAGAS })
+        assertEquals("o formulário ficou embaixo", Rotas.PUBLICAR_VAGA, rotaAbaixo())
+        rule.runOnIdle { nav.popBackStack() }
+        assertTrue("voltar não devolveu o formulário (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PUBLICAR_VAGA })
+    }
+
+    @Test
     fun `9E0Pgqmw - sem rede, com o papel so do destino guardado, o aviso nao escolhe tela`() {
         montar(Papel.PROFISSIONAL, comSessaoGuardada = true, aviso = confirmacao, semRedeComGuardado = DestinoDaConta.Profissional)
 

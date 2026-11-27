@@ -89,5 +89,7 @@ class RotaDoAvisoTest {
         assertEquals(null, rotaDoAviso(AvisoDoToque("vaga"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("cancelamento", posicaoId = "x"), PapelDaRaiz.Profissional))
         assertEquals(null, rotaDoAviso(AvisoDoToque("tipo_futuro", vagaId = vaga), PapelDaRaiz.Profissional))
+        assertEquals(null, rotaDoAviso(AvisoDoToque("chamada_recebida", chamadaId = "chamada-9"), PapelDaRaiz.Profissional))
+        assertEquals(null, rotaDoAviso(AvisoDoToque("chamada_recebida", chamadaId = "../vagas"), PapelDaRaiz.Profissional))
     }
 }

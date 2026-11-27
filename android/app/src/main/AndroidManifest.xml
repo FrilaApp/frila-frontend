@@ -76,14 +76,6 @@
                     android:scheme="frila"
                     android:host="chamadas" />
             </intent-filter>
-            <!-- O toque num push: o app escolhe a tela pelo tipo. Sem BROWSABLE, página da web não abre este link. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data
-                    android:scheme="frila"
-                    android:host="aviso" />
-            </intent-filter>
             <!--
               Android App Links HTTPS (pré-Prod/Release; não ativa login social em Release).
               Dependências externas antes de habilitar social fora de DEBUG (sem inventar SHA-256 nem alterar remoto):

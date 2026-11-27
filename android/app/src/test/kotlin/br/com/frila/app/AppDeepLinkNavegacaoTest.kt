@@ -8,7 +8,9 @@ import androidx.navigation.NavDestination
 import androidx.navigation.navDeepLink
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import br.com.frila.core.notificacoes.EntradaDoAvisoActivity
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,34 +73,25 @@ class AppDeepLinkNavegacaoTest {
         )
     }
 
-    /** 9E0Pgqmw: o toque num push chega como `frila://aviso`, com o tipo e os ids, e o app escolhe a tela. */
+    /** O toque num push entra pela `EntradaDoAvisoActivity`, não exportada: `frila://aviso` não tem filtro no app. */
     @Test
-    fun `intent do aviso resolve MainActivity e leva o tipo e os ids`() {
-        val intent = intentPara("frila://aviso?tipo=cancelamento&vaga_id=v1&posicao_id=p1")
+    fun `frila aviso nao abre o app por filtro, e a entrada do aviso nao e exportada`() {
+        val implicito = Intent(Intent.ACTION_VIEW, Uri.parse("frila://aviso?tipo=vaga")).setPackage(contexto.packageName)
 
+        assertNull(implicito.resolveActivity(contexto.packageManager))
+        val entrada = contexto.packageManager.getActivityInfo(ComponentName(contexto, EntradaDoAvisoActivity::class.java), 0)
+        assertFalse(entrada.exported)
+    }
+
+    @Test
+    fun `o link do aviso leva o tipo e os ids, e so ele com tipo vira aviso`() {
         assertEquals(
-            ComponentName(contexto, MainActivity::class.java),
-            intent.resolveActivity(contexto.packageManager),
+            AvisoDoToque("cancelamento", vagaId = "v1", posicaoId = "p1"),
+            avisoDoLink("frila://aviso?tipo=cancelamento&vaga_id=v1&posicao_id=p1"),
         )
-        assertEquals(AvisoDoToque("cancelamento", vagaId = "v1", posicaoId = "p1"), avisoDoIntent(intent))
-    }
-
-    @Test
-    fun `so o link do aviso com tipo vira aviso`() {
-        assertNull(avisoDoIntent(intentPara("frila://vagas/v1")))
-        assertNull(avisoDoIntent(intentPara("frila://aviso?vaga_id=v1")))
-        assertNull(avisoDoIntent(Intent(Intent.ACTION_MAIN, Uri.parse("frila://aviso?tipo=vaga"))))
-        assertNull(avisoDoIntent(null))
-    }
-
-    /** Sem a categoria BROWSABLE, uma página da web não abre o link do aviso. */
-    @Test
-    fun `o link do aviso nao abre pelo navegador`() {
-        val doNavegador = Intent(Intent.ACTION_VIEW, Uri.parse("frila://aviso?tipo=vaga"))
-            .addCategory(Intent.CATEGORY_BROWSABLE)
-            .setPackage(contexto.packageName)
-
-        assertNull(doNavegador.resolveActivity(contexto.packageManager))
+        assertNull(avisoDoLink("frila://vagas/v1"))
+        assertNull(avisoDoLink("frila://aviso?vaga_id=v1"))
+        assertNull(avisoDoLink(null))
     }
 
     private fun intentPara(uri: String): Intent =
