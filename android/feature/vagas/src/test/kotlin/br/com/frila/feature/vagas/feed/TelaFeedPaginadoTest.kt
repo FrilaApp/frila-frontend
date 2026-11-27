@@ -78,6 +78,15 @@ class TelaFeedPaginadoTest {
     /** Busca, filtros e cabeçalho vêm antes dos cartões: com 30 vagas, o último cartão é o índice 32 e o rodapé, o 33. */
     private fun rolarAteOFim() = lista().performScrollToIndex(33)
 
+    /**
+     * Confere que a lista não tem o rodapé, composto ou não. Um item da `LazyColumn` fora da área visível nem é composto, então
+     * procurar a tag dele passa com ou sem o rodapé; o `IndexForKey` da lista responde pela chave do item (`-1` quando não há).
+     */
+    private fun assertSemRodape() {
+        val indiceDaChave = lista().fetchSemanticsNode().config[SemanticsProperties.IndexForKey]
+        assertEquals("o rodapé não pode estar na lista", -1, indiceDaChave("carregar-mais"))
+    }
+
     @Test
     fun `rolar ate o ultimo cartao pede a pagina seguinte e a contagem diz quando ha mais`() = runBlocking {
         val vm = viewModel(primeira = 30) { (30 until 35).map { "v$it" } }
@@ -92,10 +101,8 @@ class TelaFeedPaginadoTest {
         compose.waitForIdle()
 
         assertEquals(listOf(0, 30), deslocamentos.toList())
-        // A última página veio menor: no fim da lista não há mais rodapé (35 cartões vão do índice 3 ao 37).
-        lista().performScrollToIndex(37)
-        compose.waitForIdle()
-        assertEquals(0, compose.onAllNodesWithTag(TAG_CARREGAR_MAIS).fetchSemanticsNodes().size)
+        // A última página veio menor: no fim da lista não há mais rodapé.
+        assertSemRodape()
         // E a contagem, no topo, já não diz "carregadas".
         lista().performScrollToIndex(0)
         compose.waitForIdle()
@@ -131,7 +138,7 @@ class TelaFeedPaginadoTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("2 vagas").assertExists()
-        assertEquals(0, compose.onAllNodesWithTag(TAG_CARREGAR_MAIS).fetchSemanticsNodes().size)
+        assertSemRodape()
         assertEquals(listOf(0), deslocamentos.toList())
     }
 }
