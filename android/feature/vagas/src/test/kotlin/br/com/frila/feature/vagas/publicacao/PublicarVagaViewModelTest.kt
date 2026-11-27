@@ -400,6 +400,50 @@ class PublicarVagaViewModelTest {
         assertEquals(TextosPublicarVaga.CAMPO_INVALIDO, ponto.errosDeCampo[CampoPublicacao.ESTABELECIMENTO])
     }
 
+    // ---- mc9fVV5W: observações com contato (filtro da diretriz 1.2) ----
+
+    private val textoAntiContato = "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila."
+
+    @Test
+    fun `422 campo_invalido em observacoes mostra o texto anti-contato no campo e libera a edicao`() {
+        val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "observacoes").estado.value
+
+        assertEquals(textoAntiContato, estado.errosDeCampo[CampoPublicacao.OBSERVACOES])
+        assertEquals(setOf(CampoPublicacao.OBSERVACOES), estado.errosDeCampo.keys)
+        assertEquals(ErroGlobalPublicacao.ANTI_CONTATO, estado.erro)
+        assertEquals(textoAntiContato, estado.erro?.mensagem)
+        assertNull(estado.pendente)
+        assertTrue(estado.podeEditar)
+    }
+
+    @Test
+    fun `422 campo_invalido em outro campo, inclusive os outros do filtro, segue com o texto generico`() {
+        for (campo in listOf("local", "responsavel_local", "traje", "valor_centavos")) {
+            val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", campo).estado.value
+
+            assertEquals(TextosPublicarVaga.CAMPO_INVALIDO, estado.errosDeCampo.values.single(), campo)
+            assertTrue(CampoPublicacao.OBSERVACOES !in estado.errosDeCampo, campo)
+            assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, estado.erro, campo)
+        }
+    }
+
+    @Test
+    fun `422 campo_obrigatorio em observacoes nao vira o texto anti-contato`() {
+        val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_obrigatorio", "observacoes").estado.value
+
+        assertEquals(TextosPublicarVaga.CAMPO_OBRIGATORIO, estado.errosDeCampo[CampoPublicacao.OBSERVACOES])
+        assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, estado.erro)
+    }
+
+    @Test
+    fun `editar as observacoes depois da recusa limpa o erro do campo`() {
+        val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "observacoes")
+
+        vm.editarObservacoes("Entrada pela portaria lateral")
+
+        assertTrue(CampoPublicacao.OBSERVACOES !in vm.estado.value.errosDeCampo)
+    }
+
     @Test
     fun `422 campo_invalido sem campo conhecido mostra so o erro global`() {
         val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "campo_novo").estado.value

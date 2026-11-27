@@ -41,6 +41,7 @@ enum class ErroGlobalPublicacao(val mensagem: String) {
     CONTA_SUSPENSA(TextosPublicarVaga.ERRO_CONTA_SUSPENSA),
     SESSAO_EXPIRADA(TextosPublicarVaga.ERRO_SESSAO),
     SEM_REDE(TextosPublicarVaga.ERRO_SEM_REDE),
+    ANTI_CONTATO(TextosPublicarVaga.ERRO_ANTI_CONTATO),
     RECUSADA_NA_FILA(TextosPublicarVaga.RECUSADA_NA_FILA),
     GENERICO(TextosPublicarVaga.ERRO_GENERICO),
 }
@@ -406,7 +407,16 @@ class PublicarVagaViewModel(
                     TextosPublicarVaga.CAMPO_INVALIDO
                 }
                 val campos = camposDaRecusa(erro.detalhes)
-                liberado.copy(errosDeCampo = campos.associateWith { mensagem }, erro = ErroGlobalPublicacao.CONFIRA_CAMPOS)
+                if (erro.codigo == CodigoErroAPI.CAMPO_INVALIDO && campos == setOf(CampoPublicacao.OBSERVACOES)) {
+                    // O filtro de contato (diretriz 1.2): só nas observações o texto diz o que tirar; nos outros campos filtrados
+                    // (local, responsável, traje) o texto segue o genérico, como no iOS (PublicarVaga.swift).
+                    liberado.copy(
+                        errosDeCampo = mapOf(CampoPublicacao.OBSERVACOES to TextosPublicarVaga.ERRO_ANTI_CONTATO),
+                        erro = ErroGlobalPublicacao.ANTI_CONTATO,
+                    )
+                } else {
+                    liberado.copy(errosDeCampo = campos.associateWith { mensagem }, erro = ErroGlobalPublicacao.CONFIRA_CAMPOS)
+                }
             }
             CodigoErroAPI.FUNCAO_INCOMPATIVEL -> liberado.copy(
                 errosDeCampo = mapOf(CampoPublicacao.FUNCAO to TextosPublicarVaga.CAMPO_INVALIDO),

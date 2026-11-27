@@ -143,6 +143,9 @@ fun ConteudoPublicarVaga(
 ) {
     var seletorDeFuncaoAberto by rememberSaveable { mutableStateOf(false) }
     var maisOpcoesAberto by rememberSaveable { mutableStateOf(false) }
+    // O erro de um campo de "Mais opções" (traje, observações) escondido pelo fechado não chega à pessoa: abre a seção.
+    val erroEmMaisOpcoes = CampoPublicacao.OBSERVACOES in estado.errosDeCampo || CampoPublicacao.TRAJE in estado.errosDeCampo
+    LaunchedEffect(erroEmMaisOpcoes) { if (erroEmMaisOpcoes) maisOpcoesAberto = true }
     val cores = FrilaTema.cores
 
     Scaffold(
