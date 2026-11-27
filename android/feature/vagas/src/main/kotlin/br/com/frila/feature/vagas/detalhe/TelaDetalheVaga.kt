@@ -39,6 +39,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.componentes.BotaoVerNoMapa
+import br.com.frila.core.designsystem.componentes.linkDoMapa
 import br.com.frila.core.rede.ContatoDto
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.designsystem.componentes.CartaoFrila
@@ -251,6 +253,7 @@ fun TelaDetalheVaga(
                         },
                         qualificador = if (estado.mostraDistancia) "de distância" else null,
                     )
+                    BotaoVerNoMapa(link = linkDoMapa("${vaga.estabelecimento.nome}, ${vaga.local}"))
                     estado.detalhe?.traje?.takeIf { it.isNotBlank() }?.let { traje ->
                         FrilaLinhaDeDado(icone = IconeCamisa, valor = "${TextosAberturaDeVaga.TRAJE}: $traje")
                     }
