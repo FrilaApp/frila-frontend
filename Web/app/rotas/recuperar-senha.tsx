@@ -1,7 +1,7 @@
 import { Form, Link, redirect, useNavigation } from "react-router";
 
 import { contextoDaSessao } from "../contexto";
-import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
+import { authDesteAmbiente, emailsDeDemonstracao, lerEsperaOtpDiretoDesteAmbiente } from "../servidor/deste-ambiente";
 import { cookieDoDispositivo, cookiesDaSessao, ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
 import { PassoCodigoOtp } from "./passo-codigo-otp";
@@ -10,7 +10,7 @@ import type { Route } from "./+types/recuperar-senha";
 type Erro = keyof typeof textos.recuperarSenha.erros;
 type Passo =
   | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
-  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string };
+  | { passo: "codigo"; email: string; reenviado?: boolean; reenviarEmSegundos?: number; erro?: Erro; tentativaId?: string };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,8 +51,14 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
     if (!pedido.ok) {
       return comTentativa({ passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo });
     }
+    const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
     // Anti-enumeração: existente, inexistente e social-only produzem exatamente o mesmo passo/estado/UI.
-    return comTentativa(ehReenvio ? { passo: "codigo", email, reenviado: true } : { passo: "codigo", email });
+    return comTentativa({
+      passo: "codigo",
+      email,
+      ...(ehReenvio ? { reenviado: true } : {}),
+      ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+    });
   }
 
   if (!/^\d{6}$/.test(codigo)) {
@@ -145,6 +151,7 @@ export default function RecuperarSenha({ actionData }: Route.ComponentProps) {
           enviando={enviando}
           erro={erro}
           reenviado={estado.reenviado}
+          reenviarEmSegundos={estado.reenviarEmSegundos}
           tentativaId={estado.tentativaId}
           mensagemReenvio={textos.recuperarSenha.mensagemReenvio}
           mostrarLembrarDispositivo
