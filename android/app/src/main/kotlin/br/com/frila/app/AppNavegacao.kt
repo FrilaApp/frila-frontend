@@ -1549,6 +1549,12 @@ fun AppNavegacao(
                     val viewModel: EquipeDeConfiancaViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId) },
                     )
+                    // A tela relê sozinha a cada aparição: só a volta do segundo plano e o push entram (`.nunca` do iOS).
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.EQUIPE_DE_CONFIANCA, atualizacao, AtualizacaoAoAparecer.NUNCA) {
+                            viewModel.atualizarEmSilencio().join()
+                        }
+                    }
                     TelaEquipeDeConfianca(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
@@ -1686,6 +1692,9 @@ fun AppNavegacao(
                     val viewModel: MinhasVagasViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId, nomeEstabelecimento, vagaRecemPublicadaId) },
                     )
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     // L2-3: "Republicar posições em urgência" é uma confirmação na própria lista; cancelar e republicar são telas.
                     var restantesDe by remember { mutableStateOf<ItemMinhaVaga?>(null) }
                     TelaMinhasVagas(
@@ -1759,6 +1768,9 @@ fun AppNavegacao(
             composable(Rotas.MINHAS_CANDIDATURAS) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MinhasCandidaturasViewModel = koinViewModel()
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_CANDIDATURAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     var retirando by remember { mutableStateOf<ItemCandidatura?>(null) }
                     TelaMinhasCandidaturas(
                         viewModel = viewModel,

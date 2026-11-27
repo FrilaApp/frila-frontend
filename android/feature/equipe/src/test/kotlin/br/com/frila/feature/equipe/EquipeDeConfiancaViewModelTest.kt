@@ -380,6 +380,40 @@ class EquipeDeConfiancaViewModelTest {
         assertFalse(vm.estado.value.saiu)
         assertFalse(vm.estado.value.saindo)
     }
+
+    @Test
+    fun `atualizarEmSilencio troca a equipe sem carregando, e a falha a deixa como esta (HaRJJ0L0)`() = runBlocking {
+        var chamada = 0
+        val vm = viewModelCom(
+            Rede {
+                when (++chamada) {
+                    1 -> ok("[${perfil(ana, "Ana")}]")
+                    2 -> ok(listaComDois)
+                    else -> recusa(HttpStatusCode.InternalServerError, "erro")
+                }
+            },
+        )
+        vm.carregar().join()
+        assertEquals(listOf("Ana"), vm.membros())
+
+        vm.atualizarEmSilencio().join()
+        assertEquals(listOf("Ana", "Beto"), vm.membros())
+
+        vm.atualizarEmSilencio().join()
+        assertEquals(listOf("Ana", "Beto"), vm.membros(), "a falha deixa a equipe")
+        assertNull(vm.estado.value.mensagemErro, "a falha silenciosa não vira mensagem")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao faz nada antes de a equipe estar na tela`() = runBlocking {
+        val rede = Rede { ok(listaComDois) }
+        val vm = viewModelCom(rede)
+
+        vm.atualizarEmSilencio().join()
+
+        assertEquals(EstadoEquipe.Carregando, vm.estado.value.estado)
+        assertEquals(0, rede.pedidos.size)
+    }
 }
 
 /** Perfil mínimo para testes que não passam pela rede. */

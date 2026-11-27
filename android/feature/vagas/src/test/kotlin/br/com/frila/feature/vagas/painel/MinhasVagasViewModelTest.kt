@@ -498,4 +498,29 @@ class MinhasVagasViewModelTest {
             vm.itens().associate { it.id to it.chamadaDireta },
         )
     }
+
+    @Test
+    fun `atualizarEmSilencio troca as vagas sem indicador, e a falha as deixa, sem erro nem desatualizada (HaRJJ0L0)`() = kotlinx.coroutines.runBlocking {
+        var chamada = 0
+        val vm = viewModelCom(
+            Rede {
+                when (++chamada) {
+                    1 -> respond(painel(vaga("v1", inicio = "2026-11-12T21:00:00Z", fim = "2026-11-13T03:00:00Z")), HttpStatusCode.OK, json)
+                    2 -> respond(painel(vaga("v2", inicio = "2026-11-12T21:00:00Z", fim = "2026-11-13T03:00:00Z")), HttpStatusCode.OK, json)
+                    else -> recusa(HttpStatusCode.InternalServerError, "erro")
+                }
+            },
+        )
+        vm.carregar().join()
+        assertEquals(listOf("v1"), vm.itens().map { it.id })
+
+        vm.atualizarEmSilencio().join()
+        assertEquals(listOf("v2"), vm.itens().map { it.id })
+        assertFalse(vm.estado.value.atualizando, "sem indicador")
+
+        vm.atualizarEmSilencio().join()
+        assertEquals(listOf("v2"), vm.itens().map { it.id }, "a falha deixa a lista")
+        assertFalse(vm.estado.value.desatualizada, "a falha silenciosa não marca a lista como desatualizada")
+        assertFalse(vm.estado.value.atualizando)
+    }
 }

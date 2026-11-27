@@ -173,4 +173,75 @@ class AtualizacaoAutomaticaDaListaTest {
         val koin = fonte("src/main/kotlin/br/com/frila/app/ModulosKoin.kt")
         assertEquals(true, koin.contains("single { AtualizacaoAutomatica(sessao = { get<ArmazenamentoDeSessao>().obterSessao()?.vinculoId }) }"))
     }
+
+    @Test
+    fun `as seis listas respeitam os 30 s, o push e a saida da tela, cada uma com a propria vez`() {
+        val atualizacao = AtualizacaoAutomatica(
+            sessao = { "vinculo-1" },
+            relogio = { agora.get() },
+            esperar = { duracao -> agora.updateAndGet { it.plus(duracao) } },
+        )
+        val contagem = ListaAtualizavel.entries.associateWith { 0 }.toMutableMap()
+        rule.runOnUiThread { dono.registro.currentState = Lifecycle.State.RESUMED }
+        rule.setContent {
+            CompositionLocalProvider(LocalLifecycleOwner provides dono) {
+                ListaAtualizavel.entries.forEach { lista ->
+                    AtualizacaoAutomaticaDaLista(lista, atualizacao) { contagem[lista] = contagem.getValue(lista) + 1 }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals("a primeira ativação é a carga de cada tela", ListaAtualizavel.entries.associateWith { 0 }, contagem)
+
+        estado(Lifecycle.State.STARTED)
+        passar(10)
+        estado(Lifecycle.State.RESUMED)
+        assertEquals("antes de 30 s nenhuma relê", ListaAtualizavel.entries.associateWith { 0 }, contagem)
+
+        estado(Lifecycle.State.STARTED)
+        passar(25)
+        estado(Lifecycle.State.RESUMED)
+        assertEquals("depois de 30 s todas relêem uma vez", ListaAtualizavel.entries.associateWith { 1 }, contagem)
+
+        passar(5)
+        atualizacao.avisoChegou()
+        rule.waitForIdle()
+        assertEquals("o push relê todas", ListaAtualizavel.entries.associateWith { 2 }, contagem)
+    }
+
+    @Test
+    fun `no modo NUNCA a primeira ativacao nao conta como carga, e so a volta do segundo plano e o push relêem`() {
+        val atualizacao = AtualizacaoAutomatica(
+            sessao = { "vinculo-1" },
+            relogio = { agora.get() },
+            esperar = { duracao -> agora.updateAndGet { it.plus(duracao) } },
+        )
+        rule.runOnUiThread { dono.registro.currentState = Lifecycle.State.RESUMED }
+        rule.setContent {
+            CompositionLocalProvider(LocalLifecycleOwner provides dono) {
+                AtualizacaoAutomaticaDaLista(ListaAtualizavel.EQUIPE_DE_CONFIANCA, atualizacao, AtualizacaoAoAparecer.NUNCA) { releituras++ }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals("a primeira ativação não relê", 0, releituras)
+
+        // Sem carga registrada, não há intervalo a respeitar: a volta do segundo plano relê, mesmo 10 s depois.
+        estado(Lifecycle.State.STARTED)
+        passar(10)
+        estado(Lifecycle.State.RESUMED)
+        assertEquals(1, releituras)
+    }
+
+    @Test
+    fun `as quatro rotas restantes ligam a atualizacao automatica, cada uma com a sua releitura em silencio`() {
+        val navegacao = fonte("src/main/kotlin/br/com/frila/app/AppNavegacao.kt")
+        listOf(
+            "AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_CANDIDATURAS, atualizacao) { viewModel.atualizarEmSilencio().join() }",
+            "AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }",
+            "AtualizacaoAutomaticaDaLista(ListaAtualizavel.EQUIPE_DE_CONFIANCA, atualizacao, AtualizacaoAoAparecer.NUNCA) {",
+        ).forEach { assertEquals(it, true, navegacao.contains(it)) }
+        val contratante = fonte("src/main/kotlin/br/com/frila/app/ContratanteNavegacao.kt")
+        assertEquals(true, contratante.contains("AtualizacaoAutomaticaDaLista(ListaAtualizavel.TURNO_DO_CONTRATANTE, atualizacao) {"))
+        assertEquals("a falha deixa o turno na tela", true, contratante.contains("if (novo is EstadoDoTurnoDaRota.Pronto) estado = novo"))
+    }
 }

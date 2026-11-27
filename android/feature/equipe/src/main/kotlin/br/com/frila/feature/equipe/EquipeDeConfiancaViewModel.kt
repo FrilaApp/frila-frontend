@@ -86,6 +86,33 @@ class EquipeDeConfiancaViewModel(
         }
     }
 
+    /**
+     * Releitura automática (volta do segundo plano, push): troca a equipe sem "carregando" nem erro, e uma falha deixa a equipe como
+     * está. Sem efeito com a carga, uma remoção ou a saída em voo, ou antes de a equipe estar na tela.
+     */
+    fun atualizarEmSilencio(): Job {
+        val atual = _estado.value
+        if (carregando || atual.ocupado || (atual.estado !is EstadoEquipe.Conteudo && atual.estado !is EstadoEquipe.Vazio)) {
+            return escopoDeTrabalho.launch { }
+        }
+        carregando = true
+        return escopoDeTrabalho.launch {
+            try {
+                val membros = listar(estabelecimentoId)
+                // Uma remoção que começou durante a leitura é a dona da lista: a releitura não a atropela.
+                if (!_estado.value.ocupado) {
+                    _estado.update { it.copy(estado = if (membros.isEmpty()) EstadoEquipe.Vazio else EstadoEquipe.Conteudo(membros)) }
+                }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Segue com o que já está na tela.
+            } finally {
+                carregando = false
+            }
+        }
+    }
+
     /** Sem efeito com outra remoção ou saída em voo, ou fora da lista: o segundo toque não dispara outro pedido. */
     fun remover(perfil: PerfilPublicoDto): Job {
         val atual = _estado.value

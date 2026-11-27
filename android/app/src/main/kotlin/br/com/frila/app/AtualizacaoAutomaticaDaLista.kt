@@ -13,6 +13,15 @@ import br.com.frila.core.dominio.regra.ListaAtualizavel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/** Quando a tela fica ativa pela primeira vez, a releitura automática conta essa carga ou fica de fora? (`AtualizacaoAoAparecer` do iOS.) */
+internal enum class AtualizacaoAoAparecer {
+    /** A primeira vez é a carga da própria tela (conta como recarga); as seguintes relêem. */
+    AO_VOLTAR,
+
+    /** A tela já recarrega sozinha a cada aparição: a primeira não conta como carga, e só a volta do segundo plano e o push relêem. */
+    NUNCA,
+}
+
 /**
  * Relê a [lista] sozinha quando o app volta do segundo plano (a tela volta a `RESUMED`) e quando chega um push da conta com a
  * lista na tela, com intervalo mínimo e uma releitura por vez ([AtualizacaoAutomatica]). Porte do modificador
@@ -26,6 +35,7 @@ import kotlinx.coroutines.launch
 internal fun AtualizacaoAutomaticaDaLista(
     lista: ListaAtualizavel,
     atualizacao: AtualizacaoAutomatica,
+    aoAparecer: AtualizacaoAoAparecer = AtualizacaoAoAparecer.AO_VOLTAR,
     recarregar: suspend () -> Unit,
 ) {
     val escopo = rememberCoroutineScope()
@@ -42,7 +52,7 @@ internal fun AtualizacaoAutomaticaDaLista(
 
     LifecycleResumeEffect(lista) {
         estado.visivel = true
-        if (estado.jaApareceu) pedir() else atualizacao.registrarCarga(lista)
+        if (estado.jaApareceu) pedir() else if (aoAparecer == AtualizacaoAoAparecer.AO_VOLTAR) atualizacao.registrarCarga(lista)
         estado.jaApareceu = true
         onPauseOrDispose {
             estado.visivel = false

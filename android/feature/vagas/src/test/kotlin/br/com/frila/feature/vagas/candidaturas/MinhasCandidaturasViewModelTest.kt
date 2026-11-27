@@ -154,4 +154,38 @@ class MinhasCandidaturasViewModelTest {
         assertEquals(ListaDeCandidaturas.Vazia, vm.estado.value.lista)
         assertFalse(vm.estado.value.atualizando)
     }
+
+    @Test
+    fun `atualizarEmSilencio troca a lista sem indicador, e a falha a deixa como esta, sem marcar desatualizada (HaRJJ0L0)`() {
+        var chamada = 0
+        val vm = viewModel {
+            when (++chamada) {
+                1 -> listOf(candidatura("c1", "pendente"))
+                2 -> listOf(candidatura("c2", "pendente"))
+                else -> throw erro(CodigoErroAPI.SEM_REDE)
+            }
+        }
+        vm.carregar()
+        assertEquals(listOf("c1"), carregadas(vm).pendentes.map { it.id })
+
+        vm.atualizarEmSilencio()
+        assertEquals(listOf("c2"), carregadas(vm).pendentes.map { it.id })
+        assertFalse(vm.estado.value.atualizando)
+
+        vm.atualizarEmSilencio()
+        assertEquals(listOf("c2"), carregadas(vm).pendentes.map { it.id }, "a falha deixa a lista")
+        assertFalse(vm.estado.value.desatualizada, "a falha silenciosa não marca a lista como desatualizada")
+        assertFalse(vm.estado.value.atualizando)
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao abre outra leitura com uma em voo`() {
+        val trava = kotlinx.coroutines.CompletableDeferred<List<CandidaturaDto>>()
+        val vm = viewModel { trava.await() }
+        val primeira = vm.carregar()
+        val silenciosa = vm.atualizarEmSilencio()
+        assertEquals(primeira, silenciosa, "a silenciosa devolve a leitura em voo")
+        assertEquals(1, leituras)
+        trava.complete(emptyList())
+    }
 }

@@ -91,6 +91,23 @@ class MinhasCandidaturasViewModel(
     /** Puxar para atualizar, e a releitura depois de retirar uma candidatura: mantém a lista na tela. */
     fun atualizar(): Job = iniciarLeitura()
 
+    /**
+     * Releitura automática (volta do segundo plano, push): troca a lista sem indicador, e uma falha deixa a lista como está, sem
+     * marcá-la como desatualizada (paridade com a releitura em silêncio do iOS). Sem efeito com outra leitura em voo.
+     */
+    fun atualizarEmSilencio(): Job {
+        leitura?.takeIf { it.isActive }?.let { return it }
+        return escopoDeTrabalho.launch {
+            try {
+                aplicar(buscar())
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Segue com o que já está na tela.
+            }
+        }.also { leitura = it }
+    }
+
     private fun iniciarLeitura(): Job {
         leitura?.takeIf { it.isActive }?.let { return it }
         _estado.update {
