@@ -1,5 +1,6 @@
 package br.com.frila.app
 
+import android.util.Log
 import br.com.frila.core.rede.FilaDeAcoes
 import br.com.frila.core.rede.RepositorioVagas
 import br.com.frila.core.rede.VagaAbertaDto
@@ -14,6 +15,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+
+/**
+ * A foto de perfil da conta que saiu continua legível (nem apagar nem esvaziar funcionou). É a única falha de limpeza que o Sair e a
+ * leitura da sessão absorvem: a pessoa chega à Entrada, e a gravação da próxima sessão segue barrada, tentando de novo, até a foto sair.
+ */
+internal class FotoDaContaAnteriorNaoSaiuException : IOException("Não foi possível apagar nem esvaziar o avatar")
 
 /** Inclui instâncias ainda em uso e arquivos de execuções anteriores. Sem Context, só memória. */
 internal class CacheVagasDaSessao(
@@ -35,6 +42,7 @@ internal class CacheVagasDaSessao(
 
     @Synchronized fun limpar() {
         var falha: IOException? = null
+        var fotoQueNaoSaiu = false
         // A limpeza de telemetria também é silenciosa; nunca impede encerrar a sessão.
         try { limparTelemetria() } catch (_: IOException) { }
         try { limparGuardas() } catch (_: Exception) { }
@@ -54,11 +62,23 @@ internal class CacheVagasDaSessao(
             if (it.exists() && !it.deleteRecursively()) falha = IOException("Não foi possível apagar o destino guardado")
         }
         diretorioDosAvatares?.listFiles { arquivo ->
-            arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO
-        }?.forEach { if (!it.delete()) falha = IOException("Não foi possível apagar o avatar") }
+            arquivo.isFile && (arquivo.name.startsWith(CompressorDeFotoPerfil.PREFIXO_ARQUIVO_AVATAR) || arquivo.name == CompressorDeFotoPerfil.NOME_ARQUIVO_TEMPORARIO)
+        }?.forEach {
+            // Sem apagar, o avatar é esvaziado (descartar), e então nada trava: a falha de apagar do caso comum não aborta o Sair
+            // (CoordenadorDeLogout) nem impede o login da conta nova. Só se a foto continuar legível (nem apagar nem esvaziar
+            // funcionou) a falha sobe: sem isso a foto de A seguiria legível para B, e a troca é barrada, como antes (revisão do #1087).
+            if (!CompressorDeFotoPerfil.descartar(it)) {
+                Log.w(TAG, "Não foi possível apagar nem esvaziar o avatar da conta anterior")
+                fotoQueNaoSaiu = true
+            }
+        }
+        // As demais falhas de limpeza (cache de vagas, fila, destino) sobem como antes; a da foto, por último e com tipo próprio.
         falha?.let { throw it }
+        if (fotoQueNaoSaiu) throw FotoDaContaAnteriorNaoSaiuException()
     }
 }
+
+private const val TAG = "FrilaSessao"
 
 /** Um único ponto cobre logout, outra conta, exclusão e sessão que se tornou inválida. */
 internal class SessaoComCacheVagas(
@@ -77,7 +97,10 @@ internal class SessaoComCacheVagas(
     val encerramentos: StateFlow<Int> = _encerramentos.asStateFlow()
 
     override fun limparSessao() = synchronized(cache) {
-        try { cache.limpar(); limpoSemSessao = true } finally {
+        try {
+            try { cache.limpar() } catch (_: FotoDaContaAnteriorNaoSaiuException) { /* a pessoa sai; a gravação da próxima sessão é que barra */ }
+            limpoSemSessao = true
+        } finally {
             origem.limparSessao()
             _encerramentos.update { it + 1 }
         }
@@ -110,7 +133,11 @@ internal class SessaoComCacheVagas(
         origem.obterSessao().also {
             when {
                 it != null -> limpoSemSessao = false
-                !limpoSemSessao -> { cache.limpar(); limpoSemSessao = true }
+                !limpoSemSessao -> {
+                    // A leitura nunca lança pela foto: o observador e o reinício leem a sessão a toda hora (`estaAutenticado`).
+                    try { cache.limpar() } catch (_: FotoDaContaAnteriorNaoSaiuException) { }
+                    limpoSemSessao = true
+                }
             }
         }
     }
