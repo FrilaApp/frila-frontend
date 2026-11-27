@@ -522,4 +522,62 @@ class CodigoViewModelTest {
         )
     }
 
+    @Test
+    fun `confirmarCodigo apos erro nao repete chamada com mesmo codigo e respeita 30s e 429 em login_dispositivo`() = runBlocking {
+        val chamadas = AtomicInteger(0)
+        var relogio = Instant.parse("2026-11-27T12:00:00Z")
+        var responder429 = false
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                chamadas.incrementAndGet()
+                val path = request.url.encodedPath
+                when {
+                    path.endsWith("/confirmar-dispositivo-otp") ->
+                        respond("""{"code":"codigo_invalido","message":"Código inválido"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
+                    path.endsWith("/reenviar-dispositivo-otp") && responder429 ->
+                        respond("""{"code":"limite_excedido","message":"Muitas tentativas"}""", HttpStatusCode.TooManyRequests, headersOf(HttpHeaders.ContentType, "application/json"))
+                    path.endsWith("/reenviar-dispositivo-otp") ->
+                        respond("""{"ok":true,"desafio_id":"des-2","expira_em":"2026-11-27T12:15:00Z","reenviar_em_segundos":30}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                    else -> respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+        val vm = CodigoViewModel(
+            email = "profissional@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = { relogio },
+            modo = ModoCodigo.LOGIN_DISPOSITIVO,
+            desafioIdInicial = "des-1",
+        )
+
+        // 1) Erro em confirmarCodigo trava repetir o mesmo codigo sem nova digitacao
+        vm.aoMudarCodigo("123456")?.join()
+        assertEquals(1, chamadas.get())
+        assertTrue(vm.estado.value.codigoBloqueadoPorErro)
+        assertNull(vm.confirmarCodigo())
+        assertEquals(1, chamadas.get())
+
+        // Nova digitacao libera confirmar
+        vm.aoMudarCodigo("12345")?.join()
+        assertFalse(vm.estado.value.codigoBloqueadoPorErro)
+
+        // 2) Resposta 30s do servidor em reenviar_dispositivo_otp atualiza espera para 30s (alem do default 60s)
+        relogio = relogio.plusSeconds(60)
+        vm.reenviarCodigo()?.join()
+        assertEquals(30L, vm.segundosParaReenviar())
+        assertEquals(1, vm.estado.value.reenviosFeitos)
+
+        // 3) 429 no reenvio nao incrementa contador nem promete 30s
+        relogio = relogio.plusSeconds(30)
+        responder429 = true
+        vm.reenviarCodigo()?.join()
+        assertNotNull(vm.estado.value.erro)
+        assertEquals(1, vm.estado.value.reenviosFeitos)
+        assertEquals(0L, vm.segundosParaReenviar())
+    }
+
 }

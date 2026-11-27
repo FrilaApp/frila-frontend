@@ -94,7 +94,13 @@ class CodigoViewModel(
         if (mudou) {
             codigoComErro = null
         }
-        _estado.update { it.copy(codigo = somenteDigitos, erro = null) }
+        _estado.update {
+            it.copy(
+                codigo = somenteDigitos,
+                erro = null,
+                codigoBloqueadoPorErro = codigoComErro != null && somenteDigitos == codigoComErro,
+            )
+        }
         val podeAutoSubmeter =
             mudou &&
                 somenteDigitos.length == TAMANHO_CODIGO &&
@@ -109,6 +115,9 @@ class CodigoViewModel(
 
         if (estadoAtual.codigo.length != TAMANHO_CODIGO) {
             _estado.update { it.copy(erro = "Informe os 6 dígitos do código.") }
+            return null
+        }
+        if (codigoComErro != null && estadoAtual.codigo == codigoComErro) {
             return null
         }
 
@@ -163,14 +172,20 @@ class CodigoViewModel(
                 }
             } catch (erro: ErroDaApi) {
                 codigoComErro = estadoAtual.codigo
-                _estado.update { it.copy(carregando = false, erro = mensagemDaVerificacao(erro)) }
+                _estado.update {
+                    it.copy(carregando = false, erro = mensagemDaVerificacao(erro), codigoBloqueadoPorErro = true)
+                }
             } catch (erro: CancellationException) {
                 throw erro
             } catch (_: Exception) {
                 // Resposta 200 que não decodifica não é ErroDaApi: sem isto a tela ficava em "Confirmando…".
                 codigoComErro = estadoAtual.codigo
                 _estado.update {
-                    it.copy(carregando = false, erro = "Não foi possível confirmar o código. Tente de novo em instantes.")
+                    it.copy(
+                        carregando = false,
+                        erro = "Não foi possível confirmar o código. Tente de novo em instantes.",
+                        codigoBloqueadoPorErro = true,
+                    )
                 }
             }
         }.also { verificacao = it }
@@ -245,13 +260,16 @@ class CodigoViewModel(
     private fun concluirReenvio(mensagem: String) {
         codigoPedidoEm = agora()
         _estado.update {
+            val novoTotal = it.reenviosFeitos + 1
             it.copy(
                 carregando = false,
                 reenviado = true,
                 mensagemReenvio = mensagem,
                 erro = null,
                 codigo = "",
-                reenviosFeitos = it.reenviosFeitos + 1,
+                codigoBloqueadoPorErro = false,
+                reenviosFeitos = novoTotal,
+                atingiuLimiteReenvios = novoTotal >= LIMITE_REENVIOS,
             )
         }
     }

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
@@ -193,6 +194,54 @@ class TelaCodigoTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
 
         rule.onNodeWithText("Reenviar código em 1:00")
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
+    }
+
+    @Test
+    fun aposErroBotaoConfirmarFicaInativoEAoAtingirTeto3MostraLimiteSemLinkDeReenvio() {
+        var relogio = java.time.Instant.parse("2026-11-16T12:00:00Z")
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                if (request.url.encodedPath.contains("verify")) {
+                    respond("""{"error_code":"otp_expired"}""", HttpStatusCode.Unauthorized, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+        val viewModel = CodigoViewModel(
+            email = "profissional@exemplo.com",
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = ArmazenamentoDeSessaoEmMemoria(),
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+            agora = { relogio },
+        )
+        rule.setContent {
+            FrilaTheme {
+                TelaCodigo(viewModel = viewModel, aoAutenticar = {})
+            }
+        }
+
+        // Erro no codigo trava o botao Confirmar ate nova digitacao
+        rule.onNodeWithContentDescription("Código de 6 dígitos").performTextInput("123456")
+        rule.waitUntil(5000) { viewModel.estado.value.codigoBloqueadoPorErro }
+        rule.waitForIdle()
+        rule.onNodeWithText("Confirmar código")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
+
+        // 3 reenvios levam ao texto desabilitado de limite sem convidar 4a tentativa
+        repeat(3) { idx ->
+            relogio = relogio.plusSeconds(60)
+            viewModel.reenviarCodigo()
+            rule.waitUntil(5000) { viewModel.estado.value.reenviosFeitos == idx + 1 }
+        }
+        rule.waitUntil(5000) { viewModel.estado.value.atingiuLimiteReenvios }
+        rule.waitForIdle()
+        rule.onNodeWithText("Limite de reenvios atingido. Tente entrar novamente mais tarde.")
+            .performScrollTo()
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Disabled))
     }
