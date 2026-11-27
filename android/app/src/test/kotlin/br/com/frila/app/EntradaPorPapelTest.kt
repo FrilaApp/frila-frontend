@@ -289,6 +289,9 @@ class EntradaPorPapelTest {
     private val turnoDoAviso = "60000000-0000-0000-0000-000000000001"
     private val confirmacao = AvisoDoToque("confirmacao", vagaId = vagaDoAviso, turnoId = turnoDoAviso)
 
+    /** Um aviso da casa que fica em Minhas vagas (a lista de candidatos diria "ninguém se candidatou"). */
+    private val selecaoEncerrada = AvisoDoToque("selecao_encerrada", vagaId = vagaDoAviso)
+
     @Test
     fun `9E0Pgqmw - profissional que abre o app pelo aviso de confirmacao cai no turno, com o feed embaixo`() {
         montar(Papel.PROFISSIONAL, comSessaoGuardada = true, aviso = confirmacao)
@@ -302,7 +305,7 @@ class EntradaPorPapelTest {
 
     @Test
     fun `9E0Pgqmw - casa que abre o app por um aviso fica em Minhas vagas e nunca numa tela do profissional`() {
-        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = confirmacao)
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = selecaoEncerrada)
 
         aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS && avisoDoToque.value == null }
         aguardar(1_500) { rotaAtual() != Rotas.MINHAS_VAGAS }
@@ -319,12 +322,36 @@ class EntradaPorPapelTest {
         rule.runOnIdle { nav.navigate(Rotas.publicarVaga("33333333-3333-4333-8333-333333333333")) }
         aguardar { rotaAtual() == Rotas.PUBLICAR_VAGA }
 
-        avisoDoToque.value = confirmacao
+        avisoDoToque.value = selecaoEncerrada
 
         assertTrue("o aviso não abriu Minhas vagas (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.MINHAS_VAGAS })
         assertEquals("o formulário ficou embaixo", Rotas.PUBLICAR_VAGA, rotaAbaixo())
         rule.runOnIdle { nav.popBackStack() }
         assertTrue("voltar não devolveu o formulário (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.PUBLICAR_VAGA })
+    }
+
+    @Test
+    fun `2AumESuF - casa que abre o app pela confirmacao cai no turno da casa em uso, com Minhas vagas embaixo`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = confirmacao)
+
+        val chegou = aguardar(8_000) { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO }
+
+        assertTrue("a confirmação não abriu o turno da casa (rota: ${rotaAtual()})", chegou)
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+        var argumentos: List<String?> = emptyList()
+        rule.runOnIdle { argumentos = nav.currentBackStackEntry?.arguments.let { listOf(it?.getString("estabelecimentoId"), it?.getString("turnoId")) } }
+        assertEquals(listOf("33333333-3333-4333-8333-333333333333", turnoDoAviso), argumentos)
+    }
+
+    @Test
+    fun `2AumESuF - com o app aberto, o check-in manual pendente abre o turno da casa por cima`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        avisoDoToque.value = AvisoDoToque("checkin_manual_pendente", vagaId = vagaDoAviso, turnoId = turnoDoAviso)
+
+        assertTrue("o check-in pendente não abriu o turno da casa (rota: ${rotaAtual()})", aguardar { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
     }
 
     @Test
