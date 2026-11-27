@@ -62,6 +62,12 @@ data class AvisoDeAberturaExterna(val mensagem: String, val paraCopiar: String? 
                 "Ative ou instale um navegador e tente de novo, ou entre com e-mail e senha.",
         )
 
+        /** Os ajustes de notificação do Frila não abriram (cartão W8MrGF1E): o aviso diz o caminho pelo próprio aparelho. */
+        val semAjustesDeNotificacao = AvisoDeAberturaExterna(
+            "Não conseguimos abrir os ajustes de notificação. Abra as configurações do aparelho, vá em Apps, depois em Frila, " +
+                "e ative as notificações.",
+        )
+
         /** Sobrevive à rotação e à morte do processo com o diálogo aberto. */
         val Salvador: Saver<AvisoDeAberturaExterna?, Any> = Saver(
             save = { aviso -> aviso?.let { arrayListOf(it.mensagem, it.paraCopiar) } },

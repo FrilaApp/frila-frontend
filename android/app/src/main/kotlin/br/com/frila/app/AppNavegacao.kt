@@ -2,6 +2,7 @@ package br.com.frila.app
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -884,6 +885,13 @@ fun AppNavegacao(
                         viewModel = viewModel,
                         aoAbrirDetalhe = { vagaId -> navController.navigate(Rotas.detalhe(vagaId)) },
                         aoDefinirPontoBase = { navController.navigate(Rotas.PONTO_BASE) },
+                        aoAbrirAjustesDeNotificacao = {
+                            abrirForaDoApp(
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_APP_PACKAGE, contextoDaNavegacao.packageName),
+                                AvisoDeAberturaExterna.semAjustesDeNotificacao,
+                            )
+                        },
                     )
                 }
             }

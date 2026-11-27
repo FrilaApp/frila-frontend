@@ -61,6 +61,11 @@ fun TelaFeedVagas(
     modifier: Modifier = Modifier,
     /** Abre a tela do ponto base quando o servidor recusa a lista por falta dele. Nulo deixa o erro comum, com "Tentar novamente". */
     aoDefinirPontoBase: (() -> Unit)? = null,
+    /**
+     * Abre os ajustes de notificação do aparelho. Com ele, o alto da lista mostra o aviso de quem está sem notificação (como o
+     * `AvisoDePermissaoDePush` do iOS); nulo esconde o aviso.
+     */
+    aoAbrirAjustesDeNotificacao: (() -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
 
@@ -96,6 +101,14 @@ fun TelaFeedVagas(
                     )
                 }
                 item(key = "filtros") { LinhaDeFiltros(estado = estado, viewModel = viewModel) }
+                if (aoAbrirAjustesDeNotificacao != null) {
+                    item(key = "aviso-de-notificacoes") {
+                        AvisoDeNotificacoesDesligadas(
+                            aoAbrirAjustes = aoAbrirAjustesDeNotificacao,
+                            modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo, vertical = FrilaEspacamento.item),
+                        )
+                    }
+                }
                 item(key = "cabecalho") { CabecalhoDaLista(estado = estado) }
 
                 when (estado.status) {
