@@ -471,4 +471,53 @@ class ChamadaRecebidaViewModelTest {
             assertEquals(1, rede.doCaminho("/rpc/responder_chamada").size, codigo)
         }
     }
+
+    /**
+     * Achado do ANBU no #1139 (05LBDttU): a recusa saiu da folha, a resposta não chegou, e a conferência no servidor traz um
+     * estado final. A folha de recusa não pode ficar aberta sobre esse estado.
+     */
+    @Test
+    fun `recusa pela folha que falha sem resposta e a conferencia traz estado final fecha a folha`() = runBlocking {
+        for (estadoFinal in listOf("encerrada", "recusada", "expirada", "cancelada")) {
+            for (falha in listOf<() -> Nothing>({ throw ConnectTimeoutException("sem rede") }, { throw IllegalStateException("resposta perdida") })) {
+                val rede = redeComConferencia(Fixtures.detalheChamadaJson(), Fixtures.detalheChamadaJson(estado = estadoFinal))
+                val vm = ChamadaRecebidaViewModel(
+                    chamadaId = Fixtures.CHAMADA,
+                    detalhar = rede.servico::detalheChamada,
+                    responder = { _, _, _ -> falha() },
+                    agora = { antesDoPrazo },
+                    escopo = CoroutineScope(Dispatchers.Unconfined),
+                )
+                vm.carregar().join()
+                vm.abrirRecusa()
+                assertTrue(vm.estado.value.mostrarRecusa)
+
+                vm.recusar().join()
+
+                val tela = vm.estado.value
+                assertFalse(tela.mostrarRecusa, "$estadoFinal: a folha de recusa ficou aberta sobre o estado final")
+                assertEquals(estadoFinal, tela.detalhe?.estado, estadoFinal)
+                assertFalse(tela.podeResponder, estadoFinal)
+            }
+        }
+    }
+
+    @Test
+    fun `recusa pela folha que falha sem resposta e a chamada segue aberta deixa a folha para tentar de novo`() = runBlocking {
+        val rede = redeComConferencia(Fixtures.detalheChamadaJson(), Fixtures.detalheChamadaJson())
+        val vm = ChamadaRecebidaViewModel(
+            chamadaId = Fixtures.CHAMADA,
+            detalhar = rede.servico::detalheChamada,
+            responder = { _, _, _ -> throw IllegalStateException("resposta perdida") },
+            agora = { antesDoPrazo },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        vm.carregar().join()
+        vm.abrirRecusa()
+
+        vm.recusar().join()
+
+        assertTrue(vm.estado.value.mostrarRecusa)
+        assertEquals(TextosChamadaProfissional.ERRO, vm.estado.value.erro)
+    }
 }

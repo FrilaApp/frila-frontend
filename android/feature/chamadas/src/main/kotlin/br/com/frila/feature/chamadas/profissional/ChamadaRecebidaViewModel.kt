@@ -144,8 +144,9 @@ class ChamadaRecebidaViewModel(
         _estado.update { atual ->
             val tela = atual.copy(respondendo = false, mostrarRecusa = atual.mostrarRecusa && !fecharRecusa)
             when {
+                // O estado final vale, e a folha de recusa não fica aberta sobre ele (já não há o que responder).
                 conferido != null && (conferido.estado != "aberta" || jaExpirou(conferido)) ->
-                    tela.copy(detalhe = conferido, mensagemDeConcorrencia = concorrenciaDe(conferido), erro = null)
+                    tela.copy(detalhe = conferido, mensagemDeConcorrencia = concorrenciaDe(conferido), erro = null, mostrarRecusa = false)
                 erro != null -> aplicarErroAoResponder(tela.copy(detalhe = conferido ?: tela.detalhe), erro)
                 else -> tela.copy(detalhe = conferido ?: tela.detalhe, erro = TextosChamadaProfissional.ERRO)
             }
