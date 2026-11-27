@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ClienteSupabase
@@ -212,10 +214,15 @@ class TelaAvaliacaoDoContratanteTest {
     @Test
     fun aoAbrirTurnoJaAvaliadoPelaCasaMostraDiretoComARespostaESemPergunta() {
         val vm = viewModelComConflito(gravada = true, avaliadoAoAbrir = true)
+        var lifecycleVisto: androidx.lifecycle.Lifecycle? = null
+        val inicio = System.nanoTime()
 
         compose.setContent {
+            val dono = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            androidx.compose.runtime.SideEffect { lifecycleVisto = dono.lifecycle }
             FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}, estabelecimentoId = casaId) }
         }
+        try {
         compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.JA_AVALIADO }
         // O estado do view model muda em outro thread (a leitura de abertura) e a tela o coleta no principal. Medido na suíte inteira: com o
         // estado já em JA_AVALIADO a árvore seguia na pergunta inicial por mais de 5 s. Causa provável (hipótese, validada só pela
@@ -225,12 +232,53 @@ class TelaAvaliacaoDoContratanteTest {
             compose.waitForIdle()
             runCatching { compose.onNodeWithText("Turno já avaliado").assertIsDisplayed() }.isSuccess
         }
+        } catch (estouro: androidx.compose.ui.test.ComposeTimeoutException) {
+            diagnosticar("estouro", vm, lifecycleVisto, inicio)
+            throw estouro
+        }
+        registrarDiagnostico("- DIAG 6sHHfHUd ok: título visível em ${(System.nanoTime() - inicio) / 1_000_000} ms\n")
         compose.waitForIdle()
 
         compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
         compose.onNodeWithText("A avaliação registrada: você recomendou este profissional.").assertIsDisplayed()
         compose.onNodeWithText("Sim, chamaria").assertDoesNotExist()
         compose.onNodeWithText("Não chamaria").assertDoesNotExist()
+    }
+
+    // DIAGNÓSTICO TEMPORÁRIO (6sHHfHUd), só para a CI: sai antes da correção, não é para mesclar. Grava no resumo do job
+    // (GITHUB_STEP_SUMMARY), porque o console do Gradle não mostra a mensagem nem a saída do teste.
+    private fun registrarDiagnostico(texto: String) {
+        System.err.print(texto)
+        System.getenv("GITHUB_STEP_SUMMARY")?.let { runCatching { java.io.File(it).appendText(texto) } }
+    }
+
+    private fun diagnosticar(rotulo: String, vm: AvaliacaoViewModel, lifecycle: androidx.lifecycle.Lifecycle?, inicio: Long) {
+        val principal = android.os.Looper.getMainLooper()
+        val sombra = org.robolectric.Shadows.shadowOf(principal)
+        val arvore = runCatching {
+            compose.onRoot(useUnmergedTree = true).printToString(maxDepth = Int.MAX_VALUE)
+        }.getOrElse { "árvore indisponível: $it" }
+        val main = principal.thread
+        registrarDiagnostico(
+            buildString {
+                appendLine("### DIAG 6sHHfHUd: $rotulo")
+                appendLine("- tempo desde setContent: ${(System.nanoTime() - inicio) / 1_000_000} ms")
+                appendLine("- vm.estado: ${vm.estado.value}")
+                appendLine("- lifecycle visto pela composição: ${lifecycle?.currentState}")
+                appendLine(
+                    "- thread do teste: ${Thread.currentThread().name}; looper principal ocioso: ${sombra.isIdle}; " +
+                        "próxima tarefa agendada: ${sombra.nextScheduledTaskTime}; relógio do Compose: ${compose.mainClock.currentTime} ms " +
+                        "(autoAdvance=${compose.mainClock.autoAdvance})",
+                )
+                appendLine("```")
+                appendLine(arvore)
+                appendLine("```")
+                appendLine("thread ${main.name} (${main.state}):")
+                appendLine("```")
+                main.stackTrace.take(60).forEach { appendLine("  at $it") }
+                appendLine("```")
+            },
+        )
     }
 
     @Test
