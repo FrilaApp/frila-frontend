@@ -232,6 +232,102 @@ class CheckinViewModelTest {
         assertEquals(null, CheckinViewModel.calcularDistanciaMetros(coordenadaProxima, null))
     }
 
+    /** Conta cada `fazer_checkin` e só responde depois de [liberar]: o primeiro toque fica em voo enquanto o segundo chega. */
+    private fun servicoQueSegura(chamadas: java.util.concurrent.atomic.AtomicInteger, liberar: kotlinx.coroutines.CompletableDeferred<Unit>): ServicoTurnos {
+        val engine = MockEngine {
+            chamadas.incrementAndGet()
+            liberar.await()
+            respond(
+                content = resultadoJson(tipo = "geolocalizado", verificacao = "verificado", distanciaM = "111"),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        return ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+    }
+
+    @Test
+    fun `toque duplo no check-in manda um so fazer_checkin`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger()
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servicoQueSegura(chamadas, liberar))
+
+        val primeiro = viewModel.fazerCheckin()
+        val segundo = viewModel.fazerCheckin()
+        // Dá tempo de um segundo pedido, se houvesse, chegar ao servidor antes de liberar o primeiro.
+        kotlinx.coroutines.delay(300)
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo.join()
+
+        assertEquals(1, chamadas.get())
+        assertEquals(StatusCheckin.VERIFICADO, viewModel.estado.value.status)
+    }
+
+    @Test
+    fun `toque duplo em seguir sem GPS manda um so fazer_checkin`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger()
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servicoQueSegura(chamadas, liberar))
+
+        val primeiro = viewModel.prosseguirCheckinManual()
+        val segundo = viewModel.prosseguirCheckinManual()
+        kotlinx.coroutines.delay(300)
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo.join()
+
+        assertEquals(1, chamadas.get())
+    }
+
+    @Test
+    fun `resposta 200 ilegivel no check-in nao deixa o botao preso em registrando`() = runBlocking {
+        var chamadas = 0
+        val engine = MockEngine {
+            chamadas++
+            respond(content = "<html>gateway</html>", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+        val viewModel = CheckinViewModel(
+            turnoId = turnoId,
+            coordenadaDaVaga = coordenadaDaVaga,
+            servicoTurnos = servico,
+            provedorDeLocalizacao = provedorComPermissaoEGps(coordenadaProxima),
+            escopo = CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default),
+        )
+
+        viewModel.fazerCheckin().join()
+        val depoisDoPrimeiro = viewModel.estado.value.status
+        viewModel.fazerCheckin().join()
+
+        assertEquals(StatusCheckin.ERRO, depoisDoPrimeiro)
+        assertEquals(2, chamadas, "o segundo toque tem de poder tentar de novo")
+    }
+
+    @Test
+    fun `resposta 200 ilegivel em seguir sem GPS tambem vira erro e deixa tentar de novo`() = runBlocking {
+        var chamadas = 0
+        val engine = MockEngine {
+            chamadas++
+            respond(content = "<html>gateway</html>", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val servico = ServicoTurnos(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+        val viewModel = CheckinViewModel(
+            turnoId = turnoId,
+            coordenadaDaVaga = coordenadaDaVaga,
+            servicoTurnos = servico,
+            provedorDeLocalizacao = provedorComPermissaoEGps(coordenadaProxima),
+            escopo = CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default),
+        )
+
+        viewModel.prosseguirCheckinManual().join()
+        val depoisDoPrimeiro = viewModel.estado.value.status
+        viewModel.prosseguirCheckinManual().join()
+
+        assertEquals(StatusCheckin.ERRO, depoisDoPrimeiro)
+        assertEquals(2, chamadas, "o segundo toque tem de poder tentar de novo")
+    }
+
     /** Grava o corpo de cada `fazer_checkin` e responde com [resposta]. */
     private fun servicoQueGrava(corpos: MutableList<String>, resposta: String = resultadoJson(tipo = "manual", verificacao = "pendente")): ServicoTurnos {
         val engine = MockEngine { request ->
