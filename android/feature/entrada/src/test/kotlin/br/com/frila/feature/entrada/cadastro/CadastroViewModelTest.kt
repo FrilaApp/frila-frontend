@@ -174,6 +174,57 @@ class CadastroViewModelTest {
     }
 
     @Test
+    fun `escolher casa manda contratante em criar_conta`() = runBlocking {
+        val envios = Envios()
+        val viewModel = viewModelComServidor(envios)
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+        viewModel.aoEscolherPerfil(PerfilDaConta.CONTRATANTE)
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertTrue(viewModel.estado.value.concluido)
+        assertTrue(envios.corpos.single().startsWith("""{"perfil":"contratante","""), envios.corpos.single())
+    }
+
+    @Test
+    fun `voltar para profissional depois de escolher casa manda profissional`() = runBlocking {
+        val envios = Envios()
+        val viewModel = viewModelComServidor(envios)
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+        viewModel.aoEscolherPerfil(PerfilDaConta.CONTRATANTE)
+        viewModel.aoEscolherPerfil(PerfilDaConta.PROFISSIONAL)
+
+        viewModel.concluirCadastro()!!.join()
+
+        assertTrue(envios.corpos.single().startsWith("""{"perfil":"profissional","""), envios.corpos.single())
+    }
+
+    @Test
+    fun `o perfil comeca em profissional, como no iOS`() {
+        assertEquals(PerfilDaConta.PROFISSIONAL, CadastroViewModel().estado.value.perfil)
+    }
+
+    @Test
+    fun `trocar o perfil com criar_conta em voo nao muda o que foi enviado`() = runBlocking {
+        val liberar = CompletableDeferred<Unit>()
+        val envios = Envios()
+        val viewModel = viewModelComServidor(envios, resposta = {
+            liberar.await()
+            respond(corpoUsuario, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        })
+        preencherCamposObrigatorios(viewModel, nascimento = DataCivil.de(2000, 6, 15))
+        viewModel.aoEscolherPerfil(PerfilDaConta.CONTRATANTE)
+
+        val envio = viewModel.concluirCadastro()!!
+        viewModel.aoEscolherPerfil(PerfilDaConta.PROFISSIONAL)
+        liberar.complete(Unit)
+        envio.join()
+
+        assertEquals(PerfilDaConta.CONTRATANTE, viewModel.estado.value.perfil)
+        assertTrue(envios.corpos.single().startsWith("""{"perfil":"contratante","""))
+    }
+
+    @Test
     fun `concluirCadastro envia a versao dos termos configurada`() = runBlocking {
         val envios = Envios()
         val viewModel = viewModelComServidor(envios, termosVersao = TERMOS_VERSAO_ANTERIOR)

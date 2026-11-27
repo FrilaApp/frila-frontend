@@ -56,6 +56,7 @@ import br.com.frila.feature.conta.TelaContestarDespacho
 import br.com.frila.feature.conta.TextosContestarDespacho
 import br.com.frila.feature.conta.TelaExclusaoDeConta
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
+import br.com.frila.feature.entrada.cadastro.PerfilDaConta
 import br.com.frila.feature.entrada.cadastro.TelaCadastro
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.codigo.ModoCodigo
@@ -771,11 +772,28 @@ fun AppNavegacao(
 
             composable(Rotas.CADASTRO) {
                 val viewModel: CadastroViewModel = koinViewModel()
+                val koinDoCadastro = getKoin()
+                val destinoGuardado = remember(koinDoCadastro) { koinDoCadastro.getOrNull<DestinoGuardado>() }
                 TelaCadastro(
                     viewModel = viewModel,
-                    aoConcluir = {
-                        navController.navigate(Rotas.FEED) {
-                            popUpTo(Rotas.CADASTRO) { inclusive = true }
+                    // #784: o destino segue o perfil criado e fica guardado, como o iOS (`DestinoGuardado.salvar`).
+                    aoConcluir = { perfil ->
+                        when (perfil) {
+                            PerfilDaConta.PROFISSIONAL -> {
+                                destinoGuardado?.salvar(DestinoDaConta.Profissional)
+                                navController.navigate(Rotas.FEED) {
+                                    popUpTo(Rotas.CADASTRO) { inclusive = true }
+                                }
+                            }
+                            PerfilDaConta.CONTRATANTE -> {
+                                destinoGuardado?.salvar(DestinoDaConta.Contratante(casa = null))
+                                // Como na abertura de quem ainda não tem casa: o Perfil (Sair, Excluir conta) fica como
+                                // raiz e o cadastro da casa entra por cima; "Voltar" do cadastro leva ao Perfil.
+                                navController.navigate(Rotas.PERFIL) {
+                                    popUpTo(Rotas.CADASTRO) { inclusive = true }
+                                }
+                                navController.navigate(Rotas.CADASTRO_ESTABELECIMENTO)
+                            }
                         }
                     },
                 )
