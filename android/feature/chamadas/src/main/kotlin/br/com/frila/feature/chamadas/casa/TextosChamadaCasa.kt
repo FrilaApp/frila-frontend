@@ -158,10 +158,10 @@ object TextosChamadaCasa {
     const val BUSCA_HORARIO_INVALIDO = "O término precisa ser depois do início."
     const val BUSCA_TITULO = "Encontrar profissional"
     const val BUSCA_FUNCAO = "Serviço"
-    const val BUSCA_ESCOLHA_FUNCAO = "Escolha o serviço"
+    const val BUSCA_ESCOLHA_FUNCAO = "Escolha um serviço"
     const val BUSCA_REGIAO = "Região (opcional)"
     const val BUSCA_QUALQUER_REGIAO = "Qualquer região"
-    const val BUSCA_FILTRAR_HORARIO = "Filtrar por horário"
+    const val BUSCA_FILTRAR_HORARIO = "Buscar por horário"
     const val BUSCA_INICIO = "Início (dd/mm/aaaa hh:mm)"
     const val BUSCA_TERMINO = "Término (dd/mm/aaaa hh:mm)"
     const val BUSCA_DATA_INVALIDA = "Use o formato dd/mm/aaaa hh:mm."
@@ -169,9 +169,9 @@ object TextosChamadaCasa {
     const val BUSCA_VAZIO = "Nenhum profissional encontrado com esses filtros."
     const val BUSCA_DISPONIVEL = "Disponível nesse horário"
     const val BUSCA_CARREGAR_MAIS = "Carregar mais"
-    const val BUSCA_CATALOGO_ERRO = "Não foi possível carregar os filtros. Verifique sua conexão e tente novamente."
+    const val BUSCA_CATALOGO_ERRO = "Não foi possível carregar os serviços e as regiões agora. Verifique sua conexão e tente de novo."
     const val BUSCA_SEM_CASA = "Não foi possível carregar os dados da casa para chamar."
-    const val BUSCA_FOLHA_TITULO = "Chamar selecionados"
+    const val BUSCA_FOLHA_TITULO = "Chamar profissionais"
     const val BUSCA_FOLHA_ENVIAR = "Enviar chamadas"
     const val BUSCA_RESULTADO_ENVIADA = "Chamada enviada"
     const val BUSCA_RESULTADO_NAO_ENVIADA = "Não enviada. Tente de novo."
@@ -179,7 +179,7 @@ object TextosChamadaCasa {
     const val BUSCA_VER_ENVIO_PENDENTE = "Ver envio pendente"
     const val BUSCA_REENVIAR = "Tentar de novo"
     const val BUSCA_CONFIRMAR_DEPOIS = "Antes de confirmar, toque em Tentar de novo para concluir o envio pendente."
-    const val BUSCA_RESULTADO_J7 = "Aguardando a sua confirmação do aviso"
+    const val BUSCA_RESULTADO_J7 = "Falta confirmar o aviso da chamada recorrente"
 
     // Aceite dos Termos 1.1 antes da busca (0.2.90). PROVISÓRIOS: texto jurídico e do Fabrício substituem estes.
     // A frase do topo cita os dois textos que a versão aceita cobre (Termos de Uso e Política de Privacidade), como no iOS.
