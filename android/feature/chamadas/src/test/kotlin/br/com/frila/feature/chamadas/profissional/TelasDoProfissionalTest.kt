@@ -280,7 +280,7 @@ class TelasDoProfissionalTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         rule.onNodeWithText("Bistrô Aurora").assertIsDisplayed()
         rule.onNodeWithText("Garçom").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("R$ 180,00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("R$\u00A0180,00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("20/11/2026 às 19:00 até 23:00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Plano Piloto • De 5 a 15 km").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Traga avental").performScrollTo().assertIsDisplayed()
@@ -471,7 +471,7 @@ class TelasDoProfissionalTest {
     @Test
     fun servicosDiariaMostraOResumoComValorEHoras() {
         montarServicos(servicos(ServicoEmEdicao(garcom, habilitado = true, unidade = "diaria", valor = "150", horasIncluidas = "8")))
-        rule.onNodeWithText("R$ 150,00 por diária de 8 h").performScrollTo().assertExists()
+        rule.onNodeWithText("R$\u00A0150,00 por diária de 8 h").performScrollTo().assertExists()
     }
 
     @Test

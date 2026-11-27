@@ -133,7 +133,7 @@ class TelaMinhasVagasTest {
         rule.onNodeWithText("Garçom").assertIsDisplayed()
         rule.onNodeWithText("12/11/2026 18:00 – 13/11/2026 00:00").assertIsDisplayed()
         rule.onNodeWithText("SQN 108").assertIsDisplayed()
-        rule.onNodeWithText("R$ 160,00 por pessoa").assertIsDisplayed()
+        rule.onNodeWithText("R$\u00A0160,00 por pessoa").assertIsDisplayed()
         rule.onNodeWithText("3 posições · 1 de 3 confirmadas").assertIsDisplayed()
     }
 
