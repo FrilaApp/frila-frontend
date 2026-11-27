@@ -48,6 +48,8 @@ class MeusTurnosViewModel(
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
     /** Uma linha que não virou item (início ilegível, campo ausente) fica de fora da tela; recebe o id do turno, só para o log. */
     private val registrarLinhaDescartada: (turnoId: String) -> Unit = {},
+    /** O responsável do local de cada vaga agendada, lido por `detalhe_vaga` e guardado na sessão. Sem ele, nada é lido. */
+    private val quemRecebeDasVagas: QuemRecebeDasVagas? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope

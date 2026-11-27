@@ -81,5 +81,6 @@ fun TurnoDto.paraItem(): ItemTurno {
         contraparteId = contraparte.id,
         checkoutEm = checkoutEm?.let { runCatching { instanteDoServidor(it) }.getOrNull() },
         aCaminhoEm = aCaminhoEm?.let { runCatching { instanteDoServidor(it) }.getOrNull() },
+        vagaId = vaga.id,
     )
 }
