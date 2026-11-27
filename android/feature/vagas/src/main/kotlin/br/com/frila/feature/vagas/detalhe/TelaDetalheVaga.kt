@@ -41,6 +41,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import br.com.frila.core.designsystem.componentes.TomAviso
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoVerNoMapa
 import br.com.frila.core.designsystem.componentes.linkDoMapa
 import br.com.frila.core.rede.ContatoDto
@@ -95,6 +97,7 @@ fun TelaDetalheVaga(
     aoNavegarParaVagaPreenchida: ((VagaAbertaDto) -> Unit)? = null,
     aoNavegarParaVagaEncerrada: ((VagaAbertaDto) -> Unit)? = null,
     aoNavegarParaContaSuspensa: (() -> Unit)? = null,
+    aoNavegarParaFuncaoIncompativel: ((VagaAbertaDto) -> Unit)? = null,
 ) {
     val contexto = LocalContext.current
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -114,6 +117,7 @@ fun TelaDetalheVaga(
         estado.ehVagaPreenchida,
         estado.ehVagaEncerrada,
         estado.ehContaSuspensa,
+        estado.ehFuncaoIncompativel,
     ) {
         if (estado.navegarParaConfirmada && viewModel.consumirNavegacaoParaConfirmada()) {
             aoNavegarParaConfirmada?.invoke(estado.vaga, estado.contato)
@@ -135,6 +139,9 @@ fun TelaDetalheVaga(
         }
         if (estado.ehContaSuspensa && viewModel.consumirNavegacaoParaContaSuspensa()) {
             aoNavegarParaContaSuspensa?.invoke()
+        }
+        if (estado.ehFuncaoIncompativel && viewModel.consumirNavegacaoParaFuncaoIncompativel()) {
+            aoNavegarParaFuncaoIncompativel?.invoke(estado.vaga)
         }
     }
 
@@ -171,7 +178,8 @@ fun TelaDetalheVaga(
         containerColor = FrilaTema.cores.fundo,
         topBar = { if (aoVoltar != null) FrilaBarraDeTopo(aoVoltar = aoVoltar) },
         bottomBar = {
-            RodapeDoDetalheDaVaga(
+            // Vaga que já não está disponível: sem botão (iOS `rodapeAtivo`).
+            if (!estado.indisponivel) RodapeDoDetalheDaVaga(
                 valor = Dinheiro(vaga.valorCentavos).formatado(),
                 periodo = periodoDoRodape(duracao, inicio.hour),
                 noFim = noFim,
@@ -223,6 +231,14 @@ fun TelaDetalheVaga(
                 },
             )
 
+            if (estado.indisponivel) {
+                AvisoFrila(
+                    tom = TomAviso.ALERTA,
+                    mensagem = TextosDaVagaIndisponivel.MENSAGEM,
+                    modifier = Modifier.testTag("detalhe-nao-encontrada"),
+                )
+            }
+
             // A reputação da casa, logo abaixo do nome (iOS `reputacaoDaCasa`): quantas avaliações indicam que trabalhariam lá de novo.
             Text(
                 text = textoDaReputacaoDaCasa(vaga.estabelecimento.reputacao),
@@ -232,14 +248,25 @@ fun TelaDetalheVaga(
             )
 
             // A faixa do modo, sobre o fundo, sem cartão: o que o toque no botão vai fazer.
+            // Depois de enviada a candidatura numa vaga por seleção, o selo diz que a casa ainda não respondeu (iOS `faixaDoModo`). A urgência
+            // vem primeiro nas duas cadeias abaixo, então ela nunca vira "Aguardando resposta".
+            val candidaturaEnviada = estado.statusCandidatura == StatusCandidatura.PENDENTE
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                 if (estado.ehModoUrgencia) {
                     SeloDeStatus(texto = "Urgência", estilo = EstiloDoSelo.URGENCIA)
+                } else if (candidaturaEnviada) {
+                    SeloDeStatus(texto = TextosDaFaixaDoModo.AGUARDANDO_RESPOSTA, estilo = EstiloDoSelo.CONTORNO)
                 } else {
                     SeloDeStatus(texto = "Por seleção", estilo = EstiloDoSelo.CONTORNO)
                 }
                 Text(
-                    text = if (estado.ehModoUrgencia) "Modo urgência: confirmação na hora" else "Modo seleção: contratante escolhe depois",
+                    text = if (estado.ehModoUrgencia) {
+                        "Modo urgência: confirmação na hora"
+                    } else if (candidaturaEnviada) {
+                        TextosDaFaixaDoModo.VOCE_SE_CANDIDATOU
+                    } else {
+                        "Modo seleção: contratante escolhe depois"
+                    },
                     style = FrilaTipo.fraseDoModo,
                     color = FrilaTema.cores.tinta,
                 )
@@ -375,3 +402,9 @@ internal fun textoDaReputacaoDaCasa(reputacao: ReputacaoDto): String =
     } else {
         "${TextosDaReputacaoDaCasa.contagem(reputacao.positivas, reputacao.total)} ${TextosDaReputacaoDaCasa.AVALIACOES_TRABALHARIAM_LA_DE_NOVO}"
     }
+
+/** Os textos da faixa do modo no detalhe da vaga (paridade com `TelaDetalheVaga.swift`, `faixaDoModo`). */
+internal object TextosDaFaixaDoModo {
+    const val AGUARDANDO_RESPOSTA = "Aguardando resposta"
+    const val VOCE_SE_CANDIDATOU = "Você se candidatou."
+}
