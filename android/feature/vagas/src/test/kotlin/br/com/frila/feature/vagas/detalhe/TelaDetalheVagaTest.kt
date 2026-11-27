@@ -135,9 +135,10 @@ class TelaDetalheVagaTest {
         compose.onNode(hasText("160,00", substring = true)).assertExists()
 
         // Benefícios e acessibilidade
-        compose.onNodeWithText("Inclui").assertExists()
-        compose.onNodeWithContentDescription("Refeição: incluído").assertExists()
-        compose.onNodeWithContentDescription("Transporte: não incluído").assertExists()
+        compose.onNodeWithText("O que está incluso").assertExists()
+        compose.onNodeWithText("Refeição: Sim").assertExists()
+        compose.onNodeWithText("Transporte: Não").assertExists()
+        compose.onNodeWithText("Material: Não precisa levar").assertExists()
 
         // Botão de candidatura
         compose.onNodeWithText("Candidatar-se").assertExists().assertIsEnabled().assertHasClickAction()
@@ -694,8 +695,8 @@ class TelaDetalheVagaTest {
         // Na hora: o que o feed trouxe.
         compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
         // Depois da leitura: o que a lista não traz.
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNode(hasText("Responsável no local: Procure a gerente no balcão")).performScrollTo().assertIsDisplayed()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasText("Quem recebe: Procure a gerente no balcão")).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText("Observações: Chegar 15 minutos antes")).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText("Traje: Camisa preta")).assertExists()
         compose.onNodeWithText("Bar do Zé").assertExists()
@@ -711,7 +712,7 @@ class TelaDetalheVagaTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
-        assertEquals(0, compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("Não foi possível", substring = true).fetchSemanticsNodes().size)
         compose.onNodeWithText("Candidatar-se").assertExists()
     }
@@ -743,7 +744,7 @@ class TelaDetalheVagaTest {
     @Test
     fun `quando a casa nao disse o rateio, a linha nao aparece`() {
         montarComDetalhe(participaRateio = null)
-        compose.onNode(hasText("Responsável no local", substring = true)).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Quem recebe", substring = true)).performScrollTo().assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
     }
 
@@ -815,5 +816,31 @@ class TelaDetalheVagaTest {
 
         assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
         compose.onNodeWithText("Por seleção").assertIsDisplayed()
+    }
+
+    // ── O que está incluso (DLjTVc2e, item 153) ───────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `o grupo O que esta incluso mostra refeicao, transporte e material como o iOS`() {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga(incluiRefeicao = true, incluiTransporte = false, exigeMaterial = true))) } }
+
+        compose.onNodeWithText("O que está incluso").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Refeição: Sim").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Transporte: Não").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Material: Precisa levar").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `sem o detalhe do servidor o grupo nao inventa quem recebe nem o rateio`() {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
+        assertEquals(0, compose.onAllNodesWithText("Quem recebe", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `os textos antigos Inclui e Material proprio exigido nao aparecem mais`() {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
+        assertEquals(0, compose.onAllNodesWithText("Inclui").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Material próprio exigido", substring = true).fetchSemanticsNodes().size)
     }
 }

@@ -111,7 +111,7 @@ class TelaAberturaDeVagaTest {
 
         rule.onNodeWithText("Garçom").assertIsDisplayed()
         rule.onNodeWithText("Posições abertas: 2 de 3").assertIsDisplayed()
-        rule.onNodeWithText("Responsável no local: Procure a gerente no balcão").assertIsDisplayed()
+        rule.onNodeWithText("Quem recebe: Procure a gerente no balcão").assertIsDisplayed()
         rule.onNodeWithText("Traje: Camisa preta").assertIsDisplayed()
         rule.onNodeWithText("Observações: Chegar 15 minutos antes").assertIsDisplayed()
         rule.onNode(hasText("de distância", substring = true)).assertIsDisplayed()
@@ -121,7 +121,7 @@ class TelaAberturaDeVagaTest {
     fun `sem distancia, traje nem observacoes no detalhe, a tela nao inventa as linhas`() {
         detalhe(vagaDoServidor(distanciaKm = null, traje = null, observacoes = " "))
 
-        rule.onNodeWithText("Responsável no local: Procure a gerente no balcão").assertIsDisplayed()
+        rule.onNodeWithText("Quem recebe: Procure a gerente no balcão").assertIsDisplayed()
         assertEquals(0, rule.onAllNodes(hasText("de distância", substring = true)).fetchSemanticsNodes().size)
         assertEquals(0, rule.onAllNodes(hasText("Traje:", substring = true)).fetchSemanticsNodes().size)
         assertEquals(0, rule.onAllNodes(hasText("Observações:", substring = true)).fetchSemanticsNodes().size)
