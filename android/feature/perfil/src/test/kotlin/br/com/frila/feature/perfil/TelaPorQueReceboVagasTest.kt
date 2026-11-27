@@ -2,6 +2,7 @@ package br.com.frila.feature.perfil
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -171,5 +172,26 @@ class TelaPorQueReceboVagasTest {
         )
 
         rule.onNodeWithTag("status-revisao-ja-aberta").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `403 com details conta_suspensa nao deixa nada cru do servidor na tela`() {
+        val vm = PorQueReceboVagasViewModel(
+            carregarCriterios = {
+                throw br.com.frila.core.rede.ErroDaApi(
+                    br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "conta_suspensa", "permission denied",
+                )
+            },
+            escopo = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+        )
+        vm.carregar()
+
+        montar(estado = vm.estado.value)
+
+        rule.onNodeWithTag("criterios-erro").assertIsDisplayed()
+        rule.onNodeWithText("Não foi possível carregar seus critérios. Tente novamente.").assertIsDisplayed()
+        for (cru in listOf("conta_suspensa", "sem_permissao", "permission denied")) {
+            assertEquals(cru, 0, rule.onAllNodesWithText(cru, substring = true).fetchSemanticsNodes().size)
+        }
     }
 }
