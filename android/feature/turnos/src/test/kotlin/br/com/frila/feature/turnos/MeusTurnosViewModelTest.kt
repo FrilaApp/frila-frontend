@@ -13,6 +13,8 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -506,5 +508,46 @@ class MeusTurnosViewModelTest {
 
         assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
         assertTrue(viewModel.estado.value.mensagemErro != null)
+    }
+
+    @Test
+    fun `atualizarSemPiscar troca a lista sem passar pelo carregando`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger(0)
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                val corpo = if (chamadas.incrementAndGet() == 1) "[${turnoJson("a", "confirmada")}]"
+                else "[${turnoJson("a", "confirmada")}, ${turnoJson("b", "confirmada")}]"
+                respond(corpo, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+        )
+        viewModel.carregar().join()
+        val vistos = java.util.concurrent.CopyOnWriteArrayList<StatusMeusTurnos>()
+        val coleta = viewModel.estado.onEach { vistos += it.status }.launchIn(kotlinx.coroutines.CoroutineScope(Dispatchers.Unconfined))
+
+        viewModel.atualizarSemPiscar().join()
+        coleta.cancel()
+
+        assertEquals(listOf("a", "b"), viewModel.estado.value.agendados.map { it.turnoId })
+        assertTrue(StatusMeusTurnos.CARREGANDO !in vistos, "a lista não pode virar o esqueleto de carregamento: $vistos")
+    }
+
+    @Test
+    fun `atualizarSemPiscar que falha deixa a lista como estava`() = runBlocking {
+        val chamadas = java.util.concurrent.atomic.AtomicInteger(0)
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                if (chamadas.incrementAndGet() == 1) {
+                    respond("[${turnoJson("a", "confirmada")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("{}", HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+        viewModel.carregar().join()
+
+        viewModel.atualizarSemPiscar().join()
+
+        assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
+        assertEquals(listOf("a"), viewModel.estado.value.agendados.map { it.turnoId })
     }
 }

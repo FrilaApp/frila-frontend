@@ -69,14 +69,14 @@ internal fun mensagemDaChamada(erro: ErroDaApi): String = when {
 
 /** `403 sem_permissao` com `details: recurso_desligado`: o recurso está desligado no servidor (RN46). */
 internal fun recursoDesligado(erro: ErroDaApi): Boolean =
-    erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "recurso_desligado"
+    erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO
 
 /**
  * `403 sem_permissao` com `details: termos_pendentes` (0.2.90): quem busca não aceitou os Termos 1.1 ou mais novos. O app
  * mostra o aceite, chama `aceitar_termos` e repete a busca.
  */
 internal fun termosPendentes(erro: ErroDaApi): Boolean =
-    erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "termos_pendentes"
+    erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.TERMOS_PENDENTES
 
 private val UUID_EM_TEXTO = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 

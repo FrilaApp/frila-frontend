@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -85,6 +86,7 @@ class AppNavegacaoContaSuporteEquipeTest {
     private val equipesPedidas = mutableListOf<String>()
     private val ocorrenciasAbertas = mutableListOf<Pair<String, String>>()
     private var semAppDeEmail = false
+    private var semDiscador = false
     private var exclusoes = 0
     private val sessao = mockk<ArmazenamentoDeSessao>(relaxed = true) {
         every { estaAutenticado() } returns false
@@ -115,6 +117,7 @@ class AppNavegacaoContaSuporteEquipeTest {
             val contexto = object : ContextWrapper(origem) {
                 override fun startActivity(intent: Intent) {
                     if (semAppDeEmail && intent.action == Intent.ACTION_SENDTO) throw android.content.ActivityNotFoundException("sem app de e-mail")
+                    if (semDiscador && intent.action == Intent.ACTION_DIAL) throw android.content.ActivityNotFoundException("sem discador")
                     intents += intent
                 }
             }
@@ -416,6 +419,29 @@ class AppNavegacaoContaSuporteEquipeTest {
             val email = intents.single { it.action == Intent.ACTION_SENDTO }
             assertEquals("mailto:suporte@frilabr.com", email.data.toString())
         }
+    }
+
+    @Test
+    fun ligarDaDenunciaSemDiscadorAvisaComONumeroParaCopiar() {
+        semDiscador = true
+        montar(inicio = Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, "prof-1"))
+
+        rule.onNodeWithText(TextosSuporte.LIGAR_190).performClick()
+
+        rule.onNodeWithText(AvisoDeAberturaExterna.semTelefone("190").mensagem).assertExists()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals("190")
+        rule.runOnIdle { assertTrue(intents.none { it.action == Intent.ACTION_DIAL }) }
+    }
+
+    @Test
+    fun contaSuspensaSemAppDeEmailAvisaComOEnderecoDoSuporte() {
+        semAppDeEmail = true
+        montar(inicio = Rotas.contaSuspensa())
+
+        rule.onNodeWithText(TextosContaSuspensa.BOTAO_SUPORTE).performScrollTo().performClick()
+
+        rule.onNodeWithText(AvisoDeAberturaExterna.semEmail("suporte@frilabr.com").mensagem).assertExists()
+        rule.onNodeWithTag("aviso-abertura-externa-endereco").assertTextEquals("suporte@frilabr.com")
     }
 
     @Test

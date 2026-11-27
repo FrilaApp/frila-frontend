@@ -380,7 +380,8 @@ fun AppNavegacao(
     checkinPorCodigoHabilitado: Boolean = false,
     callbackOAuthSocial: StateFlow<String?>? = null,
     aoConsumirCallbackOAuthSocial: () -> Unit = {},
-    aoAbrirLoginSocial: (String) -> Unit = {},
+    /** Abre o navegador do login social; `false` quando o aparelho não tem navegador (a navegação avisa). */
+    aoAbrirLoginSocial: (String) -> Boolean = { true },
     /** O toque num push (`frila://aviso`), pendente até a navegação escolher a tela pelo papel ([rotaDoAviso]). */
     avisoDoToque: StateFlow<AvisoDoToque?>? = null,
     aoConsumirAvisoDoToque: () -> Unit = {},
@@ -515,6 +516,15 @@ fun AppNavegacao(
     // dumpsys connectivity continuava mostrando os registros depois de +15s/+24s em background).
     val statusConectividade by monitorDeConectividade.status.collectAsStateWithLifecycle()
 
+    // Cartão B7bqwHxg: e-mail, discador ou navegador que não abre vira um aviso com o endereço para copiar, nunca silêncio.
+    val contextoDaNavegacao = LocalContext.current
+    var avisoDeAberturaExterna by rememberSaveable(stateSaver = AvisoDeAberturaExterna.Salvador) {
+        mutableStateOf<AvisoDeAberturaExterna?>(null)
+    }
+    val abrirForaDoApp: (Intent, AvisoDeAberturaExterna) -> Unit = { intent, aviso ->
+        if (!abrirExterno(contextoDaNavegacao, intent)) avisoDeAberturaExterna = aviso
+    }
+
     // P3: se um callback OAuth for recebido enquanto o app não está em Rotas.ENTRADA, descarta para não reter.
     val callbackGlobal = callbackOAuthSocial?.collectAsStateWithLifecycle()?.value
     val rotaNoTopo = padraoAtual
@@ -578,7 +588,9 @@ fun AppNavegacao(
                                 popUpTo(Rotas.ENTRADA) { inclusive = true }
                             }
                         },
-                        aoAbrirLoginSocial = aoAbrirLoginSocial,
+                        aoAbrirLoginSocial = { url ->
+                            if (!aoAbrirLoginSocial(url)) avisoDeAberturaExterna = AvisoDeAberturaExterna.semNavegadorParaEntrar
+                        },
                     )
                 } else {
                     val viewModel: EntradaViewModel = koinViewModel()
@@ -1118,15 +1130,9 @@ fun AppNavegacao(
                     TelaOcorrencia(
                         viewModel = viewModel,
                         emailDeSuporte = EnderecosOficiais.padrao.emailSuporte,
-                        // O relato só existe no corpo deste e-mail (nunca sobe numa RPC): falhar em abrir tem de avisar, não engolir.
+                        // O relato só existe no corpo deste e-mail (nunca sobe numa RPC): sem app de e-mail, a tela avisa e mantém o relato.
                         aoAbrirEmailDeSuporte = { pedido ->
-                            try {
-                                contexto.startActivity(intentDoEmailDeSuporte(EnderecosOficiais.padrao.emailSuporte, turnoId, pedido))
-                                true
-                            } catch (_: Exception) {
-                                // Sem app de e-mail (ActivityNotFoundException) ou recusa do sistema: a tela avisa e mantém o relato.
-                                false
-                            }
+                            abrirExterno(contexto, intentDoEmailDeSuporte(EnderecosOficiais.padrao.emailSuporte, turnoId, pedido))
                         },
                         aoVoltar = { navController.popBackStack() },
                     )
@@ -1361,7 +1367,6 @@ fun AppNavegacao(
                     navArgument("desde") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) {
-                val contexto = LocalContext.current
                 // L2-5: a tela lê `situacao_da_conta` (motivo, data, contestação já aberta). Conta reativada: reavalia a abertura, que a leva ao destino de sempre.
                 val aoReativar: () -> Unit = {
                     navController.navigate(if (avaliadorDeDestino != null) Rotas.ABERTURA else Rotas.FEED) {
@@ -1373,12 +1378,10 @@ fun AppNavegacao(
                     viewModel = viewModel,
                     emailSuporte = EnderecosOficiais.padrao.emailSuporte,
                     aoContatarSuporte = { email ->
-                        try {
-                            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            contexto.startActivity(intent)
-                        } catch (_: Exception) { }
+                        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        abrirForaDoApp(intent, AvisoDeAberturaExterna.semEmail(email))
                     },
                     aoSair = {
                         armazenamentoDeSessao.limparSessao()
@@ -1419,7 +1422,6 @@ fun AppNavegacao(
                     } else {
                         val turnoId = entrada.arguments?.getString("turnoId")
                         val chamadaId = entrada.arguments?.getString("chamadaId")
-                        val contexto = LocalContext.current
                         val viewModel: DenunciaViewModel = koinViewModel(
                             parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId) },
                         )
@@ -1427,12 +1429,10 @@ fun AppNavegacao(
                             viewModel = viewModel,
                             aoFechar = { navController.popBackStack() },
                             aoLigar = { numero ->
-                                try {
-                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero")).apply {
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    contexto.startActivity(intent)
-                                } catch (_: Exception) { }
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero")).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                abrirForaDoApp(intent, AvisoDeAberturaExterna.semTelefone(numero))
                             },
                         )
                     }
@@ -1466,7 +1466,7 @@ fun AppNavegacao(
                 }
             }
 
-            rotasDaChamadaDiretaCasa(navController, guardaBiometrico, buscaProfissionaisHabilitada, servicoMembros)
+            rotasDaChamadaDiretaCasa(navController, guardaBiometrico, buscaProfissionaisHabilitada, servicoMembros, abrirForaDoApp)
             rotasDaChamadaDiretaProfissional(navController, guardaBiometrico, buscaProfissionaisHabilitada)
 
             composable(Rotas.CADASTRO_ESTABELECIMENTO) {
@@ -1754,33 +1754,26 @@ fun AppNavegacao(
 
             composable(Rotas.AJUDA) {
                 RotaProtegida(guardaBiometrico) {
-                    val contexto = LocalContext.current
                     TelaAjudaPerfil(
                         aoVoltar = { navController.popBackStack() },
                         aoNavegarParaLicencas = { navController.navigate(Rotas.LICENCAS) },
                         aoNavegarParaTermos = { url ->
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                contexto.startActivity(intent)
-                            } catch (_: Exception) { }
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            abrirForaDoApp(intent, AvisoDeAberturaExterna.semNavegador(url))
                         },
                         aoNavegarParaPrivacidade = { url ->
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                contexto.startActivity(intent)
-                            } catch (_: Exception) { }
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            abrirForaDoApp(intent, AvisoDeAberturaExterna.semNavegador(url))
                         },
                         aoAbrirEmailSuporte = { email ->
-                            try {
-                                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                contexto.startActivity(intent)
-                            } catch (_: Exception) { }
+                            val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            abrirForaDoApp(intent, AvisoDeAberturaExterna.semEmail(email))
                         },
                     )
                 }
@@ -1825,6 +1818,9 @@ fun AppNavegacao(
             status = statusConectividade,
             modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
         )
+        avisoDeAberturaExterna?.let { aviso ->
+            DialogoDeAberturaExterna(aviso = aviso, aoFechar = { avisoDeAberturaExterna = null })
+        }
     }
     BarraDaRaiz(navController = navController, papel = papelDaRaiz, padraoAtual = padraoAtual)
     }

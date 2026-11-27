@@ -63,6 +63,25 @@ enum class CodigoErroAPI {
     // 409 de `chamar_profissional` (0.2.95): a casa já tem vaga direta com chamada aberta para o mesmo trabalho (mesma
     // função, mesmo início e mesmo fim); `details` traz o `vaga_id` dela, um uuid em texto.
     @SerialName("trabalho_ja_aberto") TRABALHO_JA_ABERTO,
+    // Os 14 que só o iOS tinha (`ErrosDaAPI.swift`), todos no contrato. Seis chegam como `code` e oito como `details` de outro
+    // código; a tela lê os `details` por `ErroDaApi.detalhesComoCodigo`, sem comparar texto solto.
+    // `code`: check-in por código (0.2.68/0.2.76) e mídia do perfil.
+    @SerialName("codigo_invalido") CODIGO_INVALIDO,
+    @SerialName("codigo_bloqueado") CODIGO_BLOQUEADO,
+    @SerialName("fora_do_raio") FORA_DO_RAIO,
+    @SerialName("sem_localizacao") SEM_LOCALIZACAO,
+    @SerialName("midia_indisponivel") MIDIA_INDISPONIVEL,
+    @SerialName("midia_invalida") MIDIA_INVALIDA,
+    // `details` de `403 sem_permissao` (RN46, 0.2.90): o recurso desligado no servidor e os Termos pendentes da busca.
+    @SerialName("recurso_desligado") RECURSO_DESLIGADO,
+    @SerialName("termos_pendentes") TERMOS_PENDENTES,
+    // `details` de `422 republicacao_indisponivel` (0.2.41): por que `republicar_posicoes_restantes` recusou.
+    @SerialName("nao_e_selecao") NAO_E_SELECAO,
+    @SerialName("selecao_em_curso") SELECAO_EM_CURSO,
+    @SerialName("vaga_cancelada") VAGA_CANCELADA,
+    @SerialName("ja_comecou") JA_COMECOU,
+    @SerialName("sem_posicoes_restantes") SEM_POSICOES_RESTANTES,
+    @SerialName("ja_republicada") JA_REPUBLICADA,
     @SerialName("cursor_invalido") CURSOR_INVALIDO,
     @SerialName("funcao_nao_marcada") FUNCAO_NAO_MARCADA,
     @SerialName("sem_rede") SEM_REDE,

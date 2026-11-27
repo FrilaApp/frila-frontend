@@ -3,7 +3,6 @@ package br.com.frila.app
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -89,8 +88,10 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(
     /** Chave `busca_profissionais` (RN46): desligada, as rotas da busca nem existem no grafo. */
     buscaProfissionaisHabilitada: Boolean = false,
     servicoMembros: ServicoMembros? = null,
+    /** Abre o link fora do app e, se nenhum app o tratar, mostra o aviso com o endereço (ver [abrirExterno]). */
+    abrirForaDoApp: (Intent, AvisoDeAberturaExterna) -> Unit,
 ) {
-    if (buscaProfissionaisHabilitada) rotasDaBuscaDeProfissionais(navController, guardaBiometrico, servicoMembros)
+    if (buscaProfissionaisHabilitada) rotasDaBuscaDeProfissionais(navController, guardaBiometrico, servicoMembros, abrirForaDoApp)
     composable(
         route = RotasChamadaCasa.PERFIL_PUBLICO,
         arguments = listOf(
@@ -150,6 +151,7 @@ private fun NavGraphBuilder.rotasDaBuscaDeProfissionais(
     navController: NavHostController,
     guardaBiometrico: GuardaBiometrico,
     servicoMembros: ServicoMembros?,
+    abrirForaDoApp: (Intent, AvisoDeAberturaExterna) -> Unit,
 ) {
     composable(
         route = RotasChamadaCasa.BUSCA,
@@ -158,29 +160,24 @@ private fun NavGraphBuilder.rotasDaBuscaDeProfissionais(
         RotaProtegida(guardaBiometrico) {
             val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
             val viewModel: BuscaDeProfissionaisViewModel = koinViewModel(parameters = { parametersOf(estabelecimentoId) })
-            val contexto = LocalContext.current
             TelaBuscaDeProfissionais(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
                 aoAbrirPerfil = { navController.navigate(RotasChamadaCasa.perfilPublico(estabelecimentoId, it)) },
                 aoPublicarParaTodos = { navController.navigate(RotasChamadaCasa.publicarDaBusca(it)) },
                 aoAbrirTermos = {
-                    try {
-                        contexto.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(EnderecosOficiais.padrao.termosDeUso)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            },
-                        )
-                    } catch (_: Exception) { }
+                    val url = EnderecosOficiais.padrao.termosDeUso
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    abrirForaDoApp(intent, AvisoDeAberturaExterna.semNavegador(url))
                 },
                 aoAbrirPolitica = {
-                    try {
-                        contexto.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(EnderecosOficiais.padrao.politicaDePrivacidade)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            },
-                        )
-                    } catch (_: Exception) { }
+                    val url = EnderecosOficiais.padrao.politicaDePrivacidade
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    abrirForaDoApp(intent, AvisoDeAberturaExterna.semNavegador(url))
                 },
             )
         }

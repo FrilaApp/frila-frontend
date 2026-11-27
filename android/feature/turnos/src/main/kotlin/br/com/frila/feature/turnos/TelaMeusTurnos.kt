@@ -69,6 +69,7 @@ import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.localizacao.abrirConfiguracoesComFallback
 import br.com.frila.core.localizacao.criarIntentConfiguracoesApp
 import br.com.frila.core.localizacao.criarIntentConfiguracoesGps
+import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -97,6 +98,8 @@ fun TelaMeusTurnos(
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
     /** Falso na tela raiz (aba "Meus turnos"): a aba já diz onde a pessoa está, e a lista é o primeiro elemento. */
     comTitulo: Boolean = true,
+    /** A espera até o `fim` previsto que libera a avaliação (#672): um `delay` em produção, e o teste a controla (como o `dormir` do iOS). */
+    esperar: suspend (milissegundos: Long) -> Unit = { delay(it) },
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -176,6 +179,8 @@ fun TelaMeusTurnos(
                         aoAvisarACaminho = aoAvisarACaminho,
                         avisandoACaminho = estado.avisandoACaminho,
                         erroACaminho = estado.erroACaminho,
+                        aoLiberarAvaliacao = { viewModel.atualizarSemPiscar() },
+                        esperar = esperar,
                     )
                 }
             }
@@ -216,6 +221,8 @@ private fun ListaDeTurnos(
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
     avisandoACaminho: String? = null,
     erroACaminho: ErroDoACaminho? = null,
+    aoLiberarAvaliacao: () -> Unit = {},
+    esperar: suspend (milissegundos: Long) -> Unit = { delay(it) },
 ) {
     if (itens.isEmpty()) {
         Vazio()
@@ -264,6 +271,8 @@ private fun ListaDeTurnos(
                 aoAvisarACaminho = aoAvisarACaminho,
                 avisandoACaminho = avisandoACaminho,
                 erroACaminho = erroACaminho,
+                aoLiberarAvaliacao = aoLiberarAvaliacao,
+                esperar = esperar,
             )
         }
         if (abaHistorico && carregandoMaisHistorico) {
@@ -323,6 +332,8 @@ private fun CartaoDoTurno(
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)?,
     avisandoACaminho: String?,
     erroACaminho: ErroDoACaminho?,
+    aoLiberarAvaliacao: () -> Unit = {},
+    esperar: suspend (milissegundos: Long) -> Unit = { delay(it) },
 ) {
     val confirmado = turno.estado == ESTADO_CHECKIN_DISPONIVEL
     val contagem = if (confirmado) lembrarContagem(turno, relogio) else null
@@ -365,7 +376,19 @@ private fun CartaoDoTurno(
             }
             null -> Unit
         }
-        SecaoDeAvaliacao(turno = turno, aoAbrirAvaliacao = aoAbrirAvaliacao)
+        // Agendamento pontual (sem polling): espera o `fim` previsto com a tela aberta, esconde o aviso e relê os turnos para o
+        // servidor confirmar `pode_avaliar`. O aviso some mesmo se a releitura falhar, para não ficar uma hora que já passou.
+        val liberaEm = liberacaoDaAvaliacao(turno, comprovante, relogio())
+        var liberacaoPassou by remember(liberaEm) { mutableStateOf(false) }
+        LaunchedEffect(liberaEm) {
+            if (liberaEm != null) {
+                val espera = Duration.between(relogio(), liberaEm).toMillis()
+                if (espera > 0) esperar(espera)
+                liberacaoPassou = true
+                aoLiberarAvaliacao()
+            }
+        }
+        SecaoDeAvaliacao(turno = turno, liberaEm = liberaEm.takeUnless { liberacaoPassou }, aoAbrirAvaliacao = aoAbrirAvaliacao)
 
         val podeCancelar = contagem is EstadoContagemRegressiva.AguardandoJanela || contagem is EstadoContagemRegressiva.JanelaAberta
         val casaId = turno.contraparteId
@@ -547,7 +570,7 @@ private fun DialogoDefensivoLocalizacao(
  * só um fato em apoio; "Avaliar turno" é botão secundário (o laranja do cartão é de quem avança no turno).
  */
 @Composable
-private fun SecaoDeAvaliacao(turno: ItemTurno, aoAbrirAvaliacao: (turnoId: String) -> Unit) {
+private fun SecaoDeAvaliacao(turno: ItemTurno, liberaEm: Instant?, aoAbrirAvaliacao: (turnoId: String) -> Unit) {
     val resposta = turno.avaliacaoResposta
     when {
         resposta != null -> Text(
@@ -559,6 +582,12 @@ private fun SecaoDeAvaliacao(turno: ItemTurno, aoAbrirAvaliacao: (turnoId: Strin
             texto = "Avaliar turno",
             aoClicar = { aoAbrirAvaliacao(turno.turnoId) },
             modifier = Modifier.fillMaxWidth(),
+        )
+        liberaEm != null -> Text(
+            text = TextosAvaliacao.liberaAs(horaDaLiberacao(liberaEm)),
+            style = FrilaTipo.apoio,
+            color = FrilaTema.cores.tintaSuave,
+            modifier = Modifier.testTag("aviso-liberacao-avaliacao"),
         )
     }
 }
