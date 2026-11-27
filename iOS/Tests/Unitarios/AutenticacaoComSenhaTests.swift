@@ -563,12 +563,23 @@ struct AutenticacaoComSenhaTests {
 
         roteiro.respostaReenviarOTP = .http(
             200,
-            #"{"ok":true,"desafio_id":"des-2","expira_em":"2026-11-25T12:15:00Z","reenviar_em_segundos":45}"#
+            #"{"ok":true,"desafio_id":"des-2","expira_em":"2026-11-25T12:15:00Z","reenviar_em_segundos":30}"#
         )
         await vm.reenviarCodigo()
         #expect(vm.erro == nil)
-        #expect(vm.segundosRestantes == 45)
+        #expect(vm.segundosRestantes == 30)
+        #expect(vm.reenviosFeitos == 1)
         #expect(vm.mensagemInformativa != nil)
+
+        vm.segundosRestantes = 0
+        roteiro.respostaReenviarOTP = .http(
+            429,
+            #"{"code":"limite_excedido","message":"Muitas tentativas"}"#
+        )
+        await vm.reenviarCodigo()
+        #expect(vm.erro != nil)
+        #expect(vm.reenviosFeitos == 1)
+        #expect(vm.segundosRestantes == 0)
 
         roteiro.respostaConfirmarOTP = .http(409, #"{"code":"desafio_ja_usado","message":"Já usado"}"#)
         vm.codigo = "123456"
