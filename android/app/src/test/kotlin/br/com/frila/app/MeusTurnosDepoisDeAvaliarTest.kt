@@ -5,6 +5,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.NavHost
@@ -52,10 +53,10 @@ class MeusTurnosDepoisDeAvaliarTest {
     @get:Rule(order = 1)
     val rule = createComposeRule()
 
-    private fun turnoJson(podeAvaliar: Boolean) = """
+    private fun turnoJson(podeAvaliar: Boolean, funcao: String = "Garçom") = """
         [{
           "id": "t1", "posicao_id": "posicao-t1",
-          "vaga": {"id": "vaga-t1", "funcao": "Garçom", "local": "CLS 405 Bloco C", "regiao_administrativa": "Plano Piloto",
+          "vaga": {"id": "vaga-t1", "funcao": "$funcao", "local": "CLS 405 Bloco C", "regiao_administrativa": "Plano Piloto",
                    "inicio_em": "2026-11-02T01:00:00Z", "fim_em": "2026-11-02T10:00:00Z", "valor_centavos": 16000},
           "contraparte": {"id": "e1", "tipo": "estabelecimento", "nome": "Bar do Zé",
                           "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}},
@@ -76,7 +77,7 @@ class MeusTurnosDepoisDeAvaliarTest {
             engine = MockEngine {
                 // O servidor: antes da avaliação pode_avaliar é true; depois, false.
                 val n = leituras.incrementAndGet()
-                respond(turnoJson(podeAvaliar = n == 1), headers = headersOf(HttpHeaders.ContentType, "application/json"))
+                respond(turnoJson(podeAvaliar = n == 1, funcao = if (n == 1) "Garçom" else "Barista"), headers = headersOf(HttpHeaders.ContentType, "application/json"))
             },
         )
         val vm = MeusTurnosViewModel(servicoTurnos = ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Unconfined))
@@ -109,18 +110,24 @@ class MeusTurnosDepoisDeAvaliarTest {
                 }
             }
         }
-        rule.waitForIdle()
+        // A resposta do servidor chega fora da composição: `waitForIdle` não a espera (na CI, o botão ainda não estava na tela).
+        // Espera-se a condição, com limite, e as asserções seguem as mesmas.
+        aguardar { rule.onAllNodesWithText("Garçom").fetchSemanticsNodes().isNotEmpty() }
         assertEquals("a primeira leitura", 1, leituras.get())
         rule.onNodeWithText("Avaliar turno").assertExists()
 
         rule.onNodeWithText("Avaliar turno").performClick()
-        rule.waitForIdle()
+        aguardar { rule.onAllNodesWithText("Enviar avaliação").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Enviar avaliação").performClick()
-        rule.waitForIdle()
 
+        // Só depois de a lista nova (outra função, "Barista") estar na tela é que a ausência do botão vale: durante a
+        // releitura a lista some e o botão também, e isso não prova nada.
+        aguardar { rule.onAllNodesWithText("Barista").fetchSemanticsNodes().isNotEmpty() }
         assertEquals("voltar pela pilha relê os turnos", 2, leituras.get())
         rule.onNodeWithText("Avaliar turno").assertDoesNotExist()
     }
+
+    private fun aguardar(condicao: () -> Boolean) = rule.waitUntil(10_000, condicao)
 
     @Test
     fun `a rota de Meus turnos continua relendo ao voltar - o LaunchedEffect de carregar esta em AppNavegacao`() {
