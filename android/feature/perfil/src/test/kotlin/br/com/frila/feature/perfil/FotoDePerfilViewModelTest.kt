@@ -147,4 +147,21 @@ class FotoDePerfilViewModelTest {
         )
         assertEquals(TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA, FotoDePerfilViewModel.mensagemDaFalha(IllegalStateException("x")))
     }
+
+    @Test
+    fun `recurso desligado so vale no par do backend, 403 sem_permissao com details recurso_desligado`() {
+        // O mesmo `details` sob outro code, ou o texto solto como code, não é o recurso desligado.
+        assertEquals(
+            TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA,
+            FotoDePerfilViewModel.mensagemDaFalha(erroDaApi(CodigoErroAPI.CAMPO_INVALIDO, "campo_invalido", "recurso_desligado")),
+        )
+        assertEquals(
+            TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA,
+            FotoDePerfilViewModel.mensagemDaFalha(erroDaApi(CodigoErroAPI.RECURSO_DESLIGADO, "recurso_desligado")),
+        )
+        assertEquals(
+            TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO,
+            FotoDePerfilViewModel.mensagemDaFalha(erroDaApi(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "recurso_desligado")),
+        )
+    }
 }

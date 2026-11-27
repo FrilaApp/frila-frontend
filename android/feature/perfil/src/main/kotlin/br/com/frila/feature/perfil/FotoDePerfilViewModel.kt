@@ -108,7 +108,8 @@ class FotoDePerfilViewModel(
             val chave = "${erro.codigoOriginal} ${erro.detalhes.orEmpty()}".lowercase()
             return when {
                 erro.codigo == CodigoErroAPI.SEM_REDE -> TextosDaFotoDePerfil.ERRO_SEM_REDE
-                erro.codigo == CodigoErroAPI.RECURSO_DESLIGADO || erro.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO -> TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO
+                // O par do backend (`403 sem_permissao` + `details: recurso_desligado`): o mesmo details em outro code não vale.
+                erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO -> TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO
                 erro.codigo == CodigoErroAPI.CONTA_SUSPENSA || "conta_suspensa" in chave -> TextosDaFotoDePerfil.ERRO_CONTA_SUSPENSA
                 erro.codigo == CodigoErroAPI.MIDIA_INVALIDA -> TextosDaFotoDePerfil.ERRO_RECUSADA_PELO_SERVIDOR
                 else -> TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA
