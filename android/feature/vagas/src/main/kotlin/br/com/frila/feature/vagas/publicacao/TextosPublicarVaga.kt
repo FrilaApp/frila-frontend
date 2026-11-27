@@ -49,6 +49,9 @@ object TextosPublicarVaga {
     const val RESPONSAVEL = "Quem recebe o profissional no local"
     const val MAIS_OPCOES = "Mais opções"
     const val MAIS_OPCOES_AJUDA = "Traje, rateio dos 10% e observações"
+    /** O estado que o leitor de tela anuncia na linha "Mais opções" (iOS `maisOpcoesAberto`/`maisOpcoesFechado`, `PublicarVaga.swift:47-48`). */
+    const val MAIS_OPCOES_ABERTO = "Aberto"
+    const val MAIS_OPCOES_FECHADO = "Fechado"
     const val TRAJE = "Traje"
     const val RATEIO = "Participa do rateio dos 10%"
     const val OBSERVACOES = "Observações"
