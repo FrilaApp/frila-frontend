@@ -89,6 +89,7 @@ class PerfilViewModelTest {
         engineTurnos: MockEngine = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
         preferenciasNotificacao: GerenciadorPreferenciasNotificacao = GerenciadorPreferenciasNotificacaoEmMemoria(),
         engineConta: MockEngine? = null,
+        revogarDispositivos: (suspend () -> Int)? = null,
     ): PerfilViewModel {
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val clienteTurnos = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engineTurnos)
@@ -101,6 +102,7 @@ class PerfilViewModelTest {
             servicoConta = engineConta?.let {
                 ServicoConta(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = it))
             },
+            revogarDispositivos = revogarDispositivos,
         )
     }
 
@@ -607,5 +609,83 @@ class PerfilViewModelTest {
         assertTrue(viewModel.estado.value.notificacaoTurnosAtivada)
         assertTrue(viewModel.estado.value.notificacaoSistemaAtivada)
         assertFalse(preferencias.estaAtivado(GerenciadorDeCanais.CANAL_URGENCIA))
+    }
+
+    // ---- "Sair de todos os dispositivos": trava em voo e erro visível (cartão 64qZLlpd) ----
+
+    private val engineVazio = MockEngine { respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json")) }
+
+    private fun erroDaApi(codigo: br.com.frila.core.dominio.modelo.CodigoErroAPI) =
+        br.com.frila.core.rede.ErroDaApi(codigo, codigo.name.lowercase(), null, "x")
+
+    @Test
+    fun `dois toques seguidos em sair de todos fazem um revoke so e uma saida so`() = runBlocking {
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val pedidos = java.util.concurrent.atomic.AtomicInteger(0)
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        val viewModel = viewModelComEngine(engineVazio, armazenamento, revogarDispositivos = { pedidos.incrementAndGet(); liberar.await(); 2 })
+        val concluiu = java.util.concurrent.atomic.AtomicInteger(0)
+
+        val primeiro = viewModel.aoDeslogarTodos { concluiu.incrementAndGet() }
+        val segundo = viewModel.aoDeslogarTodos { concluiu.incrementAndGet() } // o segundo toque, com o pedido ainda em voo
+        assertTrue(viewModel.estado.value.revogandoDispositivos)
+        liberar.complete(Unit)
+        primeiro.join()
+        segundo.join()
+
+        assertEquals(1, pedidos.get())
+        assertEquals(1, concluiu.get())
+        verify(exactly = 1) { armazenamento.limparSessao() }
+        assertFalse(viewModel.estado.value.revogandoDispositivos)
+    }
+
+    @Test
+    fun `falha do revoke com o perfil carregado deixa o erro visivel, a sessao intacta e a acao livre para tentar de novo`() = runBlocking {
+        val armazenamento = mockk<ArmazenamentoDeSessao>(relaxed = true)
+        var tentativa = 0
+        val engine = MockEngine { respond(perfilJson, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) }
+        val viewModel = viewModelComEngine(
+            engine, armazenamento,
+            revogarDispositivos = { if (++tentativa == 1) throw erroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_REDE) else 2 },
+        )
+        viewModel.carregar().join()
+        assertEquals(StatusPerfil.SUCESSO, viewModel.estado.value.status)
+        var concluiu = 0
+
+        viewModel.aoDeslogarTodos { concluiu++ }.join()
+
+        assertEquals("Sem conexão. Tente novamente quando a internet voltar.", viewModel.estado.value.erroAoRevogar)
+        assertFalse(viewModel.estado.value.revogandoDispositivos)
+        assertEquals(StatusPerfil.SUCESSO, viewModel.estado.value.status)
+        assertNull(viewModel.estado.value.mensagemErro) // o erro do carregamento não é reaproveitado
+        verify(exactly = 0) { armazenamento.limparSessao() }
+        assertEquals(0, concluiu)
+
+        viewModel.aoDeslogarTodos { concluiu++ }.join()
+
+        assertNull(viewModel.estado.value.erroAoRevogar)
+        verify(exactly = 1) { armazenamento.limparSessao() }
+        assertEquals(1, concluiu)
+        assertEquals(2, tentativa)
+    }
+
+    @Test
+    fun `o texto do erro de sair de todos segue o do iOS`() = runBlocking {
+        val genericoDoIos = "Não foi possível concluir esta ação. Tente novamente."
+        val casos = listOf(
+            erroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_REDE) to "Sem conexão. Tente novamente quando a internet voltar.",
+            erroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.NAO_AUTENTICADO) to "Sua sessão expirou. Entre novamente para continuar.",
+            erroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_PERMISSAO) to "Sua conta não pode realizar esta ação.",
+            erroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.LIMITE_EXCEDIDO) to "Você fez muitas tentativas. Aguarde antes de tentar novamente.",
+            erroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.DESCONHECIDO) to genericoDoIos,
+            IllegalStateException("corpo ilegível") to genericoDoIos,
+        )
+        for ((falha, texto) in casos) {
+            val viewModel = viewModelComEngine(engineVazio, revogarDispositivos = { throw falha })
+
+            viewModel.aoDeslogarTodos {}.join()
+
+            assertEquals(texto, viewModel.estado.value.erroAoRevogar, falha.toString())
+        }
     }
 }

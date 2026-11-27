@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -102,6 +103,7 @@ class TelaPerfilTest {
             br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria(),
         /** Corpo de `minha_conta`; nulo deixa o perfil sem o serviço da conta (o profissional de sempre). */
         respostaContaJson: String? = null,
+        revogarDispositivos: (suspend () -> Int)? = null,
     ): PerfilViewModel {
         val cliente = ClienteSupabase(
             baseUrl = "https://frila.supabase.co",
@@ -133,6 +135,7 @@ class TelaPerfilTest {
             comprimirFoto = comprimirFoto,
             obterAvatarSalvo = obterAvatarSalvo,
             preferenciasNotificacao = preferenciasNotificacao,
+            revogarDispositivos = revogarDispositivos,
             servicoConta = respostaContaJson?.let { corpo ->
                 ServicoConta(
                     ClienteSupabase(
@@ -1544,4 +1547,51 @@ class TelaPerfilTest {
         toggle.performClick()
         assertEquals(true, alternouPara)
     }
+
+    // ---- "Sair de todos os dispositivos": trava em voo e erro visível com o perfil carregado (cartão 64qZLlpd) ----
+
+    private val textoSemRede = "Sem conexão. Tente novamente quando a internet voltar."
+
+    private fun pedirSairDeTodos() {
+        rule.onNodeWithTag("perfil-sair-todos-dispositivos").performScrollTo().performClick()
+        rule.onNodeWithText("Sair de todos").performClick()
+    }
+
+    private fun esperarErroDeSairDeTodos() {
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag("perfil-sair-todos-erro").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun sairDeTodosComErroVisivelEAcaoLivre(respostaContaJson: String?) {
+        runBlocking {
+            val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+            val viewModel = criarViewModel(
+                respostaContaJson = respostaContaJson,
+                revogarDispositivos = {
+                    liberar.await()
+                    throw br.com.frila.core.rede.ErroDaApi(br.com.frila.core.dominio.modelo.CodigoErroAPI.SEM_REDE, "sem_rede", null, "x")
+                },
+            )
+            viewModel.carregar().join()
+            assertEquals(StatusPerfil.SUCESSO, viewModel.estado.value.status)
+            rule.setContent { FrilaTheme { TelaPerfil(viewModel = viewModel, aoAbrirEquipe = {}, aoMinhasVagas = {}, aoPublicarVaga = {}) } }
+            rule.waitForIdle()
+
+            pedirSairDeTodos()
+            rule.waitUntil(5_000) { viewModel.estado.value.revogandoDispositivos }
+            rule.onNodeWithTag("perfil-sair-todos-dispositivos").performScrollTo().assertIsNotEnabled() // o pedido em voo trava a ação
+
+            liberar.complete(Unit)
+            esperarErroDeSairDeTodos()
+            rule.onNodeWithTag("perfil-sair-todos-erro").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithText(textoSemRede).assertIsDisplayed()
+            rule.onNodeWithTag("perfil-sair-todos-dispositivos").performScrollTo().assertIsEnabled() // e a falha a devolve
+        }
+    }
+
+    @Test
+    fun sairDeTodosQueFalhaMostraOErroNoPerfilDoProfissionalETravaEnquantoEmVoo() = sairDeTodosComErroVisivelEAcaoLivre(null)
+
+    @Test
+    fun sairDeTodosQueFalhaMostraOErroNoPerfilDaCasaETravaEnquantoEmVoo() =
+        sairDeTodosComErroVisivelEAcaoLivre(contaJson("contratante"))
 }
