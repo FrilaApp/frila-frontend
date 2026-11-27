@@ -11,7 +11,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.OffsetDateTime
 
 /** Em que ponto está o envio da foto de perfil. */
 sealed interface EtapaDaFoto {
@@ -37,11 +41,18 @@ data class SituacaoDaFoto(
     /** A falha do último pedido, em texto da tela. */
     val aviso: String? = null,
 ) {
-    val podePedirNovaAnalise: Boolean get() = false
+    /** Uma vez por foto `recusada` ou `nao_publicada`, e só se o servidor ainda deixa (`pode_pedir_nova_analise`: o arquivo existe). */
+    val podePedirNovaAnalise: Boolean
+        get() = midia != null && midia.estado in ESTADOS_DE_NOVA_ANALISE && midia.podePedirNovaAnalise &&
+            !novaAnaliseJaPedida && !pedindoNovaAnalise
+
+    private companion object {
+        val ESTADOS_DE_NOVA_ANALISE = setOf("recusada", "nao_publicada")
+    }
 }
 
 /**
- * Escolher a foto, prepará-la, conferir no aparelho e enviar (L1-3b). Só o envio: ver a foto atual, remover e pedir nova análise são do passo seguinte.
+ * Escolher a foto, prepará-la, conferir no aparelho e enviar (L1-3b). O envio e, para a foto recusada ou não publicada, ver o estado e pedir a nova análise ([situacao]); ver a foto aprovada e remover são do passo seguinte.
  * As duas operações chegam por função (a ligação é do L1-7): [prepararJpeg] lê a foto escolhida (uma referência em texto) e devolve o JPEG pronto,
  * e [enviar] é o `FluxoDaFotoDePerfil.enviar`.
  */
@@ -59,9 +70,51 @@ class FotoDePerfilViewModel(
     private val _situacao = MutableStateFlow(SituacaoDaFoto())
     val situacao: StateFlow<SituacaoDaFoto> = _situacao.asStateFlow()
 
-    fun carregar(): Job = escopoDeTrabalho.launch { }
+    /**
+     * Lê `minhas_midias` e fica com a foto de perfil mais recente da conta (sem a removida e sem a da casa). Se a leitura falha a tela
+     * segue como sempre, sem foto: enviar continua possível.
+     */
+    fun carregar(): Job = escopoDeTrabalho.launch {
+        val midias = try {
+            listarMidias()
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            return@launch
+        }
+        _situacao.update { it.copy(midia = fotoDaConta(midias)) }
+    }
 
-    fun pedirNovaAnalise(): Job = escopoDeTrabalho.launch { }
+    /**
+     * Pede a nova análise da foto `recusada` ou `nao_publicada` (uma vez; o 200 a leva a `em_analise`). Um pedido por vez. Falhando, mostra
+     * o aviso e relê as mídias (o servidor pode ter mudado o estado), como o iOS.
+     */
+    fun pedirNovaAnalise(): Job {
+        val anterior = _situacao.getAndUpdate { if (it.podePedirNovaAnalise && !ocupada()) it.copy(pedindoNovaAnalise = true, aviso = null) else it }
+        val midia = anterior.midia
+        if (midia == null || !anterior.podePedirNovaAnalise || ocupada()) return escopoDeTrabalho.launch { }
+        return escopoDeTrabalho.launch {
+            try {
+                val nova = pedirNovaAnaliseMidia(midia.id)
+                _situacao.update { it.copy(midia = if (nova.id == it.midia?.id) nova else it.midia, novaAnaliseJaPedida = true) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
+                _situacao.update { it.copy(aviso = mensagemDaFalha(erro)) }
+                val midias = try { listarMidias() } catch (cancelado: CancellationException) { throw cancelado } catch (_: Exception) { null }
+                if (midias != null) _situacao.update { it.copy(midia = fotoDaConta(midias)) }
+            } finally {
+                _situacao.update { it.copy(pedindoNovaAnalise = false) }
+            }
+        }
+    }
+
+    private fun fotoDaConta(midias: List<MidiaDto>): MidiaDto? = midias
+        .filter { it.tipo == "foto_perfil" && it.estabelecimentoId == null && it.estado != "removida" }
+        .maxByOrNull { instanteDaMidia(it.enviadaEm) }
+
+    private fun instanteDaMidia(texto: String?): Instant =
+        texto?.let { runCatching { OffsetDateTime.parse(it).toInstant() }.getOrNull() } ?: Instant.MIN
 
     private val _etapa = MutableStateFlow<EtapaDaFoto>(EtapaDaFoto.Parada)
     val etapa: StateFlow<EtapaDaFoto> = _etapa.asStateFlow()

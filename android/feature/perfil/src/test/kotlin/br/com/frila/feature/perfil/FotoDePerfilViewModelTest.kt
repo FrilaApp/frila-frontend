@@ -236,11 +236,11 @@ class FotoDePerfilViewModelTest {
             val pedidos = mutableListOf<String>()
             val vm = viewModelDeMidias(listar = { listOf(midia) }, pedir = { pedidos += it; midia })
             vm.carregar().join()
+            val rotulo = "${midia.estado} pode=${midia.podePedirNovaAnalise}"
+            assertEquals(esperado, vm.situacao.value.podePedirNovaAnalise, rotulo)
 
             vm.pedirNovaAnalise().join()
 
-            val rotulo = "${midia.estado} pode=${midia.podePedirNovaAnalise}"
-            assertEquals(esperado, vm.situacao.value.podePedirNovaAnalise, rotulo)
             assertEquals(if (esperado) listOf("m1") else emptyList<String>(), pedidos, rotulo)
         }
     }
