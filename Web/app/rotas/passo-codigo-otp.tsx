@@ -60,10 +60,11 @@ export function podeConfirmarCodigoOtp(codigo: string, enviando: boolean): boole
 export function deveAutoSubmeterCodigoOtp(opcoes: {
   codigo: string;
   enviando: boolean;
+  emComposicao?: boolean;
   codigoComErro: string | null;
   ultimoSubmetido: string | null;
 }): boolean {
-  if (opcoes.enviando) return false;
+  if (opcoes.enviando || opcoes.emComposicao) return false;
   if (!/^\d{6}$/.test(opcoes.codigo)) return false;
   if (opcoes.codigoComErro !== null && opcoes.codigo === opcoes.codigoComErro) return false;
   if (opcoes.ultimoSubmetido !== null && opcoes.codigo === opcoes.ultimoSubmetido) return false;
@@ -89,6 +90,7 @@ export interface PassoCodigoOtpProps {
   intencaoReenviar: string;
   enviando: boolean;
   erro: string | null;
+  tentativaId?: string;
   reenviado?: boolean;
   reenviarEmSegundos?: number;
   mensagemReenvio?: string | null;
@@ -111,6 +113,7 @@ export function PassoCodigoOtp({
   intencaoReenviar,
   enviando,
   erro,
+  tentativaId,
   reenviado = false,
   reenviarEmSegundos,
   mensagemReenvio = null,
@@ -125,12 +128,23 @@ export function PassoCodigoOtp({
   const ultimoSubmetidoRef = useRef<string | null>(null);
   const enviandoAnteriorRef = useRef(enviando);
   const ultimaIntencaoRef = useRef<"confirmar" | "reenviar" | null>(null);
+  const ultimaTentativaProcessadaRef = useRef<string | null>(null);
+  const intencaoPorTentativaRef = useRef<Map<string, "confirmar" | "reenviar">>(new Map());
+  const sequenciaTentativaRef = useRef(0);
   const erroInicialTratadoRef = useRef(false);
 
   const [codigo, setCodigo] = useState("");
+  const [emComposicao, setEmComposicao] = useState(false);
   const [codigoComErro, setCodigoComErro] = useState<string | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState<number>(0);
   const [reenviosRealizados, setReenviosRealizados] = useState<number>(0);
+
+  const gerarTentativaId = (intencao: "confirmar" | "reenviar"): string => {
+    sequenciaTentativaRef.current += 1;
+    const id = `t-${sequenciaTentativaRef.current}`;
+    intencaoPorTentativaRef.current.set(id, intencao);
+    return id;
+  };
 
   const esperaEfetiva = resolverEsperaReenvioSegundos(reenviarEmSegundos);
 
@@ -150,10 +164,11 @@ export function PassoCodigoOtp({
   const codigoAtualRef = useRef(codigo);
   codigoAtualRef.current = codigo;
 
-  // Registra conclusão de tentativa por ciclo (não por comparação de string de erro),
-  // garantindo trava pós-erro mesmo em erros idênticos consecutivos e reinício conservador em 429.
+  // Registra conclusão por identidade explícita da tentativa (`tentativaId`) retornada pela action,
+  // sem depender de render intermediário `enviando: true -> false` nem de string de erro diferente.
   useEffect(() => {
-    const concluiuTentativa = enviandoAnteriorRef.current && !enviando;
+    const concluiuPorTentativa = Boolean(tentativaId && tentativaId !== ultimaTentativaProcessadaRef.current);
+    const concluiuPorTransicao = enviandoAnteriorRef.current && !enviando && !tentativaId;
     enviandoAnteriorRef.current = enviando;
 
     if (!erroInicialTratadoRef.current && erro) {
@@ -161,9 +176,16 @@ export function PassoCodigoOtp({
       setCodigoComErro(codigoAtualRef.current);
     }
 
-    if (!concluiuTentativa) return;
+    if (!concluiuPorTentativa && !concluiuPorTransicao) return;
 
-    const intencao = ultimaIntencaoRef.current;
+    const intencao =
+      (tentativaId ? intencaoPorTentativaRef.current.get(tentativaId) : undefined) ??
+      ultimaIntencaoRef.current ??
+      (reenviado ? "reenviar" : "confirmar");
+    if (tentativaId) {
+      ultimaTentativaProcessadaRef.current = tentativaId;
+      intencaoPorTentativaRef.current.delete(tentativaId);
+    }
     ultimaIntencaoRef.current = null;
 
     const resultado = processarConclusaoTentativaOtp({
@@ -187,26 +209,29 @@ export function PassoCodigoOtp({
     if (resultado.codigoComErro !== undefined) {
       setCodigoComErro(resultado.codigoComErro);
     }
-  }, [enviando, erro, reenviado, esperaEfetiva, reenviosRealizados]);
+  }, [tentativaId, enviando, erro, reenviado, esperaEfetiva, reenviosRealizados]);
 
-  // Submete automaticamente uma única vez ao completar 6 dígitos novos.
+  // Submete automaticamente uma única vez ao completar 6 dígitos novos fora de composição IME.
   useEffect(() => {
     if (
       deveAutoSubmeterCodigoOtp({
         codigo,
         enviando,
+        emComposicao,
         codigoComErro,
         ultimoSubmetido: ultimoSubmetidoRef.current,
       }) &&
       formRef.current
     ) {
+      const id = gerarTentativaId("confirmar");
       ultimoSubmetidoRef.current = codigo;
       ultimaIntencaoRef.current = "confirmar";
       const formData = new FormData(formRef.current);
       formData.set("intencao", intencaoConfirmar);
+      formData.set("tentativa_id", id);
       void submit(formData, { method: "post" });
     }
-  }, [codigo, enviando, codigoComErro, intencaoConfirmar, submit]);
+  }, [codigo, enviando, emComposicao, codigoComErro, intencaoConfirmar, submit]);
 
   const confirmarHabilitado = podeConfirmarCodigoOtp(codigo, enviando);
   const atingiuLimiteReenvios = reenviosRealizados >= LIMITE_REENVIOS_OTP;
@@ -219,13 +244,18 @@ export function PassoCodigoOtp({
         method="post"
         className="flex flex-col gap-4"
         noValidate
-        onSubmit={() => {
+        onSubmit={(evento) => {
           ultimaIntencaoRef.current = "confirmar";
+          const campoTentativa = evento.currentTarget.elements.namedItem("tentativa_id");
+          if (campoTentativa instanceof HTMLInputElement) {
+            campoTentativa.value = gerarTentativaId("confirmar");
+          }
         }}
       >
         <h1 className="font-titulo text-3xl font-bold">{titulo}</h1>
         <p className="text-tinta-suave">{descricao}</p>
         <input type="hidden" name="email" value={email} />
+        <input type="hidden" name="tentativa_id" defaultValue="" />
         {desafioId ? <input type="hidden" name="desafio_id" value={desafioId} /> : null}
         <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
           {rotuloDoCodigo}
@@ -239,6 +269,16 @@ export function PassoCodigoOtp({
             required
             autoFocus
             value={codigo}
+            onCompositionStart={() => setEmComposicao(true)}
+            onCompositionEnd={(evento) => {
+              setEmComposicao(false);
+              const proximo = normalizarCodigoOtp(evento.currentTarget.value);
+              if (proximo !== codigo) {
+                setCodigoComErro(null);
+                ultimoSubmetidoRef.current = null;
+              }
+              setCodigo(proximo);
+            }}
             onChange={(evento) => {
               const proximo = normalizarCodigoOtp(evento.target.value);
               if (proximo !== codigo) {
@@ -281,11 +321,16 @@ export function PassoCodigoOtp({
       <Form
         method="post"
         className="flex flex-wrap items-center gap-x-6 gap-y-2"
-        onSubmit={() => {
+        onSubmit={(evento) => {
           ultimaIntencaoRef.current = "reenviar";
+          const campoTentativa = evento.currentTarget.elements.namedItem("tentativa_id");
+          if (campoTentativa instanceof HTMLInputElement) {
+            campoTentativa.value = gerarTentativaId("reenviar");
+          }
         }}
       >
         <input type="hidden" name="email" value={email} />
+        <input type="hidden" name="tentativa_id" defaultValue="" />
         {desafioId ? <input type="hidden" name="desafio_id" value={desafioId} /> : null}
         {incluirCampoReenvio ? <input type="hidden" name="reenvio" value="1" /> : null}
         {atingiuLimiteReenvios ? (

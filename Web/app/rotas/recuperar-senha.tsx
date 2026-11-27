@@ -9,8 +9,8 @@ import type { Route } from "./+types/recuperar-senha";
 
 type Erro = keyof typeof textos.recuperarSenha.erros;
 type Passo =
-  | { passo: "email"; email: string; erro?: Erro }
-  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro };
+  | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
+  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,30 +31,32 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const codigo = String(formulario.get("codigo") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "pedir");
   const ehReenvio = String(formulario.get("reenvio") ?? "") === "1";
+  const tentativaId = String(formulario.get("tentativa_id") ?? "").trim() || undefined;
+  const comTentativa = <T extends Passo>(passo: T): T => (tentativaId ? { ...passo, tentativaId } : passo);
 
   if (!FORMATO_DO_EMAIL.test(email) || email.length > 254) {
-    return { passo: "email", email, erro: "email_invalido" };
+    return comTentativa({ passo: "email", email, erro: "email_invalido" });
   }
   const auth = authDesteAmbiente();
   if (!auth) {
-    return { passo: ehReenvio ? "codigo" : "email", email, erro: "indisponivel" };
+    return comTentativa({ passo: ehReenvio ? "codigo" : "email", email, erro: "indisponivel" });
   }
 
   if (emailsDeDemonstracao().has(email)) {
-    return { passo: "email", email, erro: "conta_demo" };
+    return comTentativa({ passo: "email", email, erro: "conta_demo" });
   }
 
   if (intencao === "pedir") {
     const pedido = await auth.pedirCodigoRecuperacao(email);
     if (!pedido.ok) {
-      return { passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo };
+      return comTentativa({ passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo });
     }
     // Anti-enumeração: existente, inexistente e social-only produzem exatamente o mesmo passo/estado/UI.
-    return ehReenvio ? { passo: "codigo", email, reenviado: true } : { passo: "codigo", email };
+    return comTentativa(ehReenvio ? { passo: "codigo", email, reenviado: true } : { passo: "codigo", email });
   }
 
   if (!/^\d{6}$/.test(codigo)) {
-    return { passo: "codigo", email, erro: "codigo_incompleto" };
+    return comTentativa({ passo: "codigo", email, erro: "codigo_incompleto" });
   }
   const lembrarDispositivo = formulario.get("lembrar_dispositivo") === "sim";
   const entrada = await auth.confirmarDispositivoOtp({
@@ -65,7 +67,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
     visitante: visitanteDoPedido(request),
   });
   if (!entrada.ok) {
-    return { passo: "codigo", email, erro: entrada.motivo };
+    return comTentativa({ passo: "codigo", email, erro: entrada.motivo });
   }
 
   const seguro = ehPedidoSeguro(request);
@@ -143,6 +145,7 @@ export default function RecuperarSenha({ actionData }: Route.ComponentProps) {
           enviando={enviando}
           erro={erro}
           reenviado={estado.reenviado}
+          tentativaId={estado.tentativaId}
           mensagemReenvio={textos.recuperarSenha.mensagemReenvio}
           mostrarLembrarDispositivo
           textoLembrarDispositivo={textos.recuperarSenha.lembrarDispositivo}

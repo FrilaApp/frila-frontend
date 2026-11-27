@@ -21,8 +21,8 @@ import type { Route } from "./+types/entrar";
 
 type Erro = keyof typeof textos.entrar.erros;
 type Passo =
-  | { passo: "email"; email: string; erro?: Erro }
-  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro }
+  | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
+  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string }
   | {
       passo: "desafio";
       email: string;
@@ -30,6 +30,7 @@ type Passo =
       reenviado?: boolean;
       reenviarEmSegundos?: number;
       erro?: Erro;
+      tentativaId?: string;
     };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -63,6 +64,8 @@ export async function action({ request }: Route.ActionArgs) {
   const codigo = String(formulario.get("codigo") ?? "").trim();
   const desafioId = String(formulario.get("desafio_id") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "");
+  const tentativaId = String(formulario.get("tentativa_id") ?? "").trim() || undefined;
+  const comTentativa = <T extends Passo>(passo: T): T => (tentativaId ? { ...passo, tentativaId } : passo);
   const seguro = ehPedidoSeguro(request);
   const visitante = visitanteDoPedido(request);
 
@@ -117,9 +120,9 @@ export async function action({ request }: Route.ActionArgs) {
     });
     if (!res.ok) {
       if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
-        return { passo: "email", email, erro: res.motivo } satisfies Passo;
+        return comTentativa({ passo: "email", email, erro: res.motivo }) satisfies Passo;
       }
-      return { passo: "desafio", email, desafioId, erro: res.motivo } satisfies Passo;
+      return comTentativa({ passo: "desafio", email, desafioId, erro: res.motivo }) satisfies Passo;
     }
     const cabecalhos = new Headers();
     for (const linha of cookiesDaSessao(res.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
@@ -134,17 +137,17 @@ export async function action({ request }: Route.ActionArgs) {
     const res = await auth.reenviarDispositivoOtp({ desafioId, visitante });
     if (!res.ok) {
       if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
-        return { passo: "email", email, erro: res.motivo } satisfies Passo;
+        return comTentativa({ passo: "email", email, erro: res.motivo }) satisfies Passo;
       }
-      return { passo: "desafio", email, desafioId, erro: res.motivo } satisfies Passo;
+      return comTentativa({ passo: "desafio", email, desafioId, erro: res.motivo }) satisfies Passo;
     }
-    return {
+    return comTentativa({
       passo: "desafio",
       email,
       desafioId,
       reenviado: true,
       reenviarEmSegundos: res.reenviarEmSegundos,
-    } satisfies Passo;
+    }) satisfies Passo;
   }
 
   // Intenção padrão: login habitual por e-mail e senha com validação server-side de dispositivo confiável
@@ -298,6 +301,7 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
           erro={erro}
           reenviado={estado.reenviado}
           reenviarEmSegundos={estado.reenviarEmSegundos}
+          tentativaId={estado.tentativaId}
           mensagemReenvio={textos.entrar.mensagemReenvioDesafio}
           mostrarLembrarDispositivo
           textoLembrarDispositivo={textos.entrar.lembrarDispositivo}

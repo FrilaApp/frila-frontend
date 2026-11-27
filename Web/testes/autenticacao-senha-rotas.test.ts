@@ -608,6 +608,15 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
     expect(
       deveAutoSubmeterCodigoOtp({ codigo: "654321", enviando: false, codigoComErro: "123456", ultimoSubmetido: "123456" }),
     ).toBe(true);
+    expect(
+      deveAutoSubmeterCodigoOtp({
+        codigo: "654321",
+        enviando: false,
+        emComposicao: true,
+        codigoComErro: null,
+        ultimoSubmetido: null,
+      }),
+    ).toBe(false);
   });
 
   it("usa fallback conservador 60s quando servidor não informa reenviarEmSegundos e respeita valor real quando informado", () => {
@@ -702,6 +711,29 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
       codigoComErro: null,
       limparCodigo: true,
     });
+  });
+
+  it("actions propagam tentativaId em erros iguais consecutivos e em reenviar_desafio sem depender de render intermediário", async () => {
+    authMock.confirmarDispositivoOtp
+      .mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" })
+      .mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" });
+
+    const r1 = await entrarAction(
+      argumentos(
+        "/entrar",
+        { email: "pessoa@frila.test", desafio_id: "des-1", codigo: "111111", intencao: "confirmar_desafio", tentativa_id: "t-1" },
+        false,
+      ),
+    );
+    const r2 = await entrarAction(
+      argumentos(
+        "/entrar",
+        { email: "pessoa@frila.test", desafio_id: "des-1", codigo: "222222", intencao: "confirmar_desafio", tentativa_id: "t-2" },
+        false,
+      ),
+    );
+    expect(r1).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "codigo_invalido", tentativaId: "t-1" });
+    expect(r2).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "codigo_invalido", tentativaId: "t-2" });
   });
 
   it("entrarAction propaga reenviarEmSegundos real do servidor em reenviar_desafio", async () => {
