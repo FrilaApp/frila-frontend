@@ -50,9 +50,13 @@ class DetalheVagaViewModel(
         escopoDeTrabalho.launch {
             try {
                 val lido = servicoVagas.detalheVaga(vagaId)
-                _estado.update { if (it.detalhe == null) it.copy(detalhe = lido) else it }
+                val aberta = lido.estado == AberturaDeVagaViewModel.ESTADO_PUBLICADA && lido.posicoesAbertas > 0
+                _estado.update { if (it.detalhe == null) it.copy(detalhe = lido, indisponivel = !aberta) else it }
             } catch (erro: CancellationException) {
                 throw erro
+            } catch (erro: ErroDaApi) {
+                // `404`: a vaga não existe mais para esta pessoa (iOS `.naoEncontrada`). Qualquer outra falha (rede, 5xx...) fica silenciosa.
+                if (erro.codigo == CodigoErroAPI.NAO_ENCONTRADO) _estado.update { it.copy(indisponivel = true) }
             } catch (_: Exception) {
                 // Fica o que veio do feed.
             }

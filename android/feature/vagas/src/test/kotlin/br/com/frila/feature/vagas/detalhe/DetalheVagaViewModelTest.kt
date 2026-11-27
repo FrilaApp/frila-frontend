@@ -718,7 +718,8 @@ class DetalheVagaViewModelTest {
 
     @Test
     fun `se a leitura do detalhe falha, fica o que veio do feed, sem erro de tela`() = runBlocking {
-        val engine = MockEngine { respond("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound, cabecalhoJson) }
+        // Falha de rede/servidor (um 404 agora marca a vaga como indisponível: item 160).
+        val engine = MockEngine { respond("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError, cabecalhoJson) }
         val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
         val vaga = vagaDe("selecao")
         val vm = DetalheVagaViewModel(vaga, ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
@@ -743,5 +744,66 @@ class DetalheVagaViewModelTest {
 
         assertEquals(0, pedidos.get())
         assertEquals("Procure a gerente no balcão", vm.estado.value.detalhe!!.responsavelLocal)
+    }
+
+    // ── A vaga aberta pelo feed que já não está disponível (DLjTVc2e, item 160) ──────────────────────────────────────
+
+    private fun viewModelQueLe(resposta: String, status: HttpStatusCode): DetalheVagaViewModel {
+        val engine = MockEngine { respond(resposta, status, cabecalhoJson) }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        return DetalheVagaViewModel(vagaDe("selecao"), ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+    }
+
+    private fun esperarALeitura(vm: DetalheVagaViewModel, pronto: (EstadoDetalheVaga) -> Boolean) = runBlocking {
+        kotlinx.coroutines.withTimeout(5_000) { while (!pronto(vm.estado.value)) kotlinx.coroutines.delay(5) }
+    }
+
+    private fun vagaJson(estado: String, posicoesAbertas: Int) =
+        ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor(estado = estado, posicoesAbertas = posicoesAbertas))
+
+    @Test
+    fun `404 de detalhe_vaga marca a vaga como indisponivel, sem trocar a vaga do feed`() {
+        val vm = viewModelQueLe("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound)
+        esperarALeitura(vm) { it.indisponivel }
+
+        assertEquals(true, vm.estado.value.indisponivel)
+        assertEquals(vagaDe("selecao"), vm.estado.value.vaga)
+        assertEquals(null, vm.estado.value.detalhe)
+        assertEquals(null, vm.estado.value.mensagem)
+    }
+
+    @Test
+    fun `200 com a vaga encerrada, preenchida ou sem posicao aberta marca como indisponivel`() {
+        listOf("encerrada" to 2, "preenchida" to 0, "cancelada" to 2, "publicada" to 0).forEach { (estado, abertas) ->
+            val vm = viewModelQueLe(vagaJson(estado, abertas), HttpStatusCode.OK)
+            esperarALeitura(vm) { it.detalhe != null }
+            assertEquals(true, vm.estado.value.indisponivel, "estado=$estado abertas=$abertas")
+        }
+    }
+
+    @Test
+    fun `200 com a vaga publicada e com posicao aberta segue disponivel`() {
+        val vm = viewModelQueLe(vagaJson("publicada", 2), HttpStatusCode.OK)
+        esperarALeitura(vm) { it.detalhe != null }
+        assertEquals(false, vm.estado.value.indisponivel)
+    }
+
+    @Test
+    fun `falha de rede ou erro do servidor continua silenciosa e a vaga segue disponivel`() {
+        listOf(HttpStatusCode.InternalServerError, HttpStatusCode.BadGateway, HttpStatusCode.Forbidden).forEach { status ->
+            val vm = viewModelQueLe("""{"code":"erro_interno","message":"x"}""", status)
+            runBlocking { kotlinx.coroutines.delay(300) }
+            assertEquals(false, vm.estado.value.indisponivel, "status=$status")
+            assertEquals(null, vm.estado.value.detalhe, "status=$status")
+        }
+    }
+
+    @Test
+    fun `aberta pelo id, com o detalhe ja lido, nao marca indisponivel nem le`() {
+        val engine = MockEngine { respond("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound, cabecalhoJson) }
+        val cliente = ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)
+        val vm = DetalheVagaViewModel(vagaDe("selecao"), ServicoVagas(cliente), detalhe = vagaDoServidor(), escopo = CoroutineScope(Dispatchers.Default))
+        runBlocking { kotlinx.coroutines.delay(300) }
+        assertEquals(false, vm.estado.value.indisponivel)
     }
 }
