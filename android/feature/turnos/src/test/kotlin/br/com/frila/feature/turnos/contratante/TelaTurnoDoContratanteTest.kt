@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -316,4 +317,65 @@ class TelaTurnoDoContratanteTest {
         assertEquals(0, contar("Ver avaliação"))
         assertEquals(0, contar("Avaliar turno"))
     }
+
+    // ── A avaliação só libera depois do fim previsto (rWpiTL8g) ───────────────────────────────────────────────────────
+
+    /** 23:30 em UTC são 20:30 em São Paulo: a hora do aviso tem de sair no fuso do Frila. */
+    private val fimDoTurno = Instant.parse("2026-11-12T23:30:00Z")
+
+    private fun verificadoComRelogio(agora: () -> Instant) =
+        estado(verificacao = "verificado", checkinTipo = "manual", fim = fimDoTurno.toString()).copy(agora = agora)
+
+    @Test
+    fun `antes do fim mostra quando a avaliacao libera, na hora de Sao Paulo, e nao oferece Avaliar turno`() {
+        val avaliou = montarAvaliacao(verificadoComRelogio { fimDoTurno.minusSeconds(3_600) })
+
+        rule.onNodeWithText("A avaliação libera às 20:30").assertIsDisplayed()
+        assertEquals(0, contar("Avaliar turno"))
+        assertEquals(0, contar("Como foi sua experiência no turno?"))
+        assertEquals(emptyList<String>(), avaliou)
+    }
+
+    private fun verificarQueOfereceAvaliar(agora: Instant) {
+        val avaliou = montarAvaliacao(verificadoComRelogio { agora })
+        rule.onNodeWithText("Avaliar turno").performClick()
+        assertEquals(listOf("t1"), avaliou)
+        assertEquals(0, rule.onAllNodesWithTag("aviso-avaliacao-libera").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `no fim previsto ja oferece Avaliar turno, sem o aviso`() = verificarQueOfereceAvaliar(fimDoTurno)
+
+    @Test
+    fun `depois do fim oferece Avaliar turno, sem o aviso`() = verificarQueOfereceAvaliar(fimDoTurno.plusSeconds(60))
+
+    @Test
+    fun `com a tela aberta, o aviso da lugar ao botao quando o fim passa`() {
+        rule.mainClock.autoAdvance = false
+        var agora = fimDoTurno.minusSeconds(600)
+        montarAvaliacao(verificadoComRelogio { agora })
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("A avaliação libera às 20:30").assertExists()
+        assertEquals(0, contar("Avaliar turno"))
+
+        agora = fimDoTurno.plusSeconds(1)
+        rule.mainClock.advanceTimeBy(601_000)
+        rule.mainClock.advanceTimeByFrame()
+
+        rule.onNodeWithText("Avaliar turno").assertExists()
+        assertEquals(0, rule.onAllNodesWithTag("aviso-avaliacao-libera").fetchSemanticsNodes().size)
+    }
+
+    private fun verificarCancelada(agora: Instant) {
+        val base = verificadoComRelogio { agora }
+        montarAvaliacao(base.copy(contexto = base.contexto.copy(estadoDaPosicao = "cancelada")))
+        assertEquals(0, contar("Avaliar turno"))
+        assertEquals(0, rule.onAllNodesWithTag("aviso-avaliacao-libera").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `posicao cancelada antes do fim nao mostra o aviso`() = verificarCancelada(fimDoTurno.minusSeconds(3_600))
+
+    @Test
+    fun `posicao cancelada depois do fim nao oferece a avaliacao`() = verificarCancelada(fimDoTurno.plusSeconds(60))
 }
