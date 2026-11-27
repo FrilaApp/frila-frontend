@@ -2,10 +2,12 @@ package br.com.frila.feature.vagas.detalhe
 
 import android.content.Intent
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -710,5 +712,36 @@ class TelaDetalheVagaTest {
     fun `aberta pela lista, sem o detalhe do servidor, a tela nao inventa o rateio`() {
         compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
         assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
+    }
+
+    // ---- 3k9E6ojp: tocar no nome da casa abre o perfil público, uma vez só ----
+
+    @Test
+    fun `tocar no nome da casa abre o perfil dela uma vez, mesmo com dois toques`() {
+        val abertos = mutableListOf<String>()
+        val viewModel = criarViewModel(criarVaga())
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModel, aoAbrirPerfilDaCasa = { abertos += it }) } }
+
+        compose.onNodeWithTag(TAG_ABRIR_PERFIL_DA_CASA)
+            .assertHasClickAction()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assert(hasText("Bar do Zé"))
+            .performClick()
+        compose.onNodeWithTag(TAG_ABRIR_PERFIL_DA_CASA).performClick()
+        compose.waitForIdle()
+
+        assertEquals(listOf("e1"), abertos)
+    }
+
+    @Test
+    fun `sem o caminho do perfil o nome da casa e so titulo, sem toque`() {
+        val viewModel = criarViewModel(criarVaga())
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModel) } }
+
+        compose.onNodeWithTag(TAG_ABRIR_PERFIL_DA_CASA)
+            .assertHasNoClickAction()
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assert(hasText("Bar do Zé"))
     }
 }

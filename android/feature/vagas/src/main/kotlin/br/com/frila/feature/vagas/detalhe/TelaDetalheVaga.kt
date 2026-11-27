@@ -6,10 +6,12 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -27,6 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.rede.ReputacaoDto
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
@@ -74,6 +80,11 @@ private val FORMATO_HORA: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm
 @Composable
 fun TelaDetalheVaga(
     viewModel: DetalheVagaViewModel,
+    /**
+     * Tocar no nome da casa abre o perfil público dela, com o id do estabelecimento (como o iOS, `TelaDetalheVaga.swift`). Nulo
+     * (o padrão) deixa o nome só como título, sem toque.
+     */
+    aoAbrirPerfilDaCasa: ((estabelecimentoId: String) -> Unit)? = null,
     modifier: Modifier = Modifier,
     verificarPermissaoNotificacao: (Context) -> Boolean = { ctx ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -214,14 +225,8 @@ fun TelaDetalheVaga(
                 .padding(top = FrilaEspacamento.item, bottom = FrilaEspacamento.grupo),
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
         ) {
-            // A casa em caixa alta; o leitor de tela lê o nome como ele é.
-            TituloDaTela(
-                texto = vaga.estabelecimento.nome.uppercase(PT_BR),
-                modifier = Modifier.clearAndSetSemantics {
-                    heading()
-                    text = AnnotatedString(vaga.estabelecimento.nome)
-                },
-            )
+            // A casa em caixa alta; o leitor de tela lê o nome como ele é. Com o caminho do perfil, o nome é o botão que o abre.
+            CabecalhoDaCasa(nome = vaga.estabelecimento.nome, aoAbrir = aoAbrirPerfilDaCasa?.let { abrir -> { abrir(vaga.estabelecimento.id) } })
 
             // A reputação da casa, logo abaixo do nome (iOS `reputacaoDaCasa`): quantas avaliações indicam que trabalhariam lá de novo.
             Text(
@@ -375,3 +380,51 @@ internal fun textoDaReputacaoDaCasa(reputacao: ReputacaoDto): String =
     } else {
         "${TextosDaReputacaoDaCasa.contagem(reputacao.positivas, reputacao.total)} ${TextosDaReputacaoDaCasa.AVALIACOES_TRABALHARIAM_LA_DE_NOVO}"
     }
+
+/**
+ * O nome da casa no topo do detalhe. Com [aoAbrir], tocar abre o perfil público uma vez só: um segundo toque antes de a tela
+ * sair não navega de novo. Voltando do perfil, o nome abre de novo.
+ */
+@Composable
+private fun CabecalhoDaCasa(nome: String, aoAbrir: (() -> Unit)?) {
+    // `remember`, e não `rememberSaveable`: o detalhe sai da composição quando o perfil abre, e volta com a trava desligada.
+    var abrindo by remember { mutableStateOf(false) }
+    val abrirUmaVez: (() -> Unit)? = aoAbrir?.let { abrir ->
+        {
+            if (!abrindo) {
+                abrindo = true
+                abrir()
+            }
+        }
+    }
+    TituloDaTela(
+        texto = nome.uppercase(PT_BR),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (abrirUmaVez == null) {
+                    Modifier
+                } else {
+                    Modifier
+                        .heightIn(min = FrilaMetricas.alvoMinimo)
+                        .clickable(role = Role.Button, onClickLabel = TEXTO_VER_PERFIL_DA_CASA, onClick = abrirUmaVez)
+                },
+            )
+            .testTag(TAG_ABRIR_PERFIL_DA_CASA)
+            .clearAndSetSemantics {
+                heading()
+                text = AnnotatedString(nome)
+                if (abrirUmaVez != null) {
+                    role = Role.Button
+                    onClick(label = TEXTO_VER_PERFIL_DA_CASA) {
+                        abrirUmaVez()
+                        true
+                    }
+                }
+            },
+    )
+}
+
+/** O mesmo identificador e a mesma dica do iOS. */
+internal const val TAG_ABRIR_PERFIL_DA_CASA = "abrir-perfil-estabelecimento"
+internal const val TEXTO_VER_PERFIL_DA_CASA = "Ver perfil público"

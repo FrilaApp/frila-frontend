@@ -50,6 +50,8 @@ import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.rede.StatusConectividade
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
+import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
+import br.com.frila.feature.chamadas.casa.TelaPerfilPublico
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
 import br.com.frila.feature.conta.ContaSuspensaViewModel
 import br.com.frila.feature.conta.ContestarDespachoViewModel
@@ -194,6 +196,9 @@ object Rotas {
     const val APARENCIA = "aparencia"
     const val AJUDA = "ajuda"
     const val LICENCAS = "licencas"
+    /** O perfil público da casa, aberto pelo nome dela no detalhe da vaga (3k9E6ojp). */
+    const val PERFIL_DA_CASA = "vaga_casa/{estabelecimentoId}"
+    fun perfilDaCasa(estabelecimentoId: String) = "vaga_casa/$estabelecimentoId"
     const val VAGA_INDISPONIVEL = "vaga_indisponivel"
     const val ATUALIZACAO_OBRIGATORIA = "atualizacao_obrigatoria"
     const val TURNO_NAO_ENCONTRADO = "turno_nao_encontrado"
@@ -908,6 +913,7 @@ fun AppNavegacao(
                             TelaDetalheVaga(
                                 viewModel = viewModel,
                                 aoVoltar = voltarDoDetalhe,
+                                aoAbrirPerfilDaCasa = { navController.navigate(Rotas.perfilDaCasa(it)) },
                                 aoNavegarParaConfirmada = { vagaConfirmada, _ ->
                                     navegarComVaga(navController, Rotas.turnoConfirmado(vagaConfirmada.id), vagaConfirmada)
                                 },
@@ -940,6 +946,7 @@ fun AppNavegacao(
                             TelaDetalheVaga(
                                 viewModel = viewModel,
                                 aoVoltar = voltarDoDetalhe,
+                                aoAbrirPerfilDaCasa = { navController.navigate(Rotas.perfilDaCasa(it)) },
                                 aoNavegarParaConfirmada = { vagaConfirmada, _ ->
                                     navegarComVaga(navController, Rotas.turnoConfirmado(vagaConfirmada.id), vagaConfirmada)
                                 },
@@ -958,6 +965,18 @@ fun AppNavegacao(
                             )
                         }
                     }
+                }
+            }
+
+            composable(
+                route = Rotas.PERFIL_DA_CASA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    val viewModel: PerfilPublicoViewModel = koinViewModel(parameters = { parametersOf(estabelecimentoId) })
+                    // O profissional só lê o perfil da casa: sem "Chamar", que é da casa chamando um profissional.
+                    TelaPerfilPublico(viewModel = viewModel, aoVoltar = { navController.popBackStack() })
                 }
             }
 
