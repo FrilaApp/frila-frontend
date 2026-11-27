@@ -16,13 +16,22 @@ import {
   visitanteDoPedido,
 } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
+import { PassoCodigoOtp } from "./passo-codigo-otp";
 import type { Route } from "./+types/entrar";
 
 type Erro = keyof typeof textos.entrar.erros;
 type Passo =
-  | { passo: "email"; email: string; erro?: Erro }
-  | { passo: "codigo"; email: string; erro?: Erro }
-  | { passo: "desafio"; email: string; desafioId: string; reenviado?: boolean; erro?: Erro };
+  | { passo: "email"; email: string; erro?: Erro; tentativaId?: string }
+  | { passo: "codigo"; email: string; reenviado?: boolean; erro?: Erro; tentativaId?: string }
+  | {
+      passo: "desafio";
+      email: string;
+      desafioId: string;
+      reenviado?: boolean;
+      reenviarEmSegundos?: number;
+      erro?: Erro;
+      tentativaId?: string;
+    };
 
 const FORMATO_DO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TERMOS = "https://frilabr.com/termos";
@@ -55,6 +64,8 @@ export async function action({ request }: Route.ActionArgs) {
   const codigo = String(formulario.get("codigo") ?? "").trim();
   const desafioId = String(formulario.get("desafio_id") ?? "").trim();
   const intencao = String(formulario.get("intencao") ?? "");
+  const tentativaId = String(formulario.get("tentativa_id") ?? "").trim() || undefined;
+  const comTentativa = <T extends Passo>(passo: T): T => (tentativaId ? { ...passo, tentativaId } : passo);
   const seguro = ehPedidoSeguro(request);
   const visitante = visitanteDoPedido(request);
 
@@ -109,9 +120,9 @@ export async function action({ request }: Route.ActionArgs) {
     });
     if (!res.ok) {
       if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
-        return { passo: "email", email, erro: res.motivo } satisfies Passo;
+        return comTentativa({ passo: "email", email, erro: res.motivo }) satisfies Passo;
       }
-      return { passo: "desafio", email, desafioId, erro: res.motivo } satisfies Passo;
+      return comTentativa({ passo: "desafio", email, desafioId, erro: res.motivo }) satisfies Passo;
     }
     const cabecalhos = new Headers();
     for (const linha of cookiesDaSessao(res.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
@@ -126,11 +137,17 @@ export async function action({ request }: Route.ActionArgs) {
     const res = await auth.reenviarDispositivoOtp({ desafioId, visitante });
     if (!res.ok) {
       if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
-        return { passo: "email", email, erro: res.motivo } satisfies Passo;
+        return comTentativa({ passo: "email", email, erro: res.motivo }) satisfies Passo;
       }
-      return { passo: "desafio", email, desafioId, erro: res.motivo } satisfies Passo;
+      return comTentativa({ passo: "desafio", email, desafioId, erro: res.motivo }) satisfies Passo;
     }
-    return { passo: "desafio", email, desafioId, reenviado: true } satisfies Passo;
+    return comTentativa({
+      passo: "desafio",
+      email,
+      desafioId,
+      reenviado: true,
+      reenviarEmSegundos: res.reenviarEmSegundos,
+    }) satisfies Passo;
   }
 
   // Intenção padrão: login habitual por e-mail e senha com validação server-side de dispositivo confiável
@@ -265,99 +282,60 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
           </div>
         </Form>
       ) : estado.passo === "desafio" ? (
-        <div className="flex flex-col gap-4">
-          <Form method="post" className="flex flex-col gap-4" noValidate>
-            <h1 className="font-titulo text-3xl font-bold">{textos.entrar.tituloDoDesafio}</h1>
-            <p className="text-tinta-suave">
+        <PassoCodigoOtp
+          titulo={textos.entrar.tituloDoDesafio}
+          descricao={
+            <>
               {textos.entrar.corpoDoDesafio} <strong className="break-all text-tinta">{estado.email}</strong>
-            </p>
-            <input type="hidden" name="email" value={estado.email} />
-            <input type="hidden" name="desafio_id" value={estado.desafioId} />
-            <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
-              {textos.entrar.rotuloDoCodigo}
-              <input
-                id="codigo"
-                name="codigo"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                autoFocus
-                aria-invalid={erro ? true : undefined}
-                aria-describedby={erro ? "erro" : undefined}
-                className={`${classeDoCampo} tracking-widest`}
-              />
-            </label>
-            <label className="flex min-h-11 items-center gap-3 text-sm">
-              <input type="checkbox" name="lembrar_dispositivo" value="sim" className="size-5 shrink-0" />
-              <span>{textos.entrar.lembrarDispositivo}</span>
-            </label>
-            {erro ? (
-              <p id="erro" role="alert" className="font-semibold">
-                {erro}
-              </p>
-            ) : null}
-            {estado.reenviado && !erro ? (
-              <p role="status" className="font-semibold">
-                {textos.entrar.mensagemReenvioDesafio}
-              </p>
-            ) : null}
-            <button type="submit" name="intencao" value="confirmar_desafio" disabled={enviando} className={classeDoBotao}>
-              {enviando ? textos.entrar.conferindo : textos.entrar.confirmar}
-            </button>
-          </Form>
-          <Form method="post" className="flex flex-wrap gap-x-6 gap-y-2">
-            <input type="hidden" name="email" value={estado.email} />
-            <input type="hidden" name="desafio_id" value={estado.desafioId} />
-            <button type="submit" name="intencao" value="reenviar_desafio" disabled={enviando} className={classeDoLink}>
-              {textos.entrar.reenviar}
-            </button>
+            </>
+          }
+          email={estado.email}
+          desafioId={estado.desafioId}
+          rotuloDoCodigo={textos.entrar.rotuloDoCodigo}
+          textoConfirmar={textos.entrar.confirmar}
+          textoConferindo={textos.entrar.conferindo}
+          textoReenviar={textos.entrar.reenviar}
+          intencaoConfirmar="confirmar_desafio"
+          intencaoReenviar="reenviar_desafio"
+          enviando={enviando}
+          erro={erro}
+          reenviado={estado.reenviado}
+          reenviarEmSegundos={estado.reenviarEmSegundos}
+          tentativaId={estado.tentativaId}
+          mensagemReenvio={textos.entrar.mensagemReenvioDesafio}
+          mostrarLembrarDispositivo
+          textoLembrarDispositivo={textos.entrar.lembrarDispositivo}
+          acaoVoltar={
             <Link to="/entrar" className={`${classeDoLink} inline-flex items-center`}>
               {textos.entrar.voltarAoLogin}
             </Link>
-          </Form>
-        </div>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-4">
-          <Form method="post" className="flex flex-col gap-4" noValidate>
-            <h1 className="font-titulo text-3xl font-bold">{textos.entrar.tituloDoCodigo}</h1>
-            <p className="text-tinta-suave">
-              {textos.entrar.corpoDoCodigo} <strong className="break-all text-tinta">{estado.email}</strong>.
-            </p>
-            <input type="hidden" name="email" value={estado.email} />
-            <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
-              {textos.entrar.rotuloDoCodigo}
-              <input
-                id="codigo"
-                name="codigo"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                autoFocus
-                aria-invalid={erro ? true : undefined}
-                aria-describedby={erro ? "erro" : undefined}
-                className={`${classeDoCampo} tracking-widest`}
-              />
-            </label>
-            {erro ? (
-              <p id="erro" role="alert" className="font-semibold">
-                {erro}
-              </p>
-            ) : null}
-            <button type="submit" name="intencao" value="confirmar" disabled={enviando} className={classeDoBotao}>
-              {enviando ? textos.entrar.conferindo : textos.entrar.confirmar}
-            </button>
-          </Form>
-          <Form method="post" className="flex flex-wrap gap-x-6 gap-y-2">
-            <input type="hidden" name="email" value={estado.email} />
-            <button type="submit" name="intencao" value="pedir" disabled={enviando} className={classeDoLink}>
-              {textos.entrar.reenviar}
-            </button>
-            <a href="" className={`${classeDoLink} inline-flex items-center`}>
-              {textos.entrar.trocarEmail}
-            </a>
-          </Form>
+          <PassoCodigoOtp
+            titulo={textos.entrar.tituloDoCodigo}
+            descricao={
+              <>
+                {textos.entrar.corpoDoCodigo} <strong className="break-all text-tinta">{estado.email}</strong>.
+              </>
+            }
+            email={estado.email}
+            rotuloDoCodigo={textos.entrar.rotuloDoCodigo}
+            textoConfirmar={textos.entrar.confirmar}
+            textoConferindo={textos.entrar.conferindo}
+            textoReenviar={textos.entrar.reenviar}
+            intencaoConfirmar="confirmar"
+            intencaoReenviar="pedir"
+            enviando={enviando}
+            erro={erro}
+            reenviado={estado.reenviado}
+            acaoVoltar={
+              <a href="" className={`${classeDoLink} inline-flex items-center`}>
+                {textos.entrar.trocarEmail}
+              </a>
+            }
+          />
           <div className="pt-2">
             <Link to="/entrar" className={`${classeDoLink} text-sm`}>
               {textos.entrar.voltarAoLogin}
