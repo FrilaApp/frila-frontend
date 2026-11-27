@@ -29,6 +29,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.request
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.ContentType
@@ -244,10 +245,12 @@ class ClienteSupabase(
     private suspend fun renovarTokens(parametros: RefreshTokensParams): BearerTokens? {
         val armazenamento = armazenamentoDeSessao ?: return null
         val sessaoAtual = armazenamento.obterSessao() ?: return null
-        // A renovação é da conta cuja chamada tomou 401 (`oldTokens`), não de quem estiver guardado agora. Se outra conta entrou
-        // no meio, não há o que renovar: a chamada antiga volta 401 para quem a fez, sem usar nem girar o token da conta nova.
-        val refreshDaChamada = parametros.oldTokens?.refreshToken
-        if (refreshDaChamada != null && refreshDaChamada != sessaoAtual.refreshToken) return null
+        // A renovação é da conta cuja chamada tomou 401, não de quem estiver guardado agora. A âncora é o token que a própria
+        // chamada mandou: no Ktor 2.3.12 o `oldTokens` vem do `AuthTokenHolder`, que outra chamada pode ter recarregado com a
+        // sessão de quem entrou depois (revisão do #1136). Se o token enviado não é o da sessão guardada (outra conta entrou, ou
+        // a chamada foi sem token), não há o que renovar: a chamada volta 401 para quem a fez, sem usar nem girar o token da nova.
+        val tokenEnviado = parametros.response.call.request.headers[HttpHeaders.Authorization]?.removePrefix("Bearer ")
+        if (tokenEnviado != sessaoAtual.accessToken) return null
 
         return try {
             val resposta = parametros.client.post(urlCompleta(CAMINHO_RENOVACAO)) {
