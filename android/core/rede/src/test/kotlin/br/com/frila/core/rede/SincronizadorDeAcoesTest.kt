@@ -165,4 +165,69 @@ class SincronizadorDeAcoesTest {
         assertEquals(listOf(a), enviadas)
         assertTrue(comDisco.pendentes().isEmpty())
     }
+
+    // ── Check-out já gravado e recusado com fora_da_janela (contrato 0.2.83, cartão foXSrNnS) ──────────────────────
+
+    private val turnosConferidos = mutableListOf<String>()
+    private fun comConferencia(resposta: suspend (String) -> Boolean) = SincronizadorDeAcoes(
+        fila, { conta() }, TipoAcaoPendente.entries.associateWith { envio },
+        checkoutJaGravado = { turno -> turnosConferidos += turno; resposta(turno) },
+    )
+
+    @Test fun `checkout recusado por fora_da_janela com a saida ja gravada sai da fila como enviado, sem aviso de recusa`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        comConferencia { true }.sincronizar()
+        assertEquals(listOf("turno-1"), turnosConferidos)
+        assertTrue(fila.pendentes().isEmpty())
+        assertTrue(fila.recusadas(true).isEmpty(), "a saída gravada não é recusa")
+    }
+
+    @Test fun `checkout recusado por fora_da_janela sem a saida gravada segue recusado como antes`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        comConferencia { false }.sincronizar()
+        assertEquals(listOf(TipoAcaoPendente.CHECKOUT to CodigoErroAPI.FORA_DA_JANELA), fila.recusadas().map { it.tipo to it.codigo })
+        assertTrue(fila.pendentes().isEmpty())
+    }
+
+    @Test fun `conferencia sem rede deixa o checkout na fila e para a passada, nunca o da como enviado`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); val depois = acao(TipoAcaoPendente.AVALIACAO)
+        fila.enfileirar(checkout); fila.enfileirar(depois)
+        falha = { if (it.tipo == TipoAcaoPendente.CHECKOUT) erro(CodigoErroAPI.FORA_DA_JANELA) else null }
+        comConferencia { throw erro(CodigoErroAPI.SEM_REDE) }.sincronizar()
+        assertEquals(listOf(checkout, depois), fila.pendentes())
+        assertTrue(fila.recusadas(true).isEmpty())
+        assertEquals(listOf(checkout), enviadas, "a passada para, como no envio sem rede")
+    }
+
+    @Test fun `conferencia que falha de outro jeito mantem a recusa, nunca o da como enviado`() = runTest {
+        for (falhaDaLeitura in listOf<Throwable>(erro(CodigoErroAPI.DESCONHECIDO), IllegalStateException("corpo ilegivel"))) {
+            val checkout = acao(TipoAcaoPendente.CHECKOUT, turno = "turno-${turnosConferidos.size}"); fila.enfileirar(checkout)
+            falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+            comConferencia { throw falhaDaLeitura }.sincronizar()
+            assertTrue(fila.pendentes().none { it.id == checkout.id })
+            assertTrue(fila.recusadas().any { it.id == checkout.id && it.codigo == CodigoErroAPI.FORA_DA_JANELA }, falhaDaLeitura.toString())
+        }
+    }
+
+    @Test fun `a conferencia so acontece no checkout recusado por fora_da_janela`() = runTest {
+        val casos = listOf(
+            acao(TipoAcaoPendente.CHECKOUT, turno = "t-futuro") to erro(CodigoErroAPI.REGISTRO_NO_FUTURO),
+            acao(TipoAcaoPendente.CHECKIN, turno = "t-checkin") to erro(CodigoErroAPI.FORA_DA_JANELA),
+            acao(TipoAcaoPendente.CHECKOUT, turno = "t-aceito") to null,
+        )
+        casos.forEach { fila.enfileirar(it.first) }
+        falha = { a -> casos.first { it.first.id == a.id }.second }
+        comConferencia { true }.sincronizar()
+        assertTrue(turnosConferidos.isEmpty(), "leitura extra só no checkout com fora_da_janela: $turnosConferidos")
+        assertEquals(listOf("t-futuro", "t-checkin"), fila.recusadas().map { it.turnoId })
+    }
+
+    @Test fun `sem a conferencia ligada o checkout com fora_da_janela segue recusado`() = runTest {
+        fila.enfileirar(acao(TipoAcaoPendente.CHECKOUT))
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        sincronizador().sincronizar()
+        assertEquals(listOf(CodigoErroAPI.FORA_DA_JANELA), fila.recusadas().map { it.codigo })
+    }
 }

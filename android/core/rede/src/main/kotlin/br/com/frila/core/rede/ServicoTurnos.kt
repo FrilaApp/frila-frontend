@@ -28,6 +28,14 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
     }
 
     /**
+     * O turno [turnoId] da conta já tem o check-out gravado (`checkout_em`)? Lido de `meus_turnos`. Serve à fila offline: o
+     * reenvio de um check-out já gravado, depois de `fim + 60 min`, volta `422 fora_da_janela` (contrato 0.2.83). Falha de rede
+     * ou de leitura lança, como [listarMeusTurnos]: quem chama decide o que fazer.
+     */
+    suspend fun checkoutGravado(turnoId: String): Boolean =
+        listarMeusTurnos().any { it.id == turnoId && it.checkoutEm != null }
+
+    /**
      * `POST /rest/v1/rpc/fazer_checkin`. O chamador só manda a distância já calculada no
      * aparelho (RN22, minimização LGPD) — nunca a coordenada. Até 200 m o backend confirma
      * `geolocalizado`/`verificado` na hora (RN06); sem localização ou acima de 200 m vira

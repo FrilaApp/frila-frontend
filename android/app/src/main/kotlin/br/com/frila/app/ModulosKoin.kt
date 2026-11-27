@@ -310,6 +310,8 @@ val moduloRede = module {
                 TipoAcaoPendente.CANCELAMENTO_POSICAO to { a -> turnos.cancelarPosicao(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
                 TipoAcaoPendente.CANCELAMENTO_VAGA to { a -> vagas.cancelarVaga(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
             ),
+            // Check-out recusado com fora_da_janela pode já estar gravado (reenvio depois de fim + 60 min, contrato 0.2.83).
+            checkoutJaGravado = turnos::checkoutGravado,
         )
     }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
