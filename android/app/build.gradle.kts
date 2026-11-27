@@ -310,4 +310,12 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // DIAGNOSTICO TEMPORARIO (hWad2l0H): PR de laboratorio, nao sera mesclado.
+    testLogging {
+        events("standard_error", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
+    }
+    beforeSuite(KotlinClosure1<TestDescriptor, Unit>({ if (parent != null && className != null) println("DIAG-CLASSE $className") }))
 }
