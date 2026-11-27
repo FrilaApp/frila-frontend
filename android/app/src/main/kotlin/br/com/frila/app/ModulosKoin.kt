@@ -95,6 +95,7 @@ import br.com.frila.feature.chamadas.profissional.PreferenciasChamadaViewModel
 import br.com.frila.feature.chamadas.profissional.ServicoDeEspecialidades
 import br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel
 import br.com.frila.feature.chamadas.casa.BuscaDeProfissionaisViewModel
+import br.com.frila.feature.chamadas.casa.GuardaDaBusca
 import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.chamadas.casa.ServicoDeRegioes
@@ -162,7 +163,11 @@ val moduloSeguranca = module {
             limparTelemetria = fila::limpar,
             diretorioDosAvatares = contexto?.filesDir,
             // A escala pendente é da conta que saiu: logout, troca e expiração a esvaziam (resolvida só na hora de limpar).
-            limparGuardas = { getOrNull<GuardaDaEscala>()?.limpar() },
+            limparGuardas = {
+                // Cada guarda se esvazia sozinha: uma falha numa não deixa a outra com o que é da conta que saiu.
+                runCatching { getOrNull<GuardaDaEscala>()?.limpar() }
+                runCatching { getOrNull<GuardaDaBusca>()?.limpar() }
+            },
         )
     }
     single<ArmazenamentoDeSessao> {
@@ -632,6 +637,8 @@ val moduloFeatures = module {
             publicarAPartirDaChamada = chamadas::publicarAPartirDaChamada,
         )
     }
+    /** O envio pendente da busca de cada casa, acima da tela; o logout o esvazia pelo [CacheVagasDaSessao], como a guarda da escala. */
+    single { GuardaDaBusca() }
     /** Busca de profissionais (tela PROVISÓRIA até o high-fi do Fabrício), atrás da chave `busca_profissionais`. */
     viewModel { (estabelecimentoId: String) ->
         val chamadas = get<ServicoChamadaDireta>()
@@ -648,6 +655,7 @@ val moduloFeatures = module {
             listarFuncoes = get<ServicoVagas>()::listarFuncoes,
             listarRegioes = get<ServicoDeRegioes>()::regioesAtivas,
             buscarCasa = get<ServicoMembros>()::meuEstabelecimento,
+            guarda = get(),
         )
     }
     /**
