@@ -612,6 +612,32 @@ class FeedVagasViewModelTest {
     }
 
     @Test
+    fun `atualizarEmSilencio troca a lista sem indicador, e a falha deixa a lista sem mensagem de erro (HaRJJ0L0)`() = runBlocking {
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamada++
+                when (chamada) {
+                    1 -> respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                    2 -> respond("[${vagaJson(id = "2", funcao = "barista")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                    else -> respond("""{"code": "500", "message": "erro"}""", HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals("garçom", viewModel.estado.value.vagas.single().funcaoNome)
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals("barista", viewModel.estado.value.vagas.single().funcaoNome, "a lista nova substituiu a velha")
+        assertEquals(false, viewModel.estado.value.atualizando, "sem indicador de atualização")
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals("barista", viewModel.estado.value.vagas.single().funcaoNome, "a falha deixa a lista como estava")
+        assertEquals(null, viewModel.estado.value.mensagemErro, "a falha silenciosa não vira mensagem de erro")
+        assertEquals(StatusFeed.SUCESSO, viewModel.estado.value.status)
+    }
+
+    @Test
     fun `filtro de remuneracao por hora exclui vagas abaixo do minimo selecionado (RF05, RN01)`() = runBlocking {
         // Todas as vagas duram 4 horas (18:00 às 22:00)
         // Vaga A: R$ 80,00 total = R$ 20,00/h

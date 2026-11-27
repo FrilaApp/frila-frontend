@@ -183,6 +183,20 @@ class FeedVagasViewModel(
     }
 
     /**
+     * Releitura automática (volta do segundo plano, push): troca a lista sem indicador e sem esqueleto, e uma falha deixa a lista
+     * como está, sem mensagem de erro (a tela não pode piscar nem perder o que mostra). Paridade com a releitura em silêncio do iOS.
+     */
+    fun atualizarEmSilencio(): Job = escopoDeTrabalho.launch {
+        try {
+            aplicarResultado(buscarVagas())
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            // Segue com o que já está na tela.
+        }
+    }
+
+    /**
      * Vaga já carregada pelo feed, pelo id — usado pela navegação para abrir o detalhe sem
      * refazer a chamada de `/rpc/vagas_abertas` só para reler o mesmo objeto.
      */
