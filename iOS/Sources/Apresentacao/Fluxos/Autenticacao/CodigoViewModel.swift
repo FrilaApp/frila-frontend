@@ -32,12 +32,15 @@ public final class CodigoViewModel {
     }
     public var carregando: Bool = false
     public var segundosRestantes: Int = 60
+    public private(set) var reenviosFeitos: Int = 0
     public var erro: String?
     public var mensagemInformativa: String?
     public var avisoDeColagem: String?
     public var lembrarDispositivo: Bool = false
     public private(set) var precisaDefinirSenhaAposConfirmacao: Bool = false
     public private(set) var dispositivoLembradoNaConfirmacao: Bool = false
+
+    public static let limiteReenvios = 3
 
     /// Quanto tempo o código vale depois de enviado: 600 s (10 min), o `mailer_otp_exp` do Auth no Prod
     /// (confirmado pela Forja em 13/11/2026; o e-mail diz o mesmo). Mudou no Auth? Mude aqui no mesmo dia.
@@ -75,8 +78,12 @@ public final class CodigoViewModel {
         }
     }
 
+    public var atingiuLimiteReenvios: Bool {
+        reenviosFeitos >= Self.limiteReenvios
+    }
+
     public var podeReenviar: Bool {
-        segundosRestantes == 0 && !carregando
+        segundosRestantes == 0 && !carregando && !atingiuLimiteReenvios
     }
 
     public var codigoValido: Bool {
@@ -134,6 +141,7 @@ public final class CodigoViewModel {
                     return
                 }
             }
+            reenviosFeitos += 1
             iniciarTemporizador()
             mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
 
@@ -142,6 +150,7 @@ public final class CodigoViewModel {
             do {
                 try await api.solicitarCodigoDeRecuperacao(email: email)
                 guard !Task.isCancelled else { return }
+                reenviosFeitos += 1
                 iniciarTemporizador()
                 mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
             } catch is CancellationError {
@@ -151,6 +160,7 @@ public final class CodigoViewModel {
                 if erroApi.codigo == .naoEncontrado
                     || erroApi.codigoOriginal == "otp_disabled"
                     || erroApi.codigoOriginal == "user_not_found" {
+                    reenviosFeitos += 1
                     iniciarTemporizador()
                     mensagemInformativa = String(
                         localized: "Se existir uma conta ativa com este e-mail, enviaremos um novo código.",
@@ -173,6 +183,7 @@ public final class CodigoViewModel {
                 let resposta = try await api.reenviarDispositivoOTP(desafioID: desafioID)
                 guard !Task.isCancelled else { return }
                 desafioIDAtual = resposta.desafioID
+                reenviosFeitos += 1
                 iniciarTemporizador(segundos: resposta.reenviarEmSegundos)
                 mensagemInformativa = String(localized: "Novo código enviado para seu e-mail.", bundle: bundleApresentacao)
             } catch is CancellationError {

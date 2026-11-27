@@ -7202,6 +7202,16 @@
         }
       }
     },
+    "Limite de reenvios atingido. Tente entrar novamente mais tarde.": {
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limite de reenvios atingido. Tente entrar novamente mais tarde."
+          }
+        }
+      }
+    },
     "Limpar busca": {
       "extractionState": "stale",
       "localizations": {

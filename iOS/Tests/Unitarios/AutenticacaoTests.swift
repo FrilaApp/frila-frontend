@@ -191,6 +191,7 @@ struct AutenticacaoTests {
 
         await vm.reenviarCodigo()
         #expect(vm.segundosRestantes == 60)
+        #expect(vm.reenviosFeitos == 1)
         #expect(vm.mensagemInformativa == "Novo código enviado para seu e-mail.")
     }
 
@@ -217,6 +218,21 @@ struct AutenticacaoTests {
         vm.iniciarTemporizador()
 
         #expect(vm.segundosRestantes == 60)
+        #expect(!vm.podeReenviar)
+    }
+
+    @Test("CodigoViewModel: respeita teto de 3 reenvios")
+    func respeitaTetoDeTresReenvios() async {
+        let api = ApiClienteEmMemoria()
+        let vm = CodigoViewModel(api: api, email: "teste@frila.app")
+
+        for _ in 0..<CodigoViewModel.limiteReenvios {
+            vm.segundosRestantes = 0
+            await vm.reenviarCodigo()
+        }
+
+        vm.segundosRestantes = 0
+        #expect(vm.atingiuLimiteReenvios)
         #expect(!vm.podeReenviar)
     }
 
