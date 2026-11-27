@@ -353,4 +353,22 @@ class LimpezaDoAvatarTest {
         assertEquals("refresh-b", armazenamento.origem.obterSessao()?.refreshToken)
         assertNull("a foto de A não é legível para B", CompressorDeFotoPerfil.avatarExistente(RuntimeEnvironment.getApplication()))
     }
+
+    @Test
+    fun `reiniciar o app com a foto de A ainda presa le a sessao sem lancar`() {
+        // O processo recomeçou: o armazenamento novo não tem sessão e a limpeza da foto ainda não foi tentada nesta vida do objeto.
+        // O observador e o reinício chamam `estaAutenticado()`; antes lançava a cada chamada e prendia a pessoa fora da Entrada.
+        impedirEsvaziar(avatarNoFilesDir())
+        impedirExclusao(filesDir)
+        val reiniciado = SessaoComCacheVagas(
+            ArmazenamentoDeSessaoEmMemoria(), CacheVagasDaSessao(raiz = null, diretorioDosAvatares = filesDir),
+        )
+
+        repeat(3) {
+            assertFalse(reiniciado.estaAutenticado())
+            assertNull(reiniciado.obterSessao())
+        }
+        val barrada = try { reiniciado.salvarSessao(sessao("a")); false } catch (_: java.io.IOException) { true }
+        assertTrue("a gravação segue barrada até a foto sair", barrada)
+    }
 }
