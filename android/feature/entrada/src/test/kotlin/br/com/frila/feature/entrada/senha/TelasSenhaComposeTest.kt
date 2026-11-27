@@ -244,4 +244,45 @@ class TelasSenhaComposeTest {
         org.junit.Assert.assertEquals("a", definirVm.estado.value.senha)
         org.junit.Assert.assertEquals("a", definirVm.estado.value.confirmacao)
     }
+
+    @Test
+    fun definirSenhaTemBotoesIndependentesMostrarOcultarPreservandoValor() {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao("tok", "ref", "bearer", 3600))
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase(
+                "https://frila.supabase.co",
+                "chave",
+                armazenamentoDeSessao = armazenamento,
+                engine = MockEngine { respond("""{"id":"uid-1"}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+        )
+        val definirVm = DefinirSenhaViewModel(servico, armazenamento, escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        rule.setContent {
+            FrilaTheme {
+                TelaDefinirSenha(viewModel = definirVm, aoConcluir = {})
+            }
+        }
+
+        // Padrão sempre oculto nos dois campos: 2 botões "Mostrar senha", 0 "Ocultar senha"
+        org.junit.Assert.assertEquals(2, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha")).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(0, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Ocultar senha")).fetchSemanticsNodes().size)
+
+        rule.onNodeWithText("Nova senha").performTextInput("Abc12345")
+        rule.waitForIdle()
+
+        // Alternar o primeiro botão muda só o primeiro campo para "Ocultar senha" e preserva o valor
+        rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha"))[0].performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(1, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Ocultar senha")).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(1, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha")).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals("Abc12345", definirVm.estado.value.senha)
+
+        // Tocar novamente volta para oculto sem perder o valor
+        rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Ocultar senha"))[0].performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(2, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha")).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals("Abc12345", definirVm.estado.value.senha)
+    }
 }
