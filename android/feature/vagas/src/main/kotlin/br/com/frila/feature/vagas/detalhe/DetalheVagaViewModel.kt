@@ -84,6 +84,7 @@ class DetalheVagaViewModel(
                     ehVagaPreenchida = false,
                     ehVagaEncerrada = false,
                     ehContaSuspensa = false,
+                    ehFuncaoIncompativel = false,
                 )
             }
         }
@@ -113,6 +114,7 @@ class DetalheVagaViewModel(
                 val ehSuspensa = erro.codigo == CodigoErroAPI.CONTA_SUSPENSA ||
                     (erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "conta_suspensa") ||
                     (erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "perfil_suspenso")
+                val ehFuncaoIncompativel = erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "funcao_incompativel"
                 _estado.update {
                     it.copy(
                         statusCandidatura = StatusCandidatura.ERRO,
@@ -121,6 +123,7 @@ class DetalheVagaViewModel(
                         ehVagaPreenchida = ehPreenchida,
                         ehVagaEncerrada = ehEncerrada,
                         ehContaSuspensa = ehSuspensa,
+                        ehFuncaoIncompativel = ehFuncaoIncompativel,
                     )
                 }
             } catch (erro: CancellationException) {
@@ -135,7 +138,7 @@ class DetalheVagaViewModel(
     }
 
     /**
-     * Os 5 eventos de navegação do detalhe disparam uma única vez por resultado de candidatura.
+     * Os 6 eventos de navegação do detalhe disparam uma única vez por resultado de candidatura.
      * Cada consumo lê e limpa o evento de forma atômica no `_estado`, preservando status, contato e mensagem
      * (em especial `statusCandidatura == StatusCandidatura.CONFIRMADA`, que mantém o cartão e o botão desabilitado).
      * Sem isto, o `LaunchedEffect` da tela reentra na recomposição, na volta do destino (`popBackStack`) ou
@@ -155,6 +158,9 @@ class DetalheVagaViewModel(
 
     fun consumirNavegacaoParaContaSuspensa(): Boolean =
         consumirEvento({ it.ehContaSuspensa }) { it.copy(ehContaSuspensa = false) }
+
+    fun consumirNavegacaoParaFuncaoIncompativel(): Boolean =
+        consumirEvento({ it.ehFuncaoIncompativel }) { it.copy(ehFuncaoIncompativel = false) }
 
     private inline fun consumirEvento(
         presente: (EstadoDetalheVaga) -> Boolean,

@@ -25,6 +25,8 @@ data class EstadoDetalheVaga(
      * tela diz isso e esconde o botão. Falha de rede não marca (fica o que veio do feed).
      */
     val indisponivel: Boolean = false,
+    /** 422 `inelegivel` com `funcao_incompativel`: a tela de resultado oferece ajustar as funções (paridade iOS). */
+    val ehFuncaoIncompativel: Boolean = false,
 ) {
     /** A lista sempre traz a distância; o detalhe pode não trazer, e aí a tela não a mostra. */
     val mostraDistancia: Boolean
