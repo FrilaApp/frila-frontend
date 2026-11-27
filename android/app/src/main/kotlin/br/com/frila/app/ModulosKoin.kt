@@ -609,6 +609,8 @@ val moduloFeatures = module {
             confirmar = turnos::confirmarCheckinManual,
             reabrir = turnos::reabrirPorAtraso,
             cancelar = turnos::cancelarPosicao,
+            // O painel da casa não traz a avaliação: ela vem de `meus_turnos` da casa (`Turno.avaliacao`, contrato 0.2.31).
+            lerAvaliacaoDaCasa = { turnoId, casa -> turnos.listarMeusTurnosDaCasa(casa).firstOrNull { it.id == turnoId }?.avaliacao?.resposta },
             filaDeAcoes = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,

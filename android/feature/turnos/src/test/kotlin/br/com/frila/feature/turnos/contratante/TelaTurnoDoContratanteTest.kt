@@ -268,4 +268,52 @@ class TelaTurnoDoContratanteTest {
         assertEquals(0, contar(TextosTurnoDoContratante.CONFIRMAR_PRESENCA))
         assertEquals(1, voltou)
     }
+
+    // ── Turno já avaliado pela casa (QBAAgKth) ────────────────────────────────────────────────────────────────────────
+
+    private fun montarAvaliacao(estado: EstadoTurnoDoContratante, avaliou: MutableList<String> = mutableListOf()): MutableList<String> {
+        rule.setContent {
+            FrilaTheme {
+                ConteudoTurnoDoContratante(
+                    estado = estado,
+                    acoes = AcoesTurnoDoContratante(aoConfirmarPresenca = {}, aoVoltar = {}, aoAvaliarTurno = { avaliou += it }),
+                )
+            }
+        }
+        return avaliou
+    }
+
+    @Test
+    fun `presenca verificada sem avaliacao oferece Avaliar turno e nao diz que avaliou`() {
+        val avaliou = montarAvaliacao(estado(verificacao = "verificado", checkinTipo = "manual"))
+
+        rule.onNodeWithText("Avaliar turno").performClick()
+        assertEquals(listOf("t1"), avaliou)
+        assertEquals(0, contar("Turno avaliado"))
+        assertEquals(0, contar("Ver avaliação"))
+    }
+
+    @Test
+    fun `turno ja avaliado mostra a resposta e Ver avaliacao no lugar de Avaliar turno`() {
+        val avaliou = montarAvaliacao(estado(verificacao = "verificado", checkinTipo = "manual").copy(avaliacaoDoServidor = true))
+
+        rule.onNodeWithText("Turno avaliado · Resposta: Sim").assertIsDisplayed()
+        assertEquals("o convite some", 0, contar("Avaliar turno"))
+        assertEquals(0, contar("Como foi sua experiência no turno?"))
+        rule.onNodeWithText("Ver avaliação").performClick()
+        assertEquals("Ver avaliação abre a mesma tela de avaliação", listOf("t1"), avaliou)
+    }
+
+    @Test
+    fun `a resposta Nao e a avaliacao so na fila sem resposta do servidor tambem aparecem`() {
+        montarAvaliacao(estado(verificacao = "verificado", checkinTipo = "manual").copy(avaliacaoNaFila = false))
+        rule.onNodeWithText("Turno avaliado · Resposta: Não").assertIsDisplayed()
+    }
+
+    @Test
+    fun `avaliado sem presenca verificada nao mostra o cartao`() {
+        montarAvaliacao(estado(verificacao = "pendente", checkinTipo = "manual").copy(avaliacaoDoServidor = true))
+        assertEquals(0, contar("Ver avaliação"))
+        assertEquals(0, contar("Avaliar turno"))
+    }
 }

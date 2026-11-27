@@ -137,6 +137,10 @@ data class EstadoTurnoDoContratante(
     val cancelamentoRecusado: Boolean = false,
     val cancelamento: ResultadoCancelamento? = null,
     val avisoDoCancelamento: String? = null,
+    /** A avaliação que a casa já deu, lida do servidor (`Turno.avaliacao.resposta`, contrato 0.2.31; qualquer membro, qualquer aparelho). */
+    val avaliacaoDoServidor: Boolean? = null,
+    /** A avaliação da casa que ainda está na fila offline: vale até o servidor trazer a dele (o registro local do iOS). */
+    val avaliacaoNaFila: Boolean? = null,
     val agora: () -> Instant = Instant::now,
 ) {
     val podeCancelar: Boolean
@@ -144,6 +148,9 @@ data class EstadoTurnoDoContratante(
             contexto.fim?.isAfter(agora()) == true && !cancelando && !reabrindo && !enviando &&
             !cancelamentoNaFila && !cancelamentoRecusado && cancelamento == null
 
+    /** O que a casa respondeu: o do servidor, e só sem ele o da fila. `null`: ainda não avaliou (ou o servidor não disse). */
+    val respostaDaAvaliacao: Boolean? get() = avaliacaoDoServidor ?: avaliacaoNaFila
+    val jaAvaliado: Boolean get() = respostaDaAvaliacao != null
     val presenca: PresencaDoTurno get() = presencaDe(contexto)
     val podeConfirmar: Boolean get() = presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && !enviando &&
         !cancelando && !cancelamentoNaFila && contexto.estadoDaPosicao != "cancelada"
@@ -183,6 +190,11 @@ class AcompanhamentoContratanteViewModel(
     private val contaAtual: () -> String? = { null },
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
     private val reler: suspend (ContextoDoTurnoContratante) -> ContextoDoTurnoContratante? = { null },
+    /**
+     * A avaliação que a casa já deu a este turno (`meus_turnos` da casa, `Turno.avaliacao.resposta`), ou `null`. O painel da casa
+     * não a traz (`PosicaoNoPainel` não tem `avaliacao`). Nulo (o padrão) não lê.
+     */
+    private val lerAvaliacaoDaCasa: (suspend (turnoId: String, estabelecimentoId: String) -> Boolean?)? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -198,7 +210,29 @@ class AcompanhamentoContratanteViewModel(
     private fun donaDoBloqueio(conta: String?) { if (!_estado.value.cancelamentoRecusado) contaDoBloqueio = conta }
 
     private val recusasMostradas = mutableSetOf<String>()
+    private var leituraDaAvaliacao: Job? = null
+
+    /** Uma falha ou um turno sem avaliação deixa como está: a avaliação não se desfaz, então o servidor nunca "apaga" o que já se soube. */
+    private fun lerAvaliacaoDoServidor() {
+        val ler = lerAvaliacaoDaCasa ?: return
+        val contexto = _estado.value.contexto
+        val turnoId = contexto.turnoId ?: return
+        val casa = contexto.estabelecimentoId ?: return
+        if (leituraDaAvaliacao?.isActive == true) return
+        leituraDaAvaliacao = escopoDeTrabalho.launch {
+            val resposta = try {
+                ler(turnoId, casa)
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                null
+            }
+            if (resposta != null) _estado.update { if (it.contexto.turnoId == turnoId) it.copy(avaliacaoDoServidor = resposta) else it }
+        }
+    }
+
     init {
+        lerAvaliacaoDoServidor()
         reconciliarComAFila()
         filaDeAcoes?.let { fila -> escopoDeTrabalho.launch { fila.versao.collect { reconciliarComAFila() } } }
     }
@@ -221,6 +255,22 @@ class AcompanhamentoContratanteViewModel(
             val recusas = fila.recusadas().filter { it.tipo == TipoAcaoPendente.CANCELAMENTO_POSICAO &&
                 it.turnoId == _estado.value.contexto.turnoId && it.contaId == conta }
             val recusada = recusas.isNotEmpty()
+            val turnoId = _estado.value.contexto.turnoId
+            val avaliacaoPendente = turnoId?.let { id ->
+                fila.pendentes().firstOrNull { it.tipo == TipoAcaoPendente.AVALIACAO && it.turnoId == id && it.contaId == conta }?.resposta
+            }
+            val avaliacaoRecusada = turnoId != null && fila.recusadas().any {
+                it.tipo == TipoAcaoPendente.AVALIACAO && it.turnoId == turnoId && it.contaId == conta
+            }
+            _estado.update {
+                when {
+                    avaliacaoPendente != null -> it.copy(avaliacaoNaFila = avaliacaoPendente)
+                    avaliacaoRecusada -> it.copy(avaliacaoNaFila = null)
+                    else -> it
+                }
+            }
+            // A avaliação saiu da fila: o servidor passa a ter a dela, e é dele que a tela passa a ler.
+            if (avaliacaoPendente == null && _estado.value.avaliacaoNaFila != null) lerAvaliacaoDoServidor()
             if (recusada) donaDoBloqueio(conta)
             if (!pendente) recusasMostradas.addAll(recusas.map { it.id })
             _estado.update {
@@ -315,6 +365,7 @@ class AcompanhamentoContratanteViewModel(
 
     /** Incorpora o painel relido sem recriar o acompanhamento nem interromper a confirmação em voo. */
     fun atualizarContexto(contexto: ContextoDoTurnoContratante) {
+        lerAvaliacaoDoServidor()
         val atualizado = _estado.updateAndGet { atual ->
             // Uma releitura iniciada antes da confirmação pode chegar depois dela.
             if (atual.contexto.turnoId == contexto.turnoId &&
