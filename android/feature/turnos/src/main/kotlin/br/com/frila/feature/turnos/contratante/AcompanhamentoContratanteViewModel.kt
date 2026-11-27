@@ -3,6 +3,7 @@ package br.com.frila.feature.turnos.contratante
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import br.com.frila.core.dominio.modelo.ResultadoCancelamento
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.AcaoPendente
@@ -132,6 +133,9 @@ data class EstadoTurnoDoContratante(
     val reaberturaRecusada: Boolean = false,
     val cancelamentoDisponivel: Boolean = false,
     val pedindoCancelamento: Boolean = false,
+    /** O motivo escolhido na folha de cancelamento e o detalhe digitado: o texto que vai ao servidor sai dos dois ([MotivoDeCancelamentoDaCasa]). */
+    val motivoDoCancelamento: MotivoDeCancelamentoDaCasa? = null,
+    val detalhesDoCancelamento: String = "",
     val cancelando: Boolean = false,
     val cancelamentoNaFila: Boolean = false,
     val cancelamentoRecusado: Boolean = false,
@@ -144,6 +148,8 @@ data class EstadoTurnoDoContratante(
             contexto.fim?.isAfter(agora()) == true && !cancelando && !reabrindo && !enviando &&
             !cancelamentoNaFila && !cancelamentoRecusado && cancelamento == null
 
+    /** O `motivo` de `cancelar_posicao`, ou `null` enquanto não dá para enviar (sem motivo, ou "Outro motivo" sem o detalhe). */
+    val motivoCompletoDoCancelamento: String? get() = motivoDoCancelamento?.textoParaOServidor(detalhesDoCancelamento)
     val presenca: PresencaDoTurno get() = presencaDe(contexto)
     val podeConfirmar: Boolean get() = presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && !enviando &&
         !cancelando && !cancelamentoNaFila && contexto.estadoDaPosicao != "cancelada"
@@ -240,10 +246,27 @@ class AcompanhamentoContratanteViewModel(
 
     fun pedirCancelamento() {
         reconciliarComAFila()
-        _estado.update { if (it.podeCancelar) it.copy(pedindoCancelamento = true, pedindoReabertura = false) else it }
+        _estado.update {
+            if (it.podeCancelar) it.copy(pedindoCancelamento = true, pedindoReabertura = false, motivoDoCancelamento = null, detalhesDoCancelamento = "")
+            else it
+        }
     }
 
-    fun desistir() { _estado.update { it.copy(pedindoCancelamento = false, avisoDoCancelamento = null) } }
+    fun desistir() { _estado.update { it.copy(pedindoCancelamento = false, avisoDoCancelamento = null, motivoDoCancelamento = null, detalhesDoCancelamento = "") } }
+
+    fun escolherMotivoDoCancelamento(motivo: MotivoDeCancelamentoDaCasa) {
+        _estado.update { if (it.pedindoCancelamento) it.copy(motivoDoCancelamento = motivo, avisoDoCancelamento = null) else it }
+    }
+
+    fun mudarDetalhesDoCancelamento(texto: String) {
+        _estado.update { if (it.pedindoCancelamento) it.copy(detalhesDoCancelamento = texto, avisoDoCancelamento = null) else it }
+    }
+
+    /** Confirma com o motivo da folha: sem motivo, ou "Outro motivo" sem o detalhe, não envia (`null`). */
+    fun confirmarCancelamento(): Job? {
+        val motivo = _estado.value.motivoCompletoDoCancelamento ?: return null
+        return confirmarCancelamento(motivo)
+    }
 
     fun confirmarCancelamento(motivo: String): Job? {
         reconciliarComAFila()
