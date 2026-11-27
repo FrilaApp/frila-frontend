@@ -89,6 +89,10 @@ data class EstadoFeed(
     val perfilIncompativel: Boolean = false,
     val atualizando: Boolean = false,
     val emCache: Boolean = false,
+    /** A última página veio cheia (`TAMANHO_DA_PAGINA_DO_FEED`): o servidor pode ter mais. Nunca no cache offline. */
+    val haMaisPaginas: Boolean = false,
+    /** A página seguinte está em voo: um segundo pedido não sai. */
+    val carregandoMais: Boolean = false,
 )
 
 /** Paridade com `TextosDoProfissional.Lista.perfilIncompativel` do iOS. */

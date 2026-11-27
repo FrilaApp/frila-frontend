@@ -61,6 +61,9 @@ class FeedVagasViewModel(
     private var vagasCarregadas: List<VagaAbertaDto> = emptyList()
     private var validadeDoCache: Job? = null
 
+    /** A página seguinte em voo. Uma primeira página nova a cancela: a página pedida antes não se junta à lista nova. */
+    private var paginaEmVoo: Job? = null
+
     init {
         repositorioVagas?.observarInvalidacao {
             validadeDoCache?.cancel()
@@ -146,8 +149,16 @@ class FeedVagasViewModel(
     private fun aplicarResultado(resultado: ResultadoVagas) {
         val aplicar = {
             validadeDoCache?.cancel()
+            paginaEmVoo?.cancel()
             vagasCarregadas = resultado.vagas
-            _estado.update { it.copy(emCache = resultado.emCache) }
+            _estado.update {
+                it.copy(
+                    emCache = resultado.emCache,
+                    // O cache é só a primeira página, e offline não há a seguinte.
+                    haMaisPaginas = !resultado.emCache && resultado.vagas.size >= ServicoVagas.TAMANHO_DA_PAGINA_DO_FEED,
+                    carregandoMais = false,
+                )
+            }
             aplicarFiltros()
             if (resultado.emCache) validadeDoCache = escopoDeTrabalho.launch {
                 while (vagasCarregadas.isNotEmpty()) {
@@ -158,6 +169,43 @@ class FeedVagasViewModel(
             }
         }
         if (repositorioVagas == null) aplicar() else repositorioVagas.usarSeValido(aplicar)
+    }
+
+    /**
+     * A página seguinte do feed, a partir de quantas vagas já estão carregadas (paridade com `carregarMais` do iOS). Só com a lista
+     * da rede na tela, sem outra página, carga ou puxar para atualizar em voo. As repetidas (a ordem do servidor mudou entre as
+     * páginas) ficam de fora pelo id. Uma falha não apaga o que está na tela, e o próximo pedido tenta de novo.
+     */
+    fun carregarMais(): Job {
+        val atual = _estado.value
+        if (!atual.haMaisPaginas || atual.carregandoMais || atual.emCache || atual.atualizando ||
+            (atual.status != StatusFeed.SUCESSO && atual.status != StatusFeed.VAZIO)
+        ) {
+            return escopoDeTrabalho.launch { }
+        }
+        val deslocamento = vagasCarregadas.size
+        _estado.update { it.copy(carregandoMais = true) }
+        return escopoDeTrabalho.launch {
+            try {
+                val pagina = repositorioVagas?.proximaPagina(deslocamento)
+                    ?: servicoVagas.listarVagasAbertas(deslocamento = deslocamento)
+                val juntar = {
+                    val vistas = HashSet<String>()
+                    vagasCarregadas = (vagasCarregadas + pagina).filter { vistas.add(it.id) }
+                    _estado.update {
+                        it.copy(haMaisPaginas = pagina.size >= ServicoVagas.TAMANHO_DA_PAGINA_DO_FEED, carregandoMais = false)
+                    }
+                    aplicarFiltros()
+                }
+                if (repositorioVagas == null) juntar() else repositorioVagas.usarSeValido(juntar)
+            } catch (erro: CancellationException) {
+                // Quem cancela já desligou `carregandoMais` (a primeira página nova, ou o fim da sessão). Desligar aqui de novo
+                // apagaria a trava de uma página pedida depois.
+                throw erro
+            } catch (_: Exception) {
+                _estado.update { it.copy(carregandoMais = false) }
+            }
+        }.also { paginaEmVoo = it }
     }
 
     /** Mesma operação de [carregar]; nome próprio só para deixar a intenção explícita na tela de erro. */
@@ -187,7 +235,11 @@ class FeedVagasViewModel(
      * disputaria a carga e, se esta falhasse depois, trocaria a lista por erro; em ERRO ela chamaria o servidor à toa e, se a
      * resposta virasse SUCESSO, deixaria a mensagem de erro e as marcas de `semPontoBase` e `perfilIncompativel` para trás.
      */
-    private fun podeReler(): Boolean = _estado.value.let { (it.status == StatusFeed.SUCESSO || it.status == StatusFeed.VAZIO) && !it.atualizando }
+    private fun podeReler(): Boolean = _estado.value.let {
+        (it.status == StatusFeed.SUCESSO || it.status == StatusFeed.VAZIO) && !it.atualizando &&
+            // Como o iOS: com mais de uma página na tela, ou a seguinte em voo, a releitura da primeira apagaria o que a pessoa rolou.
+            vagasCarregadas.size <= ServicoVagas.TAMANHO_DA_PAGINA_DO_FEED && !it.carregandoMais
+    }
 
     /**
      * Releitura automática (volta do segundo plano, push): troca a lista sem indicador e sem esqueleto, e uma falha deixa a lista

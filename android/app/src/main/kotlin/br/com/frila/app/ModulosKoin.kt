@@ -283,7 +283,9 @@ val moduloRede = module {
     factory {
         val servico = get<ServicoVagas>()
         val armazenamento = get<ArmazenamentoDeSessao>()
-        get<CacheVagasDaSessao>().criar(armazenamento) { servico.listarVagasAbertas() }
+        get<CacheVagasDaSessao>().criar(armazenamento, pagina = { servico.listarVagasAbertas(deslocamento = it) }) {
+            servico.listarVagasAbertas()
+        }
     }
     single { ServicoDispositivo { get<GestorClienteKtor>().clienteAtual } }
     single { ServicoTurnos { get<GestorClienteKtor>().clienteAtual } }

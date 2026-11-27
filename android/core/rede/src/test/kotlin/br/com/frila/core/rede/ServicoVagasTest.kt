@@ -80,6 +80,22 @@ class ServicoVagasTest {
     }
 
     @Test
+    fun `listarVagasAbertas pede a primeira pagina de 30 e, com deslocamento, a seguinte`() = runTest {
+        val pedidos = mutableListOf<io.ktor.http.Parameters>()
+        val engine = MockEngine { request ->
+            pedidos += request.url.parameters
+            respond(content = "[]", status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val servico = ServicoVagas(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine))
+
+        servico.listarVagasAbertas()
+        servico.listarVagasAbertas(deslocamento = 30)
+
+        assertEquals(listOf("30", "30"), pedidos.map { it["limite"] })
+        assertEquals(listOf("0", "30"), pedidos.map { it["deslocamento"] })
+    }
+
+    @Test
     fun `listarVagasAbertas com distanciaMaxKm envia distancia_max_km na URL`() = runTest {
         var parametros: io.ktor.http.Parameters? = null
         val engine = MockEngine { request ->

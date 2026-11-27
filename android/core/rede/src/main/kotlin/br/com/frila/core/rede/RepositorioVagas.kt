@@ -22,10 +22,15 @@ data class ResultadoVagas(val vagas: List<VagaAbertaDto>, val emCache: Boolean)
 fun VagaAbertaDto.aindaDisponivelEm(instante: Instant): Boolean =
     posicoesAbertas > 0 && runCatching { instanteDoServidor(fimEm).isAfter(instante) }.getOrDefault(false)
 
-/** Fallback só para SEM_REDE; invalidação é definitiva e não espera uma chamada de rede. */
+/**
+ * Fallback só para SEM_REDE; invalidação é definitiva e não espera uma chamada de rede. [buscarNaRede] é a primeira página do
+ * feed, a única que vai para o cache; as seguintes ([proximaPagina]) vêm só da rede e nunca o tocam.
+ */
 class RepositorioVagas(
     private val arquivoCache: File?,
     private val agora: () -> Instant = Instant::now,
+    /** A página a partir de um deslocamento. Nulo: este repositório não pagina (quem chama vai direto ao serviço). */
+    private val buscarPaginaNaRede: (suspend (deslocamento: Int) -> List<VagaAbertaDto>)? = null,
     private val buscarNaRede: suspend () -> List<VagaAbertaDto>,
 ) {
     private val mutex = Mutex()
@@ -74,6 +79,19 @@ class RepositorioVagas(
                 ResultadoVagas(vagas, emCache = false)
             }
         }
+    }
+
+    /**
+     * A página seguinte do feed, a partir de [deslocamento], só da rede: sem cache e sem fallback offline (o erro sobe). Depois de
+     * [invalidar] (a sessão acabou), não pede nem devolve nada: lança `CancellationException`, como [listar]. `null` se este
+     * repositório não pagina.
+     */
+    suspend fun proximaPagina(deslocamento: Int): List<VagaAbertaDto>? {
+        val buscar = buscarPaginaNaRede ?: return null
+        synchronized(bloqueio) { verificarValidade() }
+        val pagina = buscar(deslocamento)
+        synchronized(bloqueio) { verificarValidade() }
+        return pagina
     }
 
     private fun verificarValidade() {

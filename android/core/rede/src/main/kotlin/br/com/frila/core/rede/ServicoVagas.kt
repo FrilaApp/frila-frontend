@@ -26,12 +26,28 @@ class ServicoVagas(private val provedorDeCliente: () -> ClienteSupabase) {
      * `GET /rpc/vagas_abertas` (RF05/RF07/RN02). Nunca leva `latitude` nem `longitude`: a posição do aparelho não sai
      * daqui, e o backend ordena pelo `ponto_base` do perfil, como no iOS. `distanciaMaxKm` filtra no servidor; a
      * tela ainda refiltra localmente em `aplicarFiltros()` para resposta imediata ao toque.
+     *
+     * Paginada (contrato: `limite` de 1 a 100, padrão 30; `deslocamento` a partir de 0): uma página de [limite] vagas a
+     * partir da posição [deslocamento] da ordem do servidor. Página com menos de [limite] vagas é a última.
      */
-    suspend fun listarVagasAbertas(distanciaMaxKm: Double? = null): List<VagaAbertaDto> {
+    suspend fun listarVagasAbertas(
+        distanciaMaxKm: Double? = null,
+        limite: Int = TAMANHO_DA_PAGINA_DO_FEED,
+        deslocamento: Int = 0,
+    ): List<VagaAbertaDto> {
+        require(limite in 1..100) { "limite fora de 1..100: $limite" }
+        require(deslocamento >= 0) { "deslocamento negativo: $deslocamento" }
         val resposta = cliente.http.get(cliente.urlRpc("vagas_abertas")) {
             distanciaMaxKm?.let { parameter("distancia_max_km", it) }
+            parameter("limite", limite)
+            parameter("deslocamento", deslocamento)
         }
         return cliente.corpoOuErro(resposta)
+    }
+
+    companion object {
+        /** O tamanho da página do feed, o mesmo do iOS (`tamanhoDaPagina`) e o padrão do contrato. */
+        const val TAMANHO_DA_PAGINA_DO_FEED = 30
     }
 
     /**
