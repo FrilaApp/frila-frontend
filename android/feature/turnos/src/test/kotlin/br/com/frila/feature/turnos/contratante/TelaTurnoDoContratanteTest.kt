@@ -1,17 +1,25 @@
 package br.com.frila.feature.turnos.contratante
 
+import android.view.View
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
@@ -19,6 +27,7 @@ import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -349,6 +358,82 @@ class TelaTurnoDoContratanteTest {
         val escolhas = montarFolha(estadoComFolha())
         rule.onNodeWithText("Voltar").performClick()
         rule.runOnIdle { assertEquals(1, escolhas.desistiu) }
+    }
+
+    @Test
+    @Config(sdk = [35], qualifiers = "w360dp-h480dp")
+    fun `em janela pequena com Outro motivo escolhido, Confirmar cancelamento e Voltar ficam visiveis sem rolar`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO))
+
+        rule.onNodeWithText(TextosCancelarPosicao.CONFIRMAR).assertIsDisplayed()
+        rule.onNodeWithText(TextosCancelarPosicao.VOLTAR).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a folha recua o titulo abaixo da barra de status`() {
+        lateinit var view: View
+        rule.setContent {
+            view = LocalView.current
+            FrilaTheme {
+                ConteudoTurnoDoContratante(estadoComFolha(), AcoesTurnoDoContratante())
+            }
+        }
+
+        val recuoPx = 48
+        rule.runOnUiThread {
+            val insets = WindowInsetsCompat.Builder()
+                .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, recuoPx, 0, 0))
+                .build()
+            ViewCompat.dispatchApplyWindowInsets(view, insets)
+        }
+        rule.waitForIdle()
+
+        val topoTitulo = rule.onNodeWithText(TextosCancelarPosicao.TITULO).getUnclippedBoundsInRoot().top
+        val recuoDp = with(rule.density) { recuoPx.toDp() }
+        assertTrue("Esperado topo do título ($topoTitulo) >= recuo ($recuoDp)", topoTitulo >= recuoDp)
+    }
+
+    @Test
+    @Config(sdk = [35], qualifiers = "w360dp-h640dp")
+    fun `com teclado aberto, os botoes do rodape sobem e o campo de detalhe continua acima do rodape`() {
+        lateinit var view: View
+        rule.setContent {
+            view = LocalView.current
+            FrilaTheme {
+                ConteudoTurnoDoContratante(
+                    estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO)
+                        .copy(avisoDoCancelamento = "Erro de teste junto ao botão"),
+                    AcoesTurnoDoContratante(),
+                )
+            }
+        }
+
+        val tecladoPx = 240
+        rule.runOnUiThread {
+            val insets = WindowInsetsCompat.Builder()
+                .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, tecladoPx))
+                .build()
+            ViewCompat.dispatchApplyWindowInsets(view, insets)
+        }
+        rule.waitForIdle()
+
+        val raiz = rule.onRoot().getUnclippedBoundsInRoot()
+        val tecladoDp = with(rule.density) { tecladoPx.toDp() }
+        val voltar = rule.onNodeWithText(TextosCancelarPosicao.VOLTAR).assertIsDisplayed()
+        val confirmar = rule.onNodeWithText(TextosCancelarPosicao.CONFIRMAR).assertIsDisplayed()
+        rule.onNodeWithText("Erro de teste junto ao botão").assertIsDisplayed()
+        val detalhe = rule.onNodeWithText(TextosCancelarPosicao.DETALHES_OBRIGATORIOS)
+            .performScrollTo()
+            .assertIsDisplayed()
+
+        assertTrue(
+            "Voltar (${voltar.getUnclippedBoundsInRoot().bottom}) deveria subir acima do teclado (${raiz.bottom - tecladoDp})",
+            voltar.getUnclippedBoundsInRoot().bottom <= raiz.bottom - tecladoDp,
+        )
+        assertTrue(
+            "Campo do detalhe (${detalhe.getUnclippedBoundsInRoot().bottom}) deveria ficar acima do confirmar (${confirmar.getUnclippedBoundsInRoot().top})",
+            detalhe.getUnclippedBoundsInRoot().bottom <= confirmar.getUnclippedBoundsInRoot().top,
+        )
     }
 
     @Test
