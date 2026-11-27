@@ -36,8 +36,12 @@ internal class CacheVagasDaSessao(
     /** A fila de ações sem rede (A6) é da conta que saiu: sai junto com o cache, em logout, troca e expiração. */
     val filaDeAcoes = FilaDeAcoes(raiz?.resolve("acoes/fila.json"))
 
-    @Synchronized fun criar(armazenamento: ArmazenamentoDeSessao, rede: suspend () -> List<VagaAbertaDto>): RepositorioVagas =
-        RepositorioVagas(raiz?.let { arquivoCacheVagas(it, armazenamento.obterSessao()) }, buscarNaRede = rede)
+    @Synchronized fun criar(
+        armazenamento: ArmazenamentoDeSessao,
+        pagina: (suspend (deslocamento: Int) -> List<VagaAbertaDto>)? = null,
+        rede: suspend () -> List<VagaAbertaDto>,
+    ): RepositorioVagas =
+        RepositorioVagas(raiz?.let { arquivoCacheVagas(it, armazenamento.obterSessao()) }, buscarPaginaNaRede = pagina, buscarNaRede = rede)
             .also { repositorios.add(it) }
 
     @Synchronized fun limpar() {

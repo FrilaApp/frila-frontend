@@ -130,6 +130,15 @@ class KoinGrafoTest : KoinTest {
         assertNotNull(get<CheckinViewModel> { parametersOf("turno-1", null) })
     }
 
+    /** qmheBhAK: o repositório do feed recebe a página seguinte; sem ela o feed iria direto ao serviço e perderia a guarda da sessão. */
+    @Test
+    fun `o repositorio do feed do grafo pagina pela rede`() {
+        startKoin { modules(modulosDeTeste) }
+
+        val campo = RepositorioVagas::class.java.getDeclaredField("buscarPaginaNaRede").apply { isAccessible = true }
+        assertNotNull(campo.get(get<RepositorioVagas>()))
+    }
+
     @Test
     fun `ClienteSupabase e um singleton compartilhado entre os servicos`() {
         startKoin { modules(modulosDeTeste) }

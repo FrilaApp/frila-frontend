@@ -105,4 +105,39 @@ class RepositorioVagasTest {
         assertTrue(repo.obterCache()!!.vagas.isEmpty())
     }
 
+    // ---- qmheBhAK: a página seguinte vem só da rede, e o cache segue só com a primeira ----
+
+    @Test fun `proxima pagina vem da rede com o deslocamento e nao entra no cache`() = runTest {
+        val segunda = vagas.map { it.copy(id = "vaga-da-segunda-pagina") }
+        val deslocamentos = mutableListOf<Int>()
+        val repositorio = RepositorioVagas(arquivo, buscarPaginaNaRede = { deslocamentos += it; segunda }) { vagas }
+        repositorio.listar()
+
+        assertEquals(segunda, repositorio.proximaPagina(30))
+        assertEquals(listOf(30), deslocamentos)
+        assertEquals(ResultadoVagas(vagas, true), repositorio.obterCache())
+        assertEquals(ResultadoVagas(vagas, true), RepositorioVagas(arquivo) { throw erro() }.listar())
+    }
+
+    @Test fun `depois de invalidar a proxima pagina nao pede nada`() = runTest {
+        var pedidos = 0
+        val repositorio = RepositorioVagas(arquivo, buscarPaginaNaRede = { pedidos++; vagas }) { vagas }
+        repositorio.invalidar()
+
+        val recebido = try { repositorio.proximaPagina(30); null } catch (erro: CancellationException) { erro }
+        assertNotNull(recebido)
+        assertEquals(0, pedidos)
+    }
+
+    @Test fun `sessao que acaba com a pagina em voo nao a devolve`() = runTest {
+        lateinit var repositorio: RepositorioVagas
+        repositorio = RepositorioVagas(arquivo, buscarPaginaNaRede = { repositorio.invalidar(); vagas }) { vagas }
+
+        val recebido = try { repositorio.proximaPagina(30); null } catch (erro: CancellationException) { erro }
+        assertNotNull(recebido)
+    }
+
+    @Test fun `sem a pagina configurada o repositorio nao pagina`() = runTest {
+        assertNull(RepositorioVagas(arquivo) { vagas }.proximaPagina(30))
+    }
 }
