@@ -628,4 +628,27 @@ class MeusTurnosViewModelTest {
         assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
         assertTrue(viewModel.estado.value.agendados.isEmpty())
     }
+
+    @Test
+    fun `cancelamento recusado por campo_invalido ou campo_obrigatorio diz que o motivo nao foi aceito`() = runBlocking {
+        for (codigo in listOf("campo_invalido", "campo_obrigatorio")) {
+            val engine = MockEngine { request ->
+                if (request.url.encodedPath.endsWith("meus_turnos")) {
+                    respond("[${turnoJson("a", "confirmada")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("""{"code":"$codigo","message":"x","details":"motivo"}""", HttpStatusCode.UnprocessableEntity,
+                        headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            }
+            val viewModel = viewModelComEngine(engine)
+            viewModel.carregar().join()
+            viewModel.abrirCancelamento(viewModel.estado.value.agendados.first())
+            viewModel.selecionarMotivo(MotivoCancelamento.SAUDE)
+
+            viewModel.confirmarCancelamento()!!.join()
+
+            assertEquals("O motivo não foi aceito. Revise o texto e tente novamente.", viewModel.estado.value.cancelamento!!.mensagemErro, codigo)
+            assertEquals(false, viewModel.estado.value.cancelamento!!.enviando, codigo)
+        }
+    }
 }
