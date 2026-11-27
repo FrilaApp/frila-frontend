@@ -30,6 +30,8 @@ data class ItemTurno(
     val comprovante: ComprovanteCheckin? = null,
     /** O ponto da vaga (`VagaResumo.ponto`): sem ele o check-in não mede a distância e vira manual (C0-7). */
     val pontoDaVaga: Coordenada? = null,
+    /** O endereço da vaga (`VagaResumo.local`), para o "Ver no mapa"; o atalho só aparece com [pontoDaVaga]. */
+    val local: String? = null,
     /** C0-9: id do perfil público da casa (`Turno.contraparte`), o alvo de "Denunciar" como no iOS (`TelaMeuTurno.swift:125`). */
     val contraparteId: String? = null,
     /** L1-4: quando o check-out foi registrado (`Turno.checkout_em`); `null` enquanto não houve. */

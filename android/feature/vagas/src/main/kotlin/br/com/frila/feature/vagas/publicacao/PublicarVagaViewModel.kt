@@ -77,6 +77,8 @@ data class EstadoPublicarVaga(
     val traje: String = "",
     val observacoes: String = "",
     val participaRateio: Boolean = false,
+    /** Quando avisar a casa se a vaga seguir vazia (`alerta_antecedencia_min`, contrato 0.2.x): 120, 180 (padrão) ou 360 minutos antes do início. */
+    val alertaAntecedenciaMin: Int = 180,
     val naFila: Boolean = false,
     val enviadaPelaFila: Boolean = false,
     val enviando: Boolean = false,
@@ -117,6 +119,8 @@ data class EstadoPublicarVaga(
     val selecaoDisponivel: Boolean get() = inicio.isAfter(agora.plus(ANTECEDENCIA_DA_SELECAO))
 
     companion object {
+        /** As antecedências do aviso de vaga vazia, em minutos, na ordem da tela: 2, 3 (padrão) e 6 horas. */
+        val ALERTAS_DE_ANTECEDENCIA_MIN = listOf(120, 180, 360)
         const val POSICOES_MIN = 1
         const val POSICOES_MAX = 200
         val ANTECEDENCIA_DA_SELECAO: Duration = Duration.ofHours(24)
@@ -297,6 +301,11 @@ class PublicarVagaViewModel(
 
     fun alternarRateio(participa: Boolean) = editar { copy(participaRateio = participa) }
 
+    /** Quando avisar a casa se a vaga seguir vazia. Só 2, 3 e 6 horas (as opções do iOS, `MaisOpcoesDoEstudio`); outro valor é ignorado. */
+    fun escolherAlertaAntecedencia(minutos: Int) {
+        if (minutos in EstadoPublicarVaga.ALERTAS_DE_ANTECEDENCIA_MIN) editar { copy(alertaAntecedenciaMin = minutos) }
+    }
+
     /**
      * Valida e publica. Sem efeito durante o envio ou depois de publicada: o segundo toque não cria duas
      * vagas. Com uma publicação [EstadoPublicarVaga.pendente], reenvia o mesmo corpo sem validar de novo.
@@ -362,6 +371,7 @@ class PublicarVagaViewModel(
         participaRateio = estado.participaRateio,
         observacoes = estado.observacoes.trim().ifEmpty { null },
         modo = estado.modo.chave,
+        alertaAntecedenciaMin = estado.alertaAntecedenciaMin,
         chave = novaChave(),
     )
 

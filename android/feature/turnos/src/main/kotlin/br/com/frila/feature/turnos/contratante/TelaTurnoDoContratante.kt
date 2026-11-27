@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -218,16 +219,31 @@ private fun CorpoDoTurnoDoContratante(
             if (acoes.aoAvaliarTurno != null && estado.presenca == PresencaDoTurno.VERIFICADA) {
                 CartaoFrila(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
-                        Text(
-                            text = "Como foi sua experiência no turno?",
-                            style = FrilaTipo.corpo,
-                            color = FrilaTema.cores.tinta,
-                        )
-                        BotaoSecundario(
-                            texto = "Avaliar turno",
-                            aoClicar = { acoes.aoAvaliarTurno.invoke(contexto.turnoId) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        if (estado.jaAvaliado) {
+                            // A casa já avaliou (o servidor, ou a fila offline): sem a pergunta, só o que ela respondeu e o caminho para rever.
+                            Text(
+                                text = TextosDaAvaliacaoDaCasa.status(estado.respostaDaAvaliacao),
+                                style = FrilaTipo.corpo,
+                                color = FrilaTema.cores.tinta,
+                                modifier = Modifier.testTag("texto-status-avaliacao"),
+                            )
+                            BotaoSecundario(
+                                texto = TextosDaAvaliacaoDaCasa.VER_AVALIACAO,
+                                aoClicar = { acoes.aoAvaliarTurno.invoke(contexto.turnoId) },
+                                modifier = Modifier.fillMaxWidth().testTag("botao-ver-avaliacao"),
+                            )
+                        } else {
+                            Text(
+                                text = "Como foi sua experiência no turno?",
+                                style = FrilaTipo.corpo,
+                                color = FrilaTema.cores.tinta,
+                            )
+                            BotaoSecundario(
+                                texto = "Avaliar turno",
+                                aoClicar = { acoes.aoAvaliarTurno.invoke(contexto.turnoId) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
             }
@@ -450,5 +466,16 @@ private fun FolhaDeMotivosDoCancelamento(estado: EstadoTurnoDoContratante, acoes
             modifier = Modifier.fillMaxWidth(),
         )
         LinkFrila(texto = TextosCancelarPosicao.VOLTAR, aoClicar = acoes.aoDesistir)
+    }
+}
+
+/** Os textos do cartão de avaliação da casa quando o turno já foi avaliado (paridade com `TextosDoProfissional.Avaliacao` do iOS). */
+internal object TextosDaAvaliacaoDaCasa {
+    const val VER_AVALIACAO = "Ver avaliação"
+
+    fun status(resposta: Boolean?): String = when (resposta) {
+        true -> "Turno avaliado · Resposta: Sim"
+        false -> "Turno avaliado · Resposta: Não"
+        null -> "Turno avaliado"
     }
 }

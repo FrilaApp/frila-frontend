@@ -181,7 +181,7 @@ class CapturasR5Test {
     @Test
     fun `publicar vaga, posicoes e total - claro`() {
         montarPublicar(estadoDePublicar { copy(funcaoId = "f1", valor = "140", posicoes = "2", errosDeCampo = mapOf(CampoPublicacao.POSICOES to TextosPublicarVaga.POSICOES_CAMPO)) })
-        compose.onNodeWithText("Total da vaga: R$ 280,00").performScrollTo()
+        compose.onNodeWithText("Total da vaga: R$\u00A0280,00").performScrollTo()
         compose.capturar("publicar-09-posicoes-e-total-claro")
     }
 

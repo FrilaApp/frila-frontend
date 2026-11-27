@@ -442,4 +442,33 @@ class ChamadaDiretaViewModelTest {
             assertEquals(centavos, vm.corpoEnviado(rede)["valor_centavos"]!!.jsonPrimitive.content)
         }
     }
+
+    @Test
+    fun `transporte e material ligados vao no corpo como inclui_transporte e exige_material_proprio`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+        vm.definirTransporte(true)
+        vm.definirMaterialProprio(true)
+
+        vm.enviar().join()
+
+        val corpo = vm.corpoEnviado(rede)
+        assertTrue(corpo["inclui_transporte"]!!.jsonPrimitive.boolean)
+        assertTrue(corpo["exige_material_proprio"]!!.jsonPrimitive.boolean)
+        assertFalse(corpo["inclui_refeicao"]!!.jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun `so o transporte ligado nao vira material proprio no corpo`() = runBlocking {
+        // Com os dois ligados, trocar um campo pelo outro daria o mesmo corpo; com um só, a troca aparece.
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+        vm.definirTransporte(true)
+
+        vm.enviar().join()
+
+        val corpo = vm.corpoEnviado(rede)
+        assertTrue(corpo["inclui_transporte"]!!.jsonPrimitive.boolean)
+        assertFalse(corpo["exige_material_proprio"]!!.jsonPrimitive.boolean)
+    }
 }

@@ -188,15 +188,22 @@ class AvaliacaoViewModelTest {
     private val jsonCabecalho = headersOf(HttpHeaders.ContentType, "application/json")
 
     /** `avaliar` responde 409 e `meus_turnos` devolve `turnos`; guarda os caminhos chamados. */
-    private fun viewModelComConflito(turnos: String?, caminhos: MutableList<String>): AvaliacaoViewModel {
+    /**
+     * [turnosNaAbertura]: o que a PRIMEIRA leitura de `meus_turnos` devolve (a que a tela faz ao abrir, que roda em paralelo ao envio);
+     * as seguintes (a releitura depois do 409) devolvem [turnos]. Sem ele, todas devolvem [turnos]: com a avaliação já gravada, a leitura
+     * da abertura pode terminar antes do toque e a tela abre direto em "já avaliado", sem enviar nada.
+     */
+    private fun viewModelComConflito(turnos: String?, caminhos: MutableList<String>, turnosNaAbertura: String? = null): AvaliacaoViewModel {
+        val leiturasDeTurnos = java.util.concurrent.atomic.AtomicInteger(0)
         val engine = MockEngine { request ->
             val caminho = request.url.encodedPath
             caminhos += caminho
+            val corpoDosTurnos = if (turnosNaAbertura != null && caminho.endsWith("/meus_turnos") && leiturasDeTurnos.getAndIncrement() == 0) turnosNaAbertura else turnos
             when {
                 caminho.endsWith("/avaliar") -> respond(
                     """{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, jsonCabecalho,
                 )
-                caminho.endsWith("/meus_turnos") && turnos != null -> respond(turnos, HttpStatusCode.OK, jsonCabecalho)
+                caminho.endsWith("/meus_turnos") && corpoDosTurnos != null -> respond(corpoDosTurnos, HttpStatusCode.OK, jsonCabecalho)
                 else -> respond("""{"code":"erro_interno","message":"sintetico"}""", HttpStatusCode.InternalServerError, jsonCabecalho)
             }
         }
@@ -244,8 +251,9 @@ class AvaliacaoViewModelTest {
 
     @Test
     fun `depois do 409 um novo toque nao envia de novo`() = runBlocking {
-        val caminhos = mutableListOf<String>()
-        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(true)}]", caminhos)
+        val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
+        // Ao abrir, o turno ainda não tem voto; o outro membro vota depois, e é isso que o 409 e a releitura mostram.
+        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(true)}]", caminhos, turnosNaAbertura = "[${turnoComAvaliacaoJson(null)}]")
 
         viewModel.avaliar(turnoId, false).join()
         val enviosAntes = caminhos.count { it.endsWith("/avaliar") }

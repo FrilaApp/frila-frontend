@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.detalhe
 
+import android.content.Intent
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -14,6 +15,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import br.com.frila.core.designsystem.componentes.TextosVerNoMapa
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,6 +41,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -628,5 +633,20 @@ class TelaDetalheVagaTest {
             compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
             compose.onNodeWithText("Candidatura confirmada").assertExists().assertIsNotEnabled()
         }
+    }
+
+    // ---- zjiTWbAP: "Ver no mapa" no detalhe da vaga, com a casa e o endereço, como o iOS ----
+
+    @Test
+    fun `Ver no mapa abre a casa e o endereco da vaga no app de mapas`() {
+        val viewModel = criarViewModel(criarVaga(estabelecimentoNome = "Bar do Zé"))
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModel) } }
+
+        compose.onNodeWithTag(TextosVerNoMapa.TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        val aberto = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, aberto.action)
+        assertEquals("geo:0,0?q=Bar%20do%20Z%C3%A9%2C%20SQN%20108", aberto.dataString)
     }
 }

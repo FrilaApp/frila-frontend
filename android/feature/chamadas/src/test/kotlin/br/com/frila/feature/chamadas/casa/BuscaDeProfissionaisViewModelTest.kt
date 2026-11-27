@@ -1441,9 +1441,9 @@ class BuscaDeProfissionaisViewModelTest {
     @Test
     fun `a linha dos termos traz o valor da vaga e os inclusos dela, como no iOS`() {
         val termos = TermosDaVagaAberta(vagaAberta, 15000, incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = true)
-        assertEquals("R$ 150,00, Refeição inclusa, sem transporte, Exige material próprio", linhaDosTermos(termos))
+        assertEquals("R$\u00A0150,00, Refeição inclusa, sem transporte, Exige material próprio", linhaDosTermos(termos))
         assertEquals(
-            "Esta chamada vai com os termos da vaga já aberta: R$ 150,00, Refeição inclusa, sem transporte, Exige material próprio",
+            "Esta chamada vai com os termos da vaga já aberta: R$\u00A0150,00, Refeição inclusa, sem transporte, Exige material próprio",
             TextosChamadaCasa.buscaTermosDaVagaAberta(linhaDosTermos(termos)),
         )
     }

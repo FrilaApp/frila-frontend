@@ -16,6 +16,7 @@ import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.ArmazenamentoOAuthPendenteKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.PapelMembro
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -337,6 +338,8 @@ val moduloNotificacoes = module {
             ?: GerenciadorPreferenciasNotificacaoEmMemoria()
     }
     single { ProcessadorDePush(get(), get()) }
+    // HaRJJ0L0: as listas abertas relêem ao voltar do segundo plano e quando chega um push da conta; a conta ativa é o vínculo da sessão.
+    single { AtualizacaoAutomatica(sessao = { get<ArmazenamentoDeSessao>().obterSessao()?.vinculoId }) }
     // C0-10: o registro do aparelho numa função só (abrir com sessão, depois de entrar e onNewToken), com versao_app.
     // Falha do registro (rede, servidor, token) só vira log, com o motivo e sem token nem sessão.
     single {
@@ -609,6 +612,8 @@ val moduloFeatures = module {
             confirmar = turnos::confirmarCheckinManual,
             reabrir = turnos::reabrirPorAtraso,
             cancelar = turnos::cancelarPosicao,
+            // O painel da casa não traz a avaliação: ela vem de `meus_turnos` da casa (`Turno.avaliacao`, contrato 0.2.31).
+            lerAvaliacaoDaCasa = { turnoId, casa -> turnos.listarMeusTurnosDaCasa(casa).firstOrNull { it.id == turnoId }?.avaliacao?.resposta },
             filaDeAcoes = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,

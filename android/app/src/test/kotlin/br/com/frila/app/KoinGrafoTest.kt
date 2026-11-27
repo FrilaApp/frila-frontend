@@ -1,6 +1,7 @@
 package br.com.frila.app
 
 import br.com.frila.app.seguranca.CoordenadorDeLogout
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.ProcessadorDePush
@@ -112,6 +113,8 @@ class KoinGrafoTest : KoinTest {
         assertNotNull(get<ServicoVagas>())
         assertNotNull(get<ServicoDispositivo>())
         assertNotNull(get<ProcessadorDePush>())
+        // HaRJJ0L0: as rotas e o serviço de push usam getOrNull/inject; sem este registro a atualização automática some sem crash nem log.
+        assertNotNull(get<AtualizacaoAutomatica>())
 
         assertNotNull(get<EntradaViewModel>())
         assertNotNull(get<CadastroViewModel>())

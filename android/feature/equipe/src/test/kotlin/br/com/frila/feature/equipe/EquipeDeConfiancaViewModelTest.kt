@@ -380,6 +380,95 @@ class EquipeDeConfiancaViewModelTest {
         assertFalse(vm.estado.value.saiu)
         assertFalse(vm.estado.value.saindo)
     }
+
+    @Test
+    fun `atualizarEmSilencio troca a equipe sem carregando, e a falha a deixa como esta (HaRJJ0L0)`() = runBlocking {
+        var chamada = 0
+        val vm = viewModelCom(
+            Rede {
+                when (++chamada) {
+                    1 -> ok("[${perfil(ana, "Ana")}]")
+                    2 -> ok(listaComDois)
+                    else -> recusa(HttpStatusCode.InternalServerError, "erro")
+                }
+            },
+        )
+        vm.carregar().join()
+        assertEquals(listOf("Ana"), vm.membros())
+
+        vm.atualizarEmSilencio().join()
+        assertEquals(listOf("Ana", "Beto"), vm.membros())
+
+        vm.atualizarEmSilencio().join()
+        assertEquals(listOf("Ana", "Beto"), vm.membros(), "a falha deixa a equipe")
+        assertNull(vm.estado.value.mensagemErro, "a falha silenciosa não vira mensagem")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao faz nada antes de a equipe estar na tela`() = runBlocking {
+        val rede = Rede { ok(listaComDois) }
+        val vm = viewModelCom(rede)
+
+        vm.atualizarEmSilencio().join()
+
+        assertEquals(EstadoEquipe.Carregando, vm.estado.value.estado)
+        assertEquals(0, rede.pedidos.size)
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao traz de volta quem foi removido durante a leitura (HaRJJ0L0)`() = runBlocking {
+        val ana = PerfilPublicoParaTeste.perfil("a1", "Ana")
+        val beto = PerfilPublicoParaTeste.perfil("b1", "Beto")
+        val portao = CompletableDeferred<Unit>()
+        var leituras = 0
+        val vm = EquipeDeConfiancaViewModel(
+            estabelecimentoId = casa,
+            // A releitura (2ª) devolve a equipe de ANTES da remoção, depois de a remoção ter terminado.
+            listar = { if (++leituras == 2) portao.await(); listOf(ana, beto) },
+            removerMembro = { est, prof -> br.com.frila.core.rede.MembroDaEquipeDto(est, prof) },
+            sair = { error("não deveria sair") },
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        vm.carregar().join()
+        val silenciosa = vm.atualizarEmSilencio()
+        while (leituras < 2) kotlinx.coroutines.delay(5)
+
+        vm.remover(ana).join()
+        assertEquals(listOf("Beto"), vm.membros())
+        portao.complete(Unit)
+        silenciosa.join()
+
+        assertEquals(listOf("Beto"), vm.membros(), "a leitura velha não faz a Ana voltar")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao atropela uma remocao em voo (HaRJJ0L0)`() = runBlocking {
+        val ana = PerfilPublicoParaTeste.perfil("a1", "Ana")
+        val beto = PerfilPublicoParaTeste.perfil("b1", "Beto")
+        val portaoDaLeitura = CompletableDeferred<Unit>()
+        val portaoDaRemocao = CompletableDeferred<Unit>()
+        var leituras = 0
+        val vm = EquipeDeConfiancaViewModel(
+            estabelecimentoId = casa,
+            listar = { if (++leituras == 2) portaoDaLeitura.await(); listOf(ana, beto) },
+            removerMembro = { est, prof -> portaoDaRemocao.await(); br.com.frila.core.rede.MembroDaEquipeDto(est, prof) },
+            sair = { error("não deveria sair") },
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        vm.carregar().join()
+        val silenciosa = vm.atualizarEmSilencio()
+        while (leituras < 2) kotlinx.coroutines.delay(5)
+
+        val remocao = vm.remover(ana)
+        portaoDaLeitura.complete(Unit)
+        silenciosa.join()
+        assertEquals("a1", vm.estado.value.removendo, "a remoção segue em voo, dona da lista")
+        portaoDaRemocao.complete(Unit)
+        remocao.join()
+
+        assertEquals(listOf("Beto"), vm.membros())
+    }
+
 }
 
 /** Perfil mínimo para testes que não passam pela rede. */

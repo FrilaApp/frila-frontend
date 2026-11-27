@@ -613,4 +613,75 @@ class AcompanhamentoContratanteViewModelTest {
         vm.escolherMotivoDoCancelamento(MotivoDeCancelamentoDaCasa.OUTRO)
         assertNull(vm.estado.value.motivoDoCancelamento)
     }
+
+    // ── Turno já avaliado pela casa (QBAAgKth) ────────────────────────────────────────────────────────────────────────
+
+    private fun viewModelDaAvaliacao(
+        contexto: ContextoDoTurnoContratante = contexto(verificacao = "verificado").copy(estabelecimentoId = "casa-1"),
+        fila: FilaDeAcoes? = null,
+        lerAvaliacaoDaCasa: (suspend (String, String) -> Boolean?)?,
+    ) = AcompanhamentoContratanteViewModel(
+        contexto = contexto,
+        confirmar = { error("não confirma") },
+        escopo = CoroutineScope(Dispatchers.Unconfined),
+        filaDeAcoes = fila,
+        contaAtual = { "conta" },
+        lerAvaliacaoDaCasa = lerAvaliacaoDaCasa,
+    )
+
+    @Test fun `o servidor traz a avaliacao da casa e o turno passa a avaliado, com a resposta`() {
+        var pedido: Pair<String, String>? = null
+        val vm = viewModelDaAvaliacao { turnoId, casa -> pedido = turnoId to casa; true }
+
+        assertEquals("t1" to "casa-1", pedido)
+        assertTrue(vm.estado.value.jaAvaliado)
+        assertEquals(true, vm.estado.value.respostaDaAvaliacao)
+    }
+
+    @Test fun `sem avaliacao no servidor o turno segue por avaliar, e uma falha de leitura tambem`() {
+        assertFalse(viewModelDaAvaliacao { _, _ -> null }.estado.value.jaAvaliado)
+        assertFalse(viewModelDaAvaliacao { _, _ -> throw ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "x") }.estado.value.jaAvaliado)
+    }
+
+    @Test fun `sem a casa no contexto nao le o servidor`() {
+        var leituras = 0
+        viewModelDaAvaliacao(contexto = contexto(verificacao = "verificado")) { _, _ -> leituras++; true }
+        assertEquals(0, leituras)
+    }
+
+    @Test fun `a avaliacao que esta na fila offline conta como avaliada, e a do servidor tem a palavra final`() {
+        val fila = FilaDeAcoes(null)
+        val vm = viewModelDaAvaliacao(fila = fila) { _, _ -> null }
+        assertFalse(vm.estado.value.jaAvaliado)
+
+        fila.enfileirar(AcaoPendente(TipoAcaoPendente.AVALIACAO, "conta", Instant.EPOCH.toString(), turnoId = "t1", resposta = false))
+        assertTrue(vm.estado.value.jaAvaliado)
+        assertEquals(false, vm.estado.value.respostaDaAvaliacao, "a fila diz Não")
+
+        // O servidor, quando traz a dele, é o que vale.
+        val comServidor = viewModelDaAvaliacao(fila = fila) { _, _ -> true }
+        assertEquals(true, comServidor.estado.value.respostaDaAvaliacao)
+    }
+
+    @Test fun `a avaliacao de outro turno ou de outra conta na fila nao conta`() {
+        val fila = FilaDeAcoes(null)
+        val vm = viewModelDaAvaliacao(fila = fila) { _, _ -> null }
+
+        fila.enfileirar(AcaoPendente(TipoAcaoPendente.AVALIACAO, "conta", Instant.EPOCH.toString(), turnoId = "outro", resposta = true))
+        fila.enfileirar(AcaoPendente(TipoAcaoPendente.AVALIACAO, "outra-conta", Instant.EPOCH.toString(), turnoId = "t1", resposta = true))
+
+        assertFalse(vm.estado.value.jaAvaliado)
+    }
+
+    @Test fun `ao voltar da tela de avaliacao a releitura do contexto traz a avaliacao nova`() {
+        var gravada: Boolean? = null
+        val vm = viewModelDaAvaliacao { _, _ -> gravada }
+        assertFalse(vm.estado.value.jaAvaliado)
+
+        gravada = true
+        vm.atualizarContexto(vm.estado.value.contexto)
+
+        assertTrue(vm.estado.value.jaAvaliado)
+        assertEquals(true, vm.estado.value.respostaDaAvaliacao)
+    }
 }

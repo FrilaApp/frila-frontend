@@ -1,5 +1,6 @@
 package br.com.frila.feature.turnos
 
+import android.content.Intent
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -7,6 +8,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -16,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import br.com.frila.core.designsystem.componentes.TextosVerNoMapa
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -35,10 +38,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -755,5 +761,48 @@ class TelaMeusTurnosTest {
         compose.onNodeWithText("Ver comprovante").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(TextosCheckoutECodigo.BOTAO_CHECKOUT).performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText(TextosCheckin.BOTAO_FAZER_CHECKIN).assertCountEquals(0)
+    }
+
+    // ---- zjiTWbAP: "Ver no mapa" no turno, só quando o contrato já libera o ponto (turno confirmado ou verificado) ----
+
+    private fun comPonto(json: String) = json.replace(
+        "\"regiao_administrativa\": \"Plano Piloto\",",
+        "\"regiao_administrativa\": \"Plano Piloto\", \"ponto\": {\"latitude\": -15.8222, \"longitude\": -47.8998},",
+    )
+
+    @Test
+    fun `turno com o ponto liberado abre o endereco no mapa, centrado no ponto`() {
+        runBlocking {
+            val json = comPonto(turnoJson("t1", "confirmada", "Garçom", "Bar do Zé"))
+            assertTrue(json.contains("\"ponto\""))
+            val viewModel = criarViewModel("[$json]")
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme { TelaMeusTurnos(viewModel = viewModel, criarCheckinViewModel = { criarCheckin(it.turnoId) }) }
+            }
+
+            compose.onNodeWithTag(TextosVerNoMapa.TAG).performScrollTo().performClick()
+            compose.waitForIdle()
+
+            val aberto = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
+            assertEquals(Intent.ACTION_VIEW, aberto.action)
+            assertEquals("geo:-15.822200,-47.899800?q=CLS%20405%20Bloco%20C", aberto.dataString)
+        }
+    }
+
+    @Test
+    fun `turno sem o ponto liberado nao oferece o mapa`() {
+        runBlocking {
+            val viewModel = criarViewModel("[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]")
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme { TelaMeusTurnos(viewModel = viewModel, criarCheckinViewModel = { criarCheckin(it.turnoId) }) }
+            }
+
+            compose.onNodeWithText("Garçom").assertExists()
+            compose.onAllNodesWithTag(TextosVerNoMapa.TAG).assertCountEquals(0)
+        }
     }
 }
