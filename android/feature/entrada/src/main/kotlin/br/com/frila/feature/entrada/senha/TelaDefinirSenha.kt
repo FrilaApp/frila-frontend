@@ -3,7 +3,9 @@ package br.com.frila.feature.entrada.senha
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.view.Window
 import android.view.WindowManager
+import java.util.WeakHashMap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -218,6 +220,43 @@ private tailrec fun Context.encontrarActivity(): Activity? = when (this) {
     else -> null
 }
 
+/**
+ * Coordena `FLAG_SECURE` por [Window] com contagem de referências para que múltiplos campos de
+ * senha na mesma tela não removam a proteção enquanto outro campo ainda estiver visível, nem
+ * removam um `FLAG_SECURE` previamente definido por outra origem.
+ */
+internal object CoordenadorFlagSecureJanela {
+    private data class Estado(var ativos: Int, val jaEraSeguroAntes: Boolean)
+
+    private val porJanela = WeakHashMap<Window, Estado>()
+
+    @Synchronized
+    fun adquirir(window: Window) {
+        val existente = porJanela[window]
+        if (existente == null) {
+            val jaEraSeguro = (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+            if (!jaEraSeguro) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+            porJanela[window] = Estado(ativos = 1, jaEraSeguroAntes = jaEraSeguro)
+        } else {
+            existente.ativos += 1
+        }
+    }
+
+    @Synchronized
+    fun liberar(window: Window) {
+        val existente = porJanela[window] ?: return
+        existente.ativos -= 1
+        if (existente.ativos <= 0) {
+            porJanela.remove(window)
+            if (!existente.jaEraSeguroAntes) {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
+}
+
 private val IconeOlhoAberto: ImageVector by lazy {
     ImageVector.Builder(
         name = "OlhoAberto",
@@ -334,18 +373,17 @@ internal fun CampoDeSenhaComRevelacaoBreve(
         }
     }
 
-    // Protege contra gravação/espelhamento/snapshot enquanto a senha estiver visível.
+    // Protege contra gravação/espelhamento/snapshot enquanto a senha estiver visível,
+    // coordenado por Window com contagem de referências entre campos.
     val view = LocalView.current
     DisposableEffect(visivel, view) {
-        val window = view.context.encontrarActivity()?.window
-        val jaEraSeguro = window != null &&
-            (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
-        if (visivel && window != null && !jaEraSeguro) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        val window = if (visivel) view.context.encontrarActivity()?.window else null
+        if (window != null) {
+            CoordenadorFlagSecureJanela.adquirir(window)
         }
         onDispose {
-            if (visivel && window != null && !jaEraSeguro) {
-                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            if (window != null) {
+                CoordenadorFlagSecureJanela.liberar(window)
             }
         }
     }

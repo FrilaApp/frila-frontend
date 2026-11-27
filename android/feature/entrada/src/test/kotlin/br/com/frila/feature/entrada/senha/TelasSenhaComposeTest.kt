@@ -285,4 +285,81 @@ class TelasSenhaComposeTest {
         org.junit.Assert.assertEquals(2, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha")).fetchSemanticsNodes().size)
         org.junit.Assert.assertEquals("Abc12345", definirVm.estado.value.senha)
     }
+
+    @Test
+    fun coordenadorFlagSecureMantemProtecaoEnquantoOutroCampoVisivelENaoRemoveOrigemExterna() {
+        val activity = org.robolectric.Robolectric.buildActivity(androidx.activity.ComponentActivity::class.java).setup().get()
+        val window = activity.window
+        val flagSecure = android.view.WindowManager.LayoutParams.FLAG_SECURE
+        window.clearFlags(flagSecure)
+
+        // Sequência: mostrar Nova -> mostrar Confirmar -> ocultar Nova => FLAG_SECURE permanece ativo
+        CoordenadorFlagSecureJanela.adquirir(window) // Nova visível (1)
+        org.junit.Assert.assertTrue((window.attributes.flags and flagSecure) != 0)
+        CoordenadorFlagSecureJanela.adquirir(window) // Confirmar visível (2)
+        org.junit.Assert.assertTrue((window.attributes.flags and flagSecure) != 0)
+        CoordenadorFlagSecureJanela.liberar(window) // Nova oculta (1 ainda visível)
+        org.junit.Assert.assertTrue((window.attributes.flags and flagSecure) != 0)
+        CoordenadorFlagSecureJanela.liberar(window) // Confirmar oculta (0)
+        org.junit.Assert.assertTrue((window.attributes.flags and flagSecure) == 0)
+
+        // Se FLAG_SECURE já veio de outra origem, não é removido ao liberar todos os campos
+        window.addFlags(flagSecure)
+        CoordenadorFlagSecureJanela.adquirir(window)
+        CoordenadorFlagSecureJanela.liberar(window)
+        org.junit.Assert.assertTrue((window.attributes.flags and flagSecure) != 0)
+        window.clearFlags(flagSecure)
+    }
+
+    @Test
+    fun definirSenhaVoltaParaOcultoAoIrParaSegundoPlano() {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao("tok", "ref", "bearer", 3600))
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase(
+                "https://frila.supabase.co",
+                "chave",
+                armazenamentoDeSessao = armazenamento,
+                engine = MockEngine { respond("""{"id":"uid-1"}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+        )
+        val definirVm = DefinirSenhaViewModel(servico, armazenamento, escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        lateinit var registry: androidx.lifecycle.LifecycleRegistry
+        val lifecycleOwner = object : androidx.lifecycle.LifecycleOwner {
+            override val lifecycle: androidx.lifecycle.Lifecycle
+                get() = registry
+        }
+        registry = androidx.lifecycle.LifecycleRegistry(lifecycleOwner).apply {
+            handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_CREATE)
+            handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_START)
+            handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_RESUME)
+        }
+
+        rule.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.lifecycle.compose.LocalLifecycleOwner provides lifecycleOwner,
+            ) {
+                FrilaTheme {
+                    TelaDefinirSenha(viewModel = definirVm, aoConcluir = {})
+                }
+            }
+        }
+
+        // Mostrar os dois campos
+        rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha"))[0].performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha"))[0].performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(2, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Ocultar senha")).fetchSemanticsNodes().size)
+
+        // Ir para segundo plano (ON_PAUSE / ON_STOP) volta ambos para oculto
+        rule.runOnIdle {
+            registry.handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_PAUSE)
+            registry.handleLifecycleEvent(androidx.lifecycle.Lifecycle.Event.ON_STOP)
+        }
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(2, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha")).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(0, rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Ocultar senha")).fetchSemanticsNodes().size)
+    }
 }
