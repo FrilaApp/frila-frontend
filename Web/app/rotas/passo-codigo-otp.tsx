@@ -1,8 +1,48 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Form, useSubmit } from "react-router";
 
-export const ESPERA_REENVIO_PADRAO_SEGUNDOS = 30;
+export const ESPERA_REENVIO_PADRAO_SEGUNDOS = 60;
 export const LIMITE_REENVIOS_OTP = 3;
+
+export function resolverEsperaReenvioSegundos(reenviarEmSegundos?: number): number {
+  return typeof reenviarEmSegundos === "number" && Number.isFinite(reenviarEmSegundos) && reenviarEmSegundos > 0
+    ? Math.floor(reenviarEmSegundos)
+    : ESPERA_REENVIO_PADRAO_SEGUNDOS;
+}
+
+export function processarConclusaoTentativaOtp(opcoes: {
+  intencao: "confirmar" | "reenviar" | null;
+  codigoAtual: string;
+  erro: string | null;
+  reenviado: boolean;
+  esperaEfetiva: number;
+  reenviosRealizados: number;
+}): {
+  codigoComErro?: string | null;
+  segundosRestantes?: number;
+  reenviosRealizados?: number;
+  limparCodigo?: boolean;
+} {
+  if (opcoes.intencao === "reenviar") {
+    if (opcoes.erro) {
+      return { segundosRestantes: opcoes.esperaEfetiva };
+    }
+    if (opcoes.reenviado) {
+      return {
+        reenviosRealizados: Math.min(LIMITE_REENVIOS_OTP, opcoes.reenviosRealizados + 1),
+        segundosRestantes: opcoes.esperaEfetiva,
+        codigoComErro: null,
+        limparCodigo: true,
+      };
+    }
+    return {};
+  }
+
+  if (opcoes.erro) {
+    return { codigoComErro: opcoes.codigoAtual };
+  }
+  return {};
+}
 
 const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
 const classeDoBotao =
@@ -83,33 +123,21 @@ export function PassoCodigoOtp({
   const submit = useSubmit();
   const formRef = useRef<HTMLFormElement>(null);
   const ultimoSubmetidoRef = useRef<string | null>(null);
-  const reenvioAnteriorRef = useRef(false);
+  const enviandoAnteriorRef = useRef(enviando);
+  const ultimaIntencaoRef = useRef<"confirmar" | "reenviar" | null>(null);
+  const erroInicialTratadoRef = useRef(false);
 
   const [codigo, setCodigo] = useState("");
   const [codigoComErro, setCodigoComErro] = useState<string | null>(null);
   const [segundosRestantes, setSegundosRestantes] = useState<number>(0);
   const [reenviosRealizados, setReenviosRealizados] = useState<number>(0);
 
-  const esperaEfetiva =
-    typeof reenviarEmSegundos === "number" && reenviarEmSegundos > 0
-      ? Math.floor(reenviarEmSegundos)
-      : ESPERA_REENVIO_PADRAO_SEGUNDOS;
+  const esperaEfetiva = resolverEsperaReenvioSegundos(reenviarEmSegundos);
 
   // Inicia a contagem no cliente após hidratação (preserva formulário funcional sem JS no SSR).
   useEffect(() => {
     setSegundosRestantes(esperaEfetiva);
   }, [esperaEfetiva]);
-
-  useEffect(() => {
-    if (reenviado && !reenvioAnteriorRef.current) {
-      setReenviosRealizados((atual) => Math.min(LIMITE_REENVIOS_OTP, atual + 1));
-      setSegundosRestantes(esperaEfetiva);
-      setCodigo("");
-      setCodigoComErro(null);
-      ultimoSubmetidoRef.current = null;
-    }
-    reenvioAnteriorRef.current = reenviado;
-  }, [reenviado, esperaEfetiva]);
 
   useEffect(() => {
     if (segundosRestantes <= 0) return;
@@ -121,15 +149,45 @@ export function PassoCodigoOtp({
 
   const codigoAtualRef = useRef(codigo);
   codigoAtualRef.current = codigo;
-  const erroAnteriorRef = useRef<string | null>(null);
 
-  // Quando há erro novo do servidor, trava auto-submit até nova digitação.
+  // Registra conclusão de tentativa por ciclo (não por comparação de string de erro),
+  // garantindo trava pós-erro mesmo em erros idênticos consecutivos e reinício conservador em 429.
   useEffect(() => {
-    if (erro && erro !== erroAnteriorRef.current) {
+    const concluiuTentativa = enviandoAnteriorRef.current && !enviando;
+    enviandoAnteriorRef.current = enviando;
+
+    if (!erroInicialTratadoRef.current && erro) {
+      erroInicialTratadoRef.current = true;
       setCodigoComErro(codigoAtualRef.current);
     }
-    erroAnteriorRef.current = erro;
-  }, [erro]);
+
+    if (!concluiuTentativa) return;
+
+    const intencao = ultimaIntencaoRef.current;
+    ultimaIntencaoRef.current = null;
+
+    const resultado = processarConclusaoTentativaOtp({
+      intencao,
+      codigoAtual: codigoAtualRef.current,
+      erro,
+      reenviado,
+      esperaEfetiva,
+      reenviosRealizados,
+    });
+    if (resultado.reenviosRealizados !== undefined) {
+      setReenviosRealizados(resultado.reenviosRealizados);
+    }
+    if (resultado.segundosRestantes !== undefined) {
+      setSegundosRestantes(resultado.segundosRestantes);
+    }
+    if (resultado.limparCodigo) {
+      setCodigo("");
+      ultimoSubmetidoRef.current = null;
+    }
+    if (resultado.codigoComErro !== undefined) {
+      setCodigoComErro(resultado.codigoComErro);
+    }
+  }, [enviando, erro, reenviado, esperaEfetiva, reenviosRealizados]);
 
   // Submete automaticamente uma única vez ao completar 6 dígitos novos.
   useEffect(() => {
@@ -143,6 +201,7 @@ export function PassoCodigoOtp({
       formRef.current
     ) {
       ultimoSubmetidoRef.current = codigo;
+      ultimaIntencaoRef.current = "confirmar";
       const formData = new FormData(formRef.current);
       formData.set("intencao", intencaoConfirmar);
       void submit(formData, { method: "post" });
@@ -155,7 +214,15 @@ export function PassoCodigoOtp({
 
   return (
     <div className="flex flex-col gap-4">
-      <Form ref={formRef} method="post" className="flex flex-col gap-4" noValidate>
+      <Form
+        ref={formRef}
+        method="post"
+        className="flex flex-col gap-4"
+        noValidate
+        onSubmit={() => {
+          ultimaIntencaoRef.current = "confirmar";
+        }}
+      >
         <h1 className="font-titulo text-3xl font-bold">{titulo}</h1>
         <p className="text-tinta-suave">{descricao}</p>
         <input type="hidden" name="email" value={email} />
@@ -211,7 +278,13 @@ export function PassoCodigoOtp({
           {enviando ? textoConferindo : textoConfirmar}
         </button>
       </Form>
-      <Form method="post" className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <Form
+        method="post"
+        className="flex flex-wrap items-center gap-x-6 gap-y-2"
+        onSubmit={() => {
+          ultimaIntencaoRef.current = "reenviar";
+        }}
+      >
         <input type="hidden" name="email" value={email} />
         {desafioId ? <input type="hidden" name="desafio_id" value={desafioId} /> : null}
         {incluirCampoReenvio ? <input type="hidden" name="reenvio" value="1" /> : null}

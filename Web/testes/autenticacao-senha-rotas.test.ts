@@ -22,6 +22,8 @@ import {
   normalizarCodigoOtp,
   PassoCodigoOtp,
   podeConfirmarCodigoOtp,
+  processarConclusaoTentativaOtp,
+  resolverEsperaReenvioSegundos,
 } from "../app/rotas/passo-codigo-otp";
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
 import { action as sairAction } from "../app/rotas/sair";
@@ -583,7 +585,7 @@ describe("Decisão A1: CTA 'Criar ou recuperar senha' e erro codigo_apenas_demo 
   });
 });
 
-describe("Regras OTP Web: 30s, teto 3, Confirmar inativo <6, auto-submit 6 dígitos e pausa após erro", () => {
+describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo <6, auto-submit 6 dígitos e pausa após erro", () => {
   it("normalizarCodigoOtp extrai apenas dígitos até 6 e podeConfirmarCodigoOtp exige 6 dígitos", () => {
     expect(normalizarCodigoOtp("12-34 5678")).toBe("123456");
     expect(normalizarCodigoOtp("ab12cd")).toBe("12");
@@ -608,9 +610,13 @@ describe("Regras OTP Web: 30s, teto 3, Confirmar inativo <6, auto-submit 6 dígi
     ).toBe(true);
   });
 
-  it("constantes padrão (30s, teto 3) e renderização inicial mantêm botão Confirmar desabilitado sem código", () => {
-    expect(ESPERA_REENVIO_PADRAO_SEGUNDOS).toBe(30);
+  it("usa fallback conservador 60s quando servidor não informa reenviarEmSegundos e respeita valor real quando informado", () => {
+    expect(ESPERA_REENVIO_PADRAO_SEGUNDOS).toBe(60);
     expect(LIMITE_REENVIOS_OTP).toBe(3);
+    expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+    expect(resolverEsperaReenvioSegundos(0)).toBe(60);
+    expect(resolverEsperaReenvioSegundos(30)).toBe(30);
+    expect(formatarContagemReenvio(60)).toBe("Reenviar código em 1:00");
     expect(formatarContagemReenvio(30)).toBe("Reenviar código em 0:30");
 
     const handler = createStaticHandler(
@@ -631,7 +637,7 @@ describe("Regras OTP Web: 30s, teto 3, Confirmar inativo <6, auto-submit 6 dígi
               intencaoConfirmar: "confirmar",
               intencaoReenviar: "pedir",
               enviando: false,
-              erro: null,
+              erro: "Muitos pedidos. Aguarde antes de tentar de novo.",
               acaoVoltar: null,
             }),
         },
@@ -646,6 +652,55 @@ describe("Regras OTP Web: 30s, teto 3, Confirmar inativo <6, auto-submit 6 dígi
       );
       expect(html).toContain('maxLength="6"');
       expect(html).toContain("disabled=\"\"");
+      expect(html).toContain('role="alert"');
+      expect(html).toContain("Muitos pedidos. Aguarde antes de tentar de novo.");
+    });
+  });
+
+  it("processarConclusaoTentativaOtp trava erros iguais consecutivos por tentativa, aplica teto 3 e reinicia espera conservadora em 429", () => {
+    const primeiraFalha = processarConclusaoTentativaOtp({
+      intencao: "confirmar",
+      codigoAtual: "111111",
+      erro: "Código inválido.",
+      reenviado: false,
+      esperaEfetiva: 60,
+      reenviosRealizados: 0,
+    });
+    expect(primeiraFalha).toEqual({ codigoComErro: "111111" });
+
+    const segundaFalhaIdentica = processarConclusaoTentativaOtp({
+      intencao: "confirmar",
+      codigoAtual: "222222",
+      erro: "Código inválido.",
+      reenviado: false,
+      esperaEfetiva: 60,
+      reenviosRealizados: 0,
+    });
+    expect(segundaFalhaIdentica).toEqual({ codigoComErro: "222222" });
+
+    const erro429SemEspera = processarConclusaoTentativaOtp({
+      intencao: "reenviar",
+      codigoAtual: "",
+      erro: "Muitos pedidos.",
+      reenviado: false,
+      esperaEfetiva: resolverEsperaReenvioSegundos(undefined),
+      reenviosRealizados: 1,
+    });
+    expect(erro429SemEspera).toEqual({ segundosRestantes: 60 });
+
+    const terceiroReenvio = processarConclusaoTentativaOtp({
+      intencao: "reenviar",
+      codigoAtual: "123456",
+      erro: null,
+      reenviado: true,
+      esperaEfetiva: resolverEsperaReenvioSegundos(30),
+      reenviosRealizados: 2,
+    });
+    expect(terceiroReenvio).toEqual({
+      reenviosRealizados: 3,
+      segundosRestantes: 30,
+      codigoComErro: null,
+      limparCodigo: true,
     });
   });
 
