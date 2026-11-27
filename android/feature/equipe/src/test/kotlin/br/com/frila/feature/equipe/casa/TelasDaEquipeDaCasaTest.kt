@@ -342,4 +342,60 @@ class TelasDaEquipeDaCasaTest {
         rule.onNodeWithText("Bar da Lia").performClick()
         assertEquals(1, voltou)
     }
+
+    // ---- Papel nulo ou desconhecido (cWQE4YiY) ----
+
+    @Test
+    fun `na equipe o papel que este app nao conhece aparece como Outro papel, e o seu proprio tambem`() {
+        membros += MembroDoEstabelecimentoDto("m-carla", "Carla Dias", "supervisora", "2026-11-03T09:30:00Z", false)
+        membros += MembroDoEstabelecimentoDto("m-davi", "Davi Reis", "", "2026-11-04T09:30:00Z", false)
+        montarEquipe(PapelMembro.ADMINISTRADOR)
+
+        rule.onNodeWithText("Carla Dias").performScrollTo().assertIsDisplayed()
+        // A pessoa não some nem fica sem papel: "Outro papel" (iOS `papelDesconhecido`), duas vezes (o papel desconhecido e o em branco).
+        rule.onAllNodesWithText("Outro papel").assertCountEquals(2)
+        rule.onNodeWithText("Administrador · ${TextosEquipeDaCasa.VOCE}").performScrollTo().assertIsDisplayed()
+        // Os papéis que o app conhece seguem com o rótulo de sempre (o "Operador" também está no seletor do convite, por isso o nome do membro).
+        rule.onNodeWithText("Beto Lima").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `quem e voce e tem papel desconhecido ve Outro papel e Voce`() {
+        membros.clear()
+        membros += MembroDoEstabelecimentoDto("m-ana", "Ana Souza", "supervisora", "2026-10-01T12:00:00Z", true)
+        montarEquipe(PapelMembro.ADMINISTRADOR)
+
+        rule.onNodeWithText("Outro papel · ${TextosEquipeDaCasa.VOCE}").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `em trocar de casa o papel desconhecido ou em branco aparece como Outro papel`() {
+        val vm = TrocarDeCasaViewModel(
+            listar = {
+                listOf(
+                    EstabelecimentoDaContaDto("c1", "Bar da Lia", "administrador"),
+                    EstabelecimentoDaContaDto("c2", "Buffet Sol", "supervisora"),
+                    EstabelecimentoDaContaDto("c3", "Casa Nova", ""),
+                )
+            },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme(temaEscuro = false) {
+                TelaTrocarDeCasa(viewModel = vm, casaEmUsoId = "c1", aoEscolher = {}, aoVoltar = {})
+            }
+        }
+
+        rule.onNodeWithText("Buffet Sol").assertIsDisplayed()
+        rule.onNodeWithText("Casa Nova").assertIsDisplayed()
+        rule.onAllNodesWithText("Outro papel").assertCountEquals(2)
+        rule.onNodeWithText("Administrador").assertIsDisplayed()
+    }
+
+    @Test
+    fun `o rotulo do papel e o texto ou Outro papel`() {
+        assertEquals("Administrador", rotuloDoPapelOuDesconhecido(PapelMembro.ADMINISTRADOR))
+        assertEquals("Operador", rotuloDoPapelOuDesconhecido(PapelMembro.OPERADOR))
+        assertEquals("Outro papel", rotuloDoPapelOuDesconhecido(null))
+    }
 }

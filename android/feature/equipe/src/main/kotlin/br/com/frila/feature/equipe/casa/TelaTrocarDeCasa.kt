@@ -83,7 +83,7 @@ fun ConteudoTrocarDeCasa(
                         linha {
                             FrilaLinhaDeOpcao(
                                 titulo = casa.nome,
-                                subtitulo = casa.papel?.let(::rotuloDoPapel),
+                                subtitulo = rotuloDoPapelOuDesconhecido(casa.papel),
                                 marcada = casa.id == casaEmUsoId,
                                 aoClicar = { if (casa.id == casaEmUsoId) aoVoltar() else aoEscolher(casa) },
                             )

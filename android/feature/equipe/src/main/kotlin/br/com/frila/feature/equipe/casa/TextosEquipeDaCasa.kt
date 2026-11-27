@@ -22,6 +22,7 @@ object TextosEquipeDaCasa {
     const val DESDE = "Desde %s"
 
     const val PAPEL_ADMINISTRADOR = "Administrador"
+    const val PAPEL_DESCONHECIDO = "Outro papel"
     const val PAPEL_OPERADOR = "Operador"
 
     // Convidar
