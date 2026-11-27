@@ -60,7 +60,7 @@ class EscalaDeEventoViewModelTest {
     private var agora: Instant = base
     private var chaves = 0
 
-    private fun viewModelCom(rede: Rede): EscalaDeEventoViewModel {
+    private fun viewModelCom(rede: Rede, guarda: GuardaDaEscala? = null): EscalaDeEventoViewModel {
         val engine = MockEngine { request ->
             val corpo = (request.body as? TextContent)?.text?.let { ClienteSupabase.jsonFrila.parseToJsonElement(it).jsonObject }
             rede.pedidos += Pedido(request.url.encodedPath, corpo)
@@ -79,6 +79,7 @@ class EscalaDeEventoViewModelTest {
             relogio = { agora },
             novaChave = { "chave-${++chaves}" },
             escopo = CoroutineScope(Dispatchers.Unconfined),
+            guarda = guarda,
         )
     }
 
@@ -654,5 +655,26 @@ class EscalaDeEventoViewModelTest {
 
             assertEquals("chave-2", chaveDe(rede, 1), rotulo)
         }
+    }
+
+    @Test
+    fun `quem sai da tela depois da tentativa incerta e volta reenvia, entao a recusa de quem pode mantem a escala e a chave`() = runBlocking {
+        val guarda = GuardaDaEscala()
+        val rede = redeEmTres(primeira = null, segunda = recusasDeQuemPode.first())
+        val antes = viewModelCom(rede, guarda)
+        antes.preencher()
+        antes.publicar().join() // sem rede: incerta; a tela some e o view model com ela
+
+        val depois = viewModelCom(rede, guarda) // a tela volta: o estado vem da guarda, com o corpo e a chave
+        assertNotNull(depois.estado.value.pendente)
+        depois.publicar().join()
+
+        assertNotNull(depois.estado.value.pendente)
+        assertNotNull(guarda.obter("e1"))
+        depois.publicar().join()
+        assertEquals(List(3) { "chave-1" }, List(3) { chaveDe(rede, it) })
+        assertEquals(1, chaves)
+        assertEquals("ev1", depois.estado.value.publicada?.eventoId)
+        assertNull(guarda.obter("e1"))
     }
 }
