@@ -216,4 +216,41 @@ class TelaMinhasVagasLigadaTest {
 
         assertEquals(0, rule.onAllNodesWithText(TextosMinhasVagas.PRESENCAS_A_CONFIRMAR).fetchSemanticsNodes().size)
     }
+
+    // ---- Uk5UJWjQ, fatia 2: "Confirmar presença" no próprio cartão ----
+
+    @Test
+    fun `Confirmar presenca no cartao envia, tira o cartao e mostra Presenca confirmada`() {
+        val confirmados = mutableListOf<String>()
+        var leituras = 0
+        val vm = MinhasVagasViewModel(
+            estabelecimentoId = "est-1",
+            buscarPainel = { _, _, _ -> leituras++; Result.success(painelComPendentes(if (leituras == 1) listOf("t1") else emptyList())) },
+            confirmarCheckin = { turnoId ->
+                confirmados += turnoId
+                Result.success(br.com.frila.core.rede.ResultadoRegistroDto(turnoId, "manual", "verificado", "2026-11-12T21:05:00Z"))
+            },
+            relogio = { agora },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme { TelaMinhasVagas(viewModel = vm, aoVoltar = {}, aoVerCandidatos = { _, _, _ -> }, aoPublicarVaga = {}) }
+        }
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag("confirmar-presenca-t1").fetchSemanticsNodes().isNotEmpty() }
+
+        rule.onNodeWithTag("confirmar-presenca-t1").assertIsDisplayed().performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("t1"), confirmados)
+        rule.onNodeWithText(TextosMinhasVagas.PRESENCA_CONFIRMADA).assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("presenca-a-confirmar-t1").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `sem o caminho de confirmar o cartao so oferece Acompanhar turno`() {
+        montarComPainel(painelComPendentes(listOf("t1")))
+
+        rule.onNodeWithTag("acompanhar-turno-t1").assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("confirmar-presenca-t1").fetchSemanticsNodes().size)
+    }
 }

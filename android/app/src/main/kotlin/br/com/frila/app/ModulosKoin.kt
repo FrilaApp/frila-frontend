@@ -596,6 +596,7 @@ val moduloFeatures = module {
             nomeEstabelecimento = nomeEstabelecimento,
             vagaRecemPublicadaId = vagaRecemPublicadaId,
             buscarPainel = vagas::painelEstabelecimento,
+            confirmarCheckin = get<ServicoTurnos>()::confirmarCheckinManual,
         )
     }
     /**
