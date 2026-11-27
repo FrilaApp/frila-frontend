@@ -84,6 +84,24 @@
                     android:scheme="frila"
                     android:host="aviso" />
             </intent-filter>
+            <!--
+              Android App Links HTTPS (pré-Prod/Release; não ativa login social em Release).
+              Dependências externas antes de habilitar social fora de DEBUG (sem inventar SHA-256 nem alterar remoto):
+              1. Domínio frilabr.com servindo https://frilabr.com/.well-known/assetlinks.json (HTTP 200, JSON);
+              2. package_name br.com.frila.app + certificado SHA-256 real de Release/Play Signing (operador Cauê);
+              3. https://frilabr.com/app/auth/callback?tx=* na uri_allow_list do Supabase Auth (operador Cauê);
+              4. Validação real via adb shell pm get-app-links br.com.frila.app.
+              Em debug, src/debug/AndroidManifest.xml preserva frila-auth://auth/callback para DEV.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="frilabr.com"
+                    android:path="/app/auth/callback" />
+            </intent-filter>
         </activity>
 
         <!--

@@ -25,10 +25,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.koin.core.context.GlobalContext
 
-internal fun extrairCallbackOAuthSocialDoIntent(intent: Intent?): String? {
+internal fun extrairCallbackOAuthSocialDoIntent(
+    intent: Intent?,
+    permitirCustomSchemeDev: Boolean = BuildConfig.DEBUG,
+): String? {
     if (intent?.action != Intent.ACTION_VIEW) return null
     val uri = intent.dataString ?: return null
-    return uri.takeIf { SegurancaOAuthSocial.ehCallbackOAuthSocial(it) }
+    return uri.takeIf {
+        SegurancaOAuthSocial.ehCallbackOAuthSocial(it, permitirCustomSchemeDev = permitirCustomSchemeDev)
+    }
 }
 
 /** `FragmentActivity` (não `ComponentActivity`) porque `BiometricPrompt` exige um host com `FragmentManager` (RN15). */

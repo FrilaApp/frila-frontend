@@ -89,7 +89,7 @@ export const textos = {
     rotuloDaSenha: "Senha",
     entrarComSenha: "Entrar",
     entrando: "Entrando…",
-    esqueciSenha: "Esqueci minha senha",
+    esqueciSenha: "Criar ou recuperar senha",
     criarConta: "Criar conta",
     entrarComApple: "Continuar com a Apple",
     entrarComCodigo: "Entrar com código ou demonstração",
@@ -117,7 +117,8 @@ export const textos = {
       senha_invalida: "Digite sua senha.",
       credenciais_invalidas: "E-mail ou senha incorretos. Confira os dados ou recupere sua senha.",
       conta_demo: "Esta conta usa apenas o modo demonstração.",
-      codigo_apenas_demo: "Use sua senha para entrar ou recupere o acesso pelo link abaixo.",
+      codigo_apenas_demo:
+        "Contas reais entram com senha. Se você entrava por código ou esqueceu a senha, use Criar ou recuperar senha.",
       codigo_incompleto: "O código tem 6 dígitos.",
       codigo_invalido: "Código errado ou vencido. Confira ou peça outro.",
       desafio_expirado: "O código expirou. Digite sua senha novamente para receber um novo código.",

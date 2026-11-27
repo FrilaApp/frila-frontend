@@ -28,6 +28,7 @@ import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoEmMemoria
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacaoSharedPrefs
 import br.com.frila.core.notificacoes.ProcessadorDePush
+import br.com.frila.core.rede.SegurancaOAuthSocial
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.FilaDeTelemetria
@@ -370,6 +371,8 @@ val moduloFeatures = module {
             permitirDominioDeTeste = BuildConfig.DEBUG,
             mostrarLoginSocial = BuildConfig.DEBUG,
             armazenamentoOAuthPendente = get(),
+            urlCallbackOAuth = SegurancaOAuthSocial.urlCallbackParaAmbiente(usarAppLinks = !BuildConfig.DEBUG),
+            permitirCustomSchemeDev = BuildConfig.DEBUG,
         )
     }
     viewModel { params ->

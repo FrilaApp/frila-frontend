@@ -213,9 +213,14 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
             />
           </label>
           {erro ? (
-            <p id="erro" role="alert" className="font-semibold">
-              {erro}
-            </p>
+            <div id="erro" role="alert" className="flex flex-col gap-2 font-semibold">
+              <p>{erro}</p>
+              {estado.erro === "codigo_apenas_demo" ? (
+                <Link to="/recuperar-senha" className={classeDoLink}>
+                  {textos.entrar.esqueciSenha}
+                </Link>
+              ) : null}
+            </div>
           ) : null}
           <button type="submit" name="intencao" value="entrar" disabled={enviando} className={classeDoBotao}>
             {enviando ? textos.entrar.entrando : textos.entrar.entrarComSenha}
