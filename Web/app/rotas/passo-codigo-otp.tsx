@@ -53,8 +53,12 @@ export function normalizarCodigoOtp(valor: string): string {
   return valor.replace(/\D/g, "").slice(0, 6);
 }
 
-export function podeConfirmarCodigoOtp(codigo: string, enviando: boolean): boolean {
-  return !enviando && /^\d{6}$/.test(codigo);
+export function podeConfirmarCodigoOtp(
+  codigo: string,
+  enviando: boolean,
+  codigoComErro: string | null = null,
+): boolean {
+  return !enviando && /^\d{6}$/.test(codigo) && (codigoComErro === null || codigo !== codigoComErro);
 }
 
 export function deveAutoSubmeterCodigoOtp(opcoes: {
@@ -233,7 +237,7 @@ export function PassoCodigoOtp({
     }
   }, [codigo, enviando, emComposicao, codigoComErro, intencaoConfirmar, submit]);
 
-  const confirmarHabilitado = podeConfirmarCodigoOtp(codigo, enviando);
+  const confirmarHabilitado = podeConfirmarCodigoOtp(codigo, enviando, codigoComErro);
   const atingiuLimiteReenvios = reenviosRealizados >= LIMITE_REENVIOS_OTP;
   const podeReenviar = !enviando && segundosRestantes <= 0 && !atingiuLimiteReenvios;
 
@@ -245,6 +249,10 @@ export function PassoCodigoOtp({
         className="flex flex-col gap-4"
         noValidate
         onSubmit={(evento) => {
+          if (!podeConfirmarCodigoOtp(codigo, enviando, codigoComErro)) {
+            evento.preventDefault();
+            return;
+          }
           ultimaIntencaoRef.current = "confirmar";
           const campoTentativa = evento.currentTarget.elements.namedItem("tentativa_id");
           if (campoTentativa instanceof HTMLInputElement) {

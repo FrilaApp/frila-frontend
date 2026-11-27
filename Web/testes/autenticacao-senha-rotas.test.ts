@@ -593,6 +593,8 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
     expect(podeConfirmarCodigoOtp("12345", false)).toBe(false);
     expect(podeConfirmarCodigoOtp("123456", true)).toBe(false);
     expect(podeConfirmarCodigoOtp("123456", false)).toBe(true);
+    expect(podeConfirmarCodigoOtp("123456", false, "123456")).toBe(false);
+    expect(podeConfirmarCodigoOtp("654321", false, "123456")).toBe(true);
   });
 
   it("deveAutoSubmeterCodigoOtp evita submissão duplicada e loop após erro até nova digitação", () => {
