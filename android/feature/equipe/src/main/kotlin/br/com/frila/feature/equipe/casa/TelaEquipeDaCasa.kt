@@ -256,7 +256,7 @@ private fun CartaoDoMembro(membro: MembroDaCasa, ocupado: Boolean, acoes: AcoesE
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = listOfNotNull(membro.papel?.let(::rotuloDoPapel), if (membro.eVoce) TextosEquipeDaCasa.VOCE else null).joinToString(" · "),
+                text = listOfNotNull(rotuloDoPapelOuDesconhecido(membro.papel), if (membro.eVoce) TextosEquipeDaCasa.VOCE else null).joinToString(" · "),
                 style = FrilaTipo.apoio,
                 color = cores.tintaSuave,
             )
@@ -329,6 +329,9 @@ internal fun rotuloDoPapel(papel: PapelMembro): String = when (papel) {
     PapelMembro.ADMINISTRADOR -> TextosEquipeDaCasa.PAPEL_ADMINISTRADOR
     PapelMembro.OPERADOR -> TextosEquipeDaCasa.PAPEL_OPERADOR
 }
+
+/** O rótulo do papel, ou "Outro papel" quando ele é nulo ou este app não o conhece: a pessoa e a casa continuam na lista, nunca sem papel (iOS `papelDesconhecido`). */
+internal fun rotuloDoPapelOuDesconhecido(papel: PapelMembro?): String = papel?.let(::rotuloDoPapel) ?: TextosEquipeDaCasa.PAPEL_DESCONHECIDO
 
 private val FUSO = ZoneId.of("America/Sao_Paulo")
 private val DIA = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.forLanguageTag("pt-BR"))
