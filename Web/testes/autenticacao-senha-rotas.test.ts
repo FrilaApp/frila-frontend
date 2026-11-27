@@ -14,6 +14,15 @@ import { action as dadosAction } from "../app/rotas/conta/dados";
 import { action as criarContaAction, loader as criarContaLoader } from "../app/rotas/criar-conta";
 import { action as definirSenhaAction, loader as definirSenhaLoader } from "../app/rotas/definir-senha";
 import Entrar, { action as entrarAction, loader as entrarLoader } from "../app/rotas/entrar";
+import {
+  deveAutoSubmeterCodigoOtp,
+  ESPERA_REENVIO_PADRAO_SEGUNDOS,
+  formatarContagemReenvio,
+  LIMITE_REENVIOS_OTP,
+  normalizarCodigoOtp,
+  PassoCodigoOtp,
+  podeConfirmarCodigoOtp,
+} from "../app/rotas/passo-codigo-otp";
 import { action as recuperarSenhaAction, loader as recuperarSenhaLoader } from "../app/rotas/recuperar-senha";
 import { action as sairAction } from "../app/rotas/sair";
 import { middlewareDeSessao } from "../app/servidor/middleware-de-sessao";
@@ -259,7 +268,13 @@ describe("rotas: login por senha, dispositivo confiável 30d e desafio OTP (rota
       intencao: "reenviar_desafio",
     });
     const res = await entrarAction(args as never);
-    expect(res).toEqual({ passo: "desafio", email: "usuario@frila.test", desafioId: "des-123", reenviado: true });
+    expect(res).toEqual({
+      passo: "desafio",
+      email: "usuario@frila.test",
+      desafioId: "des-123",
+      reenviado: true,
+      reenviarEmSegundos: 60,
+    });
     expect(authMock.reenviarDispositivoOtp).toHaveBeenCalledWith({
       desafioId: "des-123",
       visitante: "198.51.100.77",
@@ -565,5 +580,86 @@ describe("Decisão A1: CTA 'Criar ou recuperar senha' e erro codigo_apenas_demo 
     expect(htmlExistente.replace("existente@frila.test", "x")).toBe(
       htmlInexistente.replace("naoexiste@frila.test", "x"),
     );
+  });
+});
+
+describe("Regras OTP Web: 30s, teto 3, Confirmar inativo <6, auto-submit 6 dígitos e pausa após erro", () => {
+  it("normalizarCodigoOtp extrai apenas dígitos até 6 e podeConfirmarCodigoOtp exige 6 dígitos", () => {
+    expect(normalizarCodigoOtp("12-34 5678")).toBe("123456");
+    expect(normalizarCodigoOtp("ab12cd")).toBe("12");
+    expect(podeConfirmarCodigoOtp("", false)).toBe(false);
+    expect(podeConfirmarCodigoOtp("12345", false)).toBe(false);
+    expect(podeConfirmarCodigoOtp("123456", true)).toBe(false);
+    expect(podeConfirmarCodigoOtp("123456", false)).toBe(true);
+  });
+
+  it("deveAutoSubmeterCodigoOtp evita submissão duplicada e loop após erro até nova digitação", () => {
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "123456", enviando: false, codigoComErro: null, ultimoSubmetido: null }),
+    ).toBe(true);
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "123456", enviando: false, codigoComErro: "123456", ultimoSubmetido: null }),
+    ).toBe(false);
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "123456", enviando: false, codigoComErro: null, ultimoSubmetido: "123456" }),
+    ).toBe(false);
+    expect(
+      deveAutoSubmeterCodigoOtp({ codigo: "654321", enviando: false, codigoComErro: "123456", ultimoSubmetido: "123456" }),
+    ).toBe(true);
+  });
+
+  it("constantes padrão (30s, teto 3) e renderização inicial mantêm botão Confirmar desabilitado sem código", () => {
+    expect(ESPERA_REENVIO_PADRAO_SEGUNDOS).toBe(30);
+    expect(LIMITE_REENVIOS_OTP).toBe(3);
+    expect(formatarContagemReenvio(30)).toBe("Reenviar código em 0:30");
+
+    const handler = createStaticHandler(
+      [
+        {
+          id: "otp",
+          path: "entrar",
+          loader: () => null,
+          Component: () =>
+            createElement(PassoCodigoOtp, {
+              titulo: "Digite o código",
+              descricao: "Teste",
+              email: "pessoa@frila.test",
+              rotuloDoCodigo: "Código de 6 dígitos",
+              textoConfirmar: "Entrar",
+              textoConferindo: "Conferindo…",
+              textoReenviar: "Mandar outro código",
+              intencaoConfirmar: "confirmar",
+              intencaoReenviar: "pedir",
+              enviando: false,
+              erro: null,
+              acaoVoltar: null,
+            }),
+        },
+      ],
+      { basename: "/app" },
+    );
+    return handler.query(new Request("https://frilabr.com/app/entrar")).then((contexto) => {
+      if (contexto instanceof Response) throw contexto;
+      const roteador = createStaticRouter(handler.dataRoutes, contexto);
+      const html = renderToStaticMarkup(
+        createElement(StaticRouterProvider, { router: roteador, context: contexto, hydrate: false }),
+      );
+      expect(html).toContain('maxLength="6"');
+      expect(html).toContain("disabled=\"\"");
+    });
+  });
+
+  it("entrarAction propaga reenviarEmSegundos real do servidor em reenviar_desafio", async () => {
+    authMock.reenviarDispositivoOtp.mockResolvedValueOnce({ ok: true, reenviarEmSegundos: 60 });
+    const res = await entrarAction(
+      argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", intencao: "reenviar_desafio" }, false),
+    );
+    expect(res).toEqual({
+      passo: "desafio",
+      email: "pessoa@frila.test",
+      desafioId: "des-1",
+      reenviado: true,
+      reenviarEmSegundos: 60,
+    });
   });
 });

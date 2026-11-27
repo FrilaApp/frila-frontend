@@ -4,6 +4,7 @@ import { contextoDaSessao } from "../contexto";
 import { authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
 import { cookieDoDispositivo, cookiesDaSessao, ehPedidoSeguro, visitanteDoPedido } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
+import { PassoCodigoOtp } from "./passo-codigo-otp";
 import type { Route } from "./+types/recuperar-senha";
 
 type Erro = keyof typeof textos.recuperarSenha.erros;
@@ -125,57 +126,33 @@ export default function RecuperarSenha({ actionData }: Route.ComponentProps) {
           </div>
         </Form>
       ) : (
-        <div className="flex flex-col gap-4">
-          <Form method="post" className="flex flex-col gap-4" noValidate>
-            <h1 className="font-titulo text-3xl font-bold">{textos.recuperarSenha.tituloDoCodigo}</h1>
-            <p className="text-tinta-suave">
+        <PassoCodigoOtp
+          titulo={textos.recuperarSenha.tituloDoCodigo}
+          descricao={
+            <>
               {textos.recuperarSenha.corpoDoCodigo} <strong className="break-all text-tinta">{estado.email}</strong>.
-            </p>
-            <input type="hidden" name="email" value={estado.email} />
-            <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
-              {textos.recuperarSenha.rotuloDoCodigo}
-              <input
-                id="codigo"
-                name="codigo"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                required
-                autoFocus
-                aria-invalid={erro ? true : undefined}
-                aria-describedby={erro ? "erro" : undefined}
-                className={`${classeDoCampo} tracking-widest`}
-              />
-            </label>
-            <label className="flex min-h-11 items-center gap-3 text-sm">
-              <input type="checkbox" name="lembrar_dispositivo" value="sim" className="size-5 shrink-0" />
-              <span>{textos.recuperarSenha.lembrarDispositivo}</span>
-            </label>
-            {erro ? (
-              <p id="erro" role="alert" className="font-semibold">
-                {erro}
-              </p>
-            ) : null}
-            {estado.reenviado && !erro ? (
-              <p role="status" className="font-semibold">
-                {textos.recuperarSenha.mensagemReenvio}
-              </p>
-            ) : null}
-            <button type="submit" name="intencao" value="confirmar" disabled={enviando} className={classeDoBotao}>
-              {enviando ? textos.recuperarSenha.conferindo : textos.recuperarSenha.confirmar}
-            </button>
-          </Form>
-          <Form method="post" className="flex flex-wrap gap-x-6 gap-y-2">
-            <input type="hidden" name="email" value={estado.email} />
-            <input type="hidden" name="reenvio" value="1" />
-            <button type="submit" name="intencao" value="pedir" disabled={enviando} className={classeDoLink}>
-              {textos.recuperarSenha.reenviar}
-            </button>
+            </>
+          }
+          email={estado.email}
+          rotuloDoCodigo={textos.recuperarSenha.rotuloDoCodigo}
+          textoConfirmar={textos.recuperarSenha.confirmar}
+          textoConferindo={textos.recuperarSenha.conferindo}
+          textoReenviar={textos.recuperarSenha.reenviar}
+          intencaoConfirmar="confirmar"
+          intencaoReenviar="pedir"
+          enviando={enviando}
+          erro={erro}
+          reenviado={estado.reenviado}
+          mensagemReenvio={textos.recuperarSenha.mensagemReenvio}
+          mostrarLembrarDispositivo
+          textoLembrarDispositivo={textos.recuperarSenha.lembrarDispositivo}
+          incluirCampoReenvio
+          acaoVoltar={
             <Link to="/recuperar-senha" className={`${classeDoLink} inline-flex items-center`}>
               {textos.recuperarSenha.trocarEmail}
             </Link>
-          </Form>
-        </div>
+          }
+        />
       )}
     </main>
   );

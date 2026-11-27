@@ -1,0 +1,241 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Form, useSubmit } from "react-router";
+
+export const ESPERA_REENVIO_PADRAO_SEGUNDOS = 30;
+export const LIMITE_REENVIOS_OTP = 3;
+
+const classeDoCampo = "min-h-12 w-full rounded-controle border border-borda bg-superficie px-4 text-lg";
+const classeDoBotao =
+  "min-h-12 w-full rounded-controle bg-acao px-4 text-xl font-bold text-sobre-acao disabled:opacity-60";
+const classeDoLink = "min-h-11 font-semibold underline underline-offset-4 disabled:opacity-50";
+
+export function normalizarCodigoOtp(valor: string): string {
+  return valor.replace(/\D/g, "").slice(0, 6);
+}
+
+export function podeConfirmarCodigoOtp(codigo: string, enviando: boolean): boolean {
+  return !enviando && /^\d{6}$/.test(codigo);
+}
+
+export function deveAutoSubmeterCodigoOtp(opcoes: {
+  codigo: string;
+  enviando: boolean;
+  codigoComErro: string | null;
+  ultimoSubmetido: string | null;
+}): boolean {
+  if (opcoes.enviando) return false;
+  if (!/^\d{6}$/.test(opcoes.codigo)) return false;
+  if (opcoes.codigoComErro !== null && opcoes.codigo === opcoes.codigoComErro) return false;
+  if (opcoes.ultimoSubmetido !== null && opcoes.codigo === opcoes.ultimoSubmetido) return false;
+  return true;
+}
+
+export function formatarContagemReenvio(segundos: number): string {
+  const seguro = Math.max(0, Math.floor(segundos));
+  const minutos = Math.floor(seguro / 60);
+  const resto = String(seguro % 60).padStart(2, "0");
+  return `Reenviar código em ${minutos}:${resto}`;
+}
+
+export interface PassoCodigoOtpProps {
+  titulo: string;
+  descricao: ReactNode;
+  email: string;
+  rotuloDoCodigo: string;
+  textoConfirmar: string;
+  textoConferindo: string;
+  textoReenviar: string;
+  intencaoConfirmar: string;
+  intencaoReenviar: string;
+  enviando: boolean;
+  erro: string | null;
+  reenviado?: boolean;
+  reenviarEmSegundos?: number;
+  mensagemReenvio?: string | null;
+  mostrarLembrarDispositivo?: boolean;
+  textoLembrarDispositivo?: string;
+  desafioId?: string;
+  incluirCampoReenvio?: boolean;
+  acaoVoltar: ReactNode;
+}
+
+export function PassoCodigoOtp({
+  titulo,
+  descricao,
+  email,
+  rotuloDoCodigo,
+  textoConfirmar,
+  textoConferindo,
+  textoReenviar,
+  intencaoConfirmar,
+  intencaoReenviar,
+  enviando,
+  erro,
+  reenviado = false,
+  reenviarEmSegundos,
+  mensagemReenvio = null,
+  mostrarLembrarDispositivo = false,
+  textoLembrarDispositivo = "",
+  desafioId,
+  incluirCampoReenvio = false,
+  acaoVoltar,
+}: PassoCodigoOtpProps) {
+  const submit = useSubmit();
+  const formRef = useRef<HTMLFormElement>(null);
+  const ultimoSubmetidoRef = useRef<string | null>(null);
+  const reenvioAnteriorRef = useRef(false);
+
+  const [codigo, setCodigo] = useState("");
+  const [codigoComErro, setCodigoComErro] = useState<string | null>(null);
+  const [segundosRestantes, setSegundosRestantes] = useState<number>(0);
+  const [reenviosRealizados, setReenviosRealizados] = useState<number>(0);
+
+  const esperaEfetiva =
+    typeof reenviarEmSegundos === "number" && reenviarEmSegundos > 0
+      ? Math.floor(reenviarEmSegundos)
+      : ESPERA_REENVIO_PADRAO_SEGUNDOS;
+
+  // Inicia a contagem no cliente após hidratação (preserva formulário funcional sem JS no SSR).
+  useEffect(() => {
+    setSegundosRestantes(esperaEfetiva);
+  }, [esperaEfetiva]);
+
+  useEffect(() => {
+    if (reenviado && !reenvioAnteriorRef.current) {
+      setReenviosRealizados((atual) => Math.min(LIMITE_REENVIOS_OTP, atual + 1));
+      setSegundosRestantes(esperaEfetiva);
+      setCodigo("");
+      setCodigoComErro(null);
+      ultimoSubmetidoRef.current = null;
+    }
+    reenvioAnteriorRef.current = reenviado;
+  }, [reenviado, esperaEfetiva]);
+
+  useEffect(() => {
+    if (segundosRestantes <= 0) return;
+    const id = window.setInterval(() => {
+      setSegundosRestantes((atual) => (atual > 1 ? atual - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [segundosRestantes]);
+
+  const codigoAtualRef = useRef(codigo);
+  codigoAtualRef.current = codigo;
+  const erroAnteriorRef = useRef<string | null>(null);
+
+  // Quando há erro novo do servidor, trava auto-submit até nova digitação.
+  useEffect(() => {
+    if (erro && erro !== erroAnteriorRef.current) {
+      setCodigoComErro(codigoAtualRef.current);
+    }
+    erroAnteriorRef.current = erro;
+  }, [erro]);
+
+  // Submete automaticamente uma única vez ao completar 6 dígitos novos.
+  useEffect(() => {
+    if (
+      deveAutoSubmeterCodigoOtp({
+        codigo,
+        enviando,
+        codigoComErro,
+        ultimoSubmetido: ultimoSubmetidoRef.current,
+      }) &&
+      formRef.current
+    ) {
+      ultimoSubmetidoRef.current = codigo;
+      const formData = new FormData(formRef.current);
+      formData.set("intencao", intencaoConfirmar);
+      void submit(formData, { method: "post" });
+    }
+  }, [codigo, enviando, codigoComErro, intencaoConfirmar, submit]);
+
+  const confirmarHabilitado = podeConfirmarCodigoOtp(codigo, enviando);
+  const atingiuLimiteReenvios = reenviosRealizados >= LIMITE_REENVIOS_OTP;
+  const podeReenviar = !enviando && segundosRestantes <= 0 && !atingiuLimiteReenvios;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Form ref={formRef} method="post" className="flex flex-col gap-4" noValidate>
+        <h1 className="font-titulo text-3xl font-bold">{titulo}</h1>
+        <p className="text-tinta-suave">{descricao}</p>
+        <input type="hidden" name="email" value={email} />
+        {desafioId ? <input type="hidden" name="desafio_id" value={desafioId} /> : null}
+        <label className="flex flex-col gap-2 font-semibold" htmlFor="codigo">
+          {rotuloDoCodigo}
+          <input
+            id="codigo"
+            name="codigo"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            required
+            autoFocus
+            value={codigo}
+            onChange={(evento) => {
+              const proximo = normalizarCodigoOtp(evento.target.value);
+              if (proximo !== codigo) {
+                setCodigoComErro(null);
+                ultimoSubmetidoRef.current = null;
+              }
+              setCodigo(proximo);
+            }}
+            aria-invalid={erro ? true : undefined}
+            aria-describedby={erro ? "erro" : undefined}
+            className={`${classeDoCampo} tracking-widest`}
+          />
+        </label>
+        {mostrarLembrarDispositivo ? (
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input type="checkbox" name="lembrar_dispositivo" value="sim" className="size-5 shrink-0" />
+            <span>{textoLembrarDispositivo}</span>
+          </label>
+        ) : null}
+        {erro ? (
+          <p id="erro" role="alert" className="font-semibold">
+            {erro}
+          </p>
+        ) : null}
+        {reenviado && !erro && mensagemReenvio ? (
+          <p role="status" className="font-semibold">
+            {mensagemReenvio}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          name="intencao"
+          value={intencaoConfirmar}
+          disabled={!confirmarHabilitado}
+          className={classeDoBotao}
+        >
+          {enviando ? textoConferindo : textoConfirmar}
+        </button>
+      </Form>
+      <Form method="post" className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <input type="hidden" name="email" value={email} />
+        {desafioId ? <input type="hidden" name="desafio_id" value={desafioId} /> : null}
+        {incluirCampoReenvio ? <input type="hidden" name="reenvio" value="1" /> : null}
+        {atingiuLimiteReenvios ? (
+          <span role="status" className="text-sm text-tinta-suave">
+            Limite de reenvios atingido. Tente novamente mais tarde.
+          </span>
+        ) : segundosRestantes > 0 ? (
+          <span aria-live="polite" className="text-sm text-tinta-suave">
+            {formatarContagemReenvio(segundosRestantes)}
+          </span>
+        ) : (
+          <button
+            type="submit"
+            name="intencao"
+            value={intencaoReenviar}
+            disabled={!podeReenviar}
+            className={classeDoLink}
+          >
+            {textoReenviar}
+          </button>
+        )}
+        {acaoVoltar}
+      </Form>
+    </div>
+  );
+}
