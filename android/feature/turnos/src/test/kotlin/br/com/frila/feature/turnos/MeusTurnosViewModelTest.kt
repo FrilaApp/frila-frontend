@@ -16,16 +16,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 
 /**
  * `MockEngine` processa a resposta num dispatcher real por baixo dos panos mesmo em teste —
  * por isso o ViewModel devolve o `Job` de [MeusTurnosViewModel.carregar] e o teste espera com
  * `.join()` de verdade (ver a nota detalhada em
  * `br.com.frila.feature.entrada.entrada.EntradaViewModel`).
+ *
+ * Rede de segurança (UZPsgOMV): um teste que espera por um pedido que não vem falha em 60 s em vez de parar a CI. A folga é
+ * larga de propósito; as esperas que dependem do ViewModel têm limite próprio, curto.
  */
+@Timeout(60)
 class MeusTurnosViewModelTest {
 
     private fun turnoJson(id: String, estado: String) = """
@@ -689,9 +695,12 @@ class MeusTurnosViewModelTest {
         assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
         assertEquals(mensagem, viewModel.estado.value.mensagemErro)
 
-        // Com a lista na tela, relê.
+        // Com a lista na tela, relê: um pedido a mais. O status e a mensagem sozinhos não provam a releitura, porque a carga de
+        // antes já os deixa assim.
         viewModel.carregar().join()
+        val pedidosDaCarga = pedidos
         viewModel.atualizarSemPiscar().join()
+        assertEquals(pedidosDaCarga + 1, pedidos, "com a lista na tela, a releitura pede de novo")
         assertEquals(StatusMeusTurnos.SUCESSO, viewModel.estado.value.status)
         assertEquals(null, viewModel.estado.value.mensagemErro)
     }
@@ -711,7 +720,8 @@ class MeusTurnosViewModelTest {
         )
         viewModel.carregar().join()
         val silenciosa = viewModel.atualizarSemPiscar()
-        while (chamada < 2) kotlinx.coroutines.delay(5)
+        // Com limite: se a releitura não pedir nada, o teste falha aqui em segundos em vez de esperar para sempre (UZPsgOMV).
+        withTimeout(5_000) { while (chamada < 2) kotlinx.coroutines.delay(5) }
 
         viewModel.carregar().join()
         assertEquals(StatusMeusTurnos.ERRO, viewModel.estado.value.status)
