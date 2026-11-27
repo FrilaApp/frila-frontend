@@ -15,6 +15,45 @@ export type CampoDeSenhaProps = {
   rotuloOcultar?: string;
 };
 
+export type AcaoVisibilidadeSenha = "alternar" | "ocultar_envio" | "ocultar_segundo_plano" | "ocultar_saida";
+
+export function reduzirVisibilidadeSenha(visivelAtual: boolean, acao: AcaoVisibilidadeSenha): boolean {
+  if (acao === "alternar") return !visivelAtual;
+  return false;
+}
+
+export function vincularOcultacaoEmSegundoPlano(
+  doc: Pick<Document, "hidden" | "addEventListener" | "removeEventListener">,
+  win: Pick<Window, "addEventListener" | "removeEventListener">,
+  aoOcultar: () => void,
+): () => void {
+  const aoMudarVisibilidade = () => {
+    if (doc.hidden) aoOcultar();
+  };
+  doc.addEventListener("visibilitychange", aoMudarVisibilidade);
+  win.addEventListener("pagehide", aoOcultar);
+  return () => {
+    doc.removeEventListener("visibilitychange", aoMudarVisibilidade);
+    win.removeEventListener("pagehide", aoOcultar);
+  };
+}
+
+export function restaurarSelecaoAposAlternar(
+  el: Pick<HTMLInputElement, "focus" | "setSelectionRange">,
+  pendente: { inicio: number | null; fim: number | null; manterFoco: boolean },
+): void {
+  if (pendente.manterFoco) {
+    el.focus({ preventScroll: true });
+  }
+  if (pendente.inicio !== null && pendente.fim !== null) {
+    try {
+      el.setSelectionRange(pendente.inicio, pendente.fim);
+    } catch {
+      // Alguns navegadores antigos podem recusar setSelectionRange em transição; ignorar sem perder o valor.
+    }
+  }
+}
+
 function IconeOlho({ visivel }: { visivel: boolean }) {
   if (visivel) {
     return (
@@ -88,23 +127,16 @@ export function CampoDeSenha({
   // Volta a oculto quando o formulário entra em envio.
   useEffect(() => {
     if (ocultarAoEnviar) {
-      setVisivel(false);
+      setVisivel((atual) => reduzirVisibilidadeSenha(atual, "ocultar_envio"));
     }
   }, [ocultarAoEnviar]);
 
   // Volta a oculto ao ir para segundo plano ou sair da página.
   useEffect(() => {
     if (!visivel) return;
-    const ocultar = () => setVisivel(false);
-    const aoMudarVisibilidade = () => {
-      if (document.hidden) ocultar();
-    };
-    document.addEventListener("visibilitychange", aoMudarVisibilidade);
-    window.addEventListener("pagehide", ocultar);
-    return () => {
-      document.removeEventListener("visibilitychange", aoMudarVisibilidade);
-      window.removeEventListener("pagehide", ocultar);
-    };
+    return vincularOcultacaoEmSegundoPlano(document, window, () => {
+      setVisivel((atual) => reduzirVisibilidadeSenha(atual, "ocultar_segundo_plano"));
+    });
   }, [visivel]);
 
   // Restaura posição do cursor/seleção após alternar type="password" <-> "text".
@@ -113,16 +145,7 @@ export function CampoDeSenha({
     const el = inputRef.current;
     if (!pendente || !el) return;
     selecaoPendenteRef.current = null;
-    if (pendente.manterFoco) {
-      el.focus({ preventScroll: true });
-    }
-    if (pendente.inicio !== null && pendente.fim !== null) {
-      try {
-        el.setSelectionRange(pendente.inicio, pendente.fim);
-      } catch {
-        // Alguns navegadores antigos podem recusar setSelectionRange em transição; ignorar sem perder o valor.
-      }
-    }
+    restaurarSelecaoAposAlternar(el, pendente);
   }, [visivel]);
 
   function alternarVisibilidade() {
@@ -134,7 +157,7 @@ export function CampoDeSenha({
         manterFoco: document.activeElement === el,
       };
     }
-    setVisivel((atual) => !atual);
+    setVisivel((atual) => reduzirVisibilidadeSenha(atual, "alternar"));
   }
 
   return (
