@@ -180,4 +180,55 @@ class TelasSenhaComposeTest {
         rule.onNodeWithText("Salvar senha").assertIsDisplayed()
         assertTrue(criarVm.estado.value.email.isEmpty())
     }
+
+    @Test
+    fun mascaraComRevelacaoBreveDetectaInsercaoNoFimEMeioEIgnoraColagemOuExclusao() {
+        org.junit.Assert.assertEquals(3, indiceCaractereRecemDigitado("abc", "abcd"))
+        org.junit.Assert.assertEquals(2, indiceCaractereRecemDigitado("abd", "abcd"))
+        org.junit.Assert.assertNull(indiceCaractereRecemDigitado("ab", "abcdef"))
+        org.junit.Assert.assertNull(indiceCaractereRecemDigitado("abcd", "abc"))
+        org.junit.Assert.assertNull(indiceCaractereRecemDigitado("abcd", "abXd"))
+
+        val reveladoMeio = MascaramentoDeSenhaComRevelacaoBreve(indiceRevelado = 2)
+            .filter(androidx.compose.ui.text.AnnotatedString("abcd"))
+        org.junit.Assert.assertEquals("••c•", reveladoMeio.text.text)
+
+        val tudoMascarado = MascaramentoDeSenhaComRevelacaoBreve(indiceRevelado = null)
+            .filter(androidx.compose.ui.text.AnnotatedString("abcd"))
+        org.junit.Assert.assertEquals("••••", tudoMascarado.text.text)
+    }
+
+    @Test
+    fun definirSenhaAceitaDigitacaoNosDoisCamposSemBotaoDeRevelar() {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria().apply {
+            salvarSessao(Sessao("tok", "ref", "bearer", 3600))
+        }
+        val servico = ServicoAutenticacao(
+            ClienteSupabase(
+                "https://frila.supabase.co",
+                "chave",
+                armazenamentoDeSessao = armazenamento,
+                engine = MockEngine { respond("""{"id":"uid-1"}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json")) },
+            ),
+        )
+        val definirVm = DefinirSenhaViewModel(servico, armazenamento, escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        rule.setContent {
+            FrilaTheme {
+                TelaDefinirSenha(viewModel = definirVm, aoConcluir = {})
+            }
+        }
+
+        rule.onNodeWithText("Nova senha").performTextInput("a")
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeBy(ATRASO_MASCARAMENTO_CARACTERE_SENHA_MS + 100)
+        rule.waitForIdle()
+
+        rule.onNodeWithText("Confirmar senha").performTextInput("a")
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeBy(ATRASO_MASCARAMENTO_CARACTERE_SENHA_MS + 100)
+        rule.waitForIdle()
+
+        org.junit.Assert.assertEquals("a", definirVm.estado.value.senha)
+        org.junit.Assert.assertEquals("a", definirVm.estado.value.confirmacao)
+    }
 }
