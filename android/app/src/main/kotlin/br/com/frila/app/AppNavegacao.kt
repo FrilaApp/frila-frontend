@@ -1660,6 +1660,12 @@ fun AppNavegacao(
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
                         aoPublicarEscala = { id -> navController.navigate(Rotas.publicarEscala(id)) },
+                        // CD-RF09: da vaga que nasceu de uma chamada direta a casa acompanha as chamadas; só com a chave `chamada_direta` ligada.
+                        aoAcompanharChamadas = if (chamadaDiretaHabilitada) {
+                            { vagaId -> navController.navigate(RotasChamadaCasa.acompanhar(vagaId)) }
+                        } else {
+                            null
+                        },
                         aoAcompanharTurno = { vagaId, posicaoId ->
                             navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
                         },

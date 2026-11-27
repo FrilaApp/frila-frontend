@@ -73,6 +73,11 @@ data class AcoesMinhasVagas(
     val aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     val aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     val aoRepublicarPosicoesRestantes: ((ItemMinhaVaga) -> Unit)? = null,
+    /**
+     * "Acompanhar chamadas" na vaga que nasceu de uma chamada direta (CD-RF09), com o id da vaga. `null` esconde a entrada: quem monta a
+     * navegação só a passa com a funcionalidade de chamada direta ligada (a chave `chamada_direta`).
+     */
+    val aoAcompanharChamadas: ((vagaId: String) -> Unit)? = null,
 )
 
 /**
@@ -94,6 +99,7 @@ fun TelaMinhasVagas(
     aoCancelarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     aoRepublicarVaga: ((ItemMinhaVaga) -> Unit)? = null,
     aoRepublicarPosicoesRestantes: ((ItemMinhaVaga) -> Unit)? = null,
+    aoAcompanharChamadas: ((vagaId: String) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -110,6 +116,7 @@ fun TelaMinhasVagas(
             aoVoltar = aoVoltar,
             aoCancelarVaga = aoCancelarVaga,
             aoRepublicarVaga = aoRepublicarVaga,
+            aoAcompanharChamadas = aoAcompanharChamadas,
             aoRepublicarPosicoesRestantes = aoRepublicarPosicoesRestantes,
         ),
         modifier = modifier,
@@ -275,13 +282,21 @@ private fun CartaoDaVaga(item: ItemMinhaVaga, acoes: AcoesMinhasVagas) {
                 style = FrilaTipo.valorEmDestaque,
                 color = cores.tinta,
             )
-            if (item.turnos.isNotEmpty() || item.podeVerCandidatos) {
+            val acompanharChamadas = acoes.aoAcompanharChamadas.takeIf { item.chamadaDireta }
+            if (item.turnos.isNotEmpty() || item.podeVerCandidatos || acompanharChamadas != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                     item.turnos.forEach { turno ->
                         val nome = turno.nomeProfissional ?: TextosMinhasVagas.PROFISSIONAL_SEM_NOME
                         BotaoSecundario(
                             texto = TextosMinhasVagas.ACOMPANHAR_TURNO_DE.format(nome),
                             aoClicar = { aoAcompanharTurno(item.id, turno.posicaoId) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    acompanharChamadas?.let { acompanhar ->
+                        BotaoSecundario(
+                            texto = TextosMinhasVagas.ACOMPANHAR_CHAMADAS,
+                            aoClicar = { acompanhar(item.id) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

@@ -202,6 +202,8 @@ data class VagaResumoDto(
     @SerialName("fim_em") val fimEm: String,
     @SerialName("valor_centavos") val valorCentavos: Long,
     @SerialName("ponto") val ponto: CoordenadaDto? = null,
+    /** De onde a vaga nasceu (`OrigemVaga`, 0.2.55): `chamada_direta` na vaga criada por `chamar_profissional`; ausente vale `publicacao`. */
+    @SerialName("origem") val origem: String? = null,
 )
 
 /**
