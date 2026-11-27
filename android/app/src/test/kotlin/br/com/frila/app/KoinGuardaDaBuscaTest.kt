@@ -75,8 +75,14 @@ class KoinGuardaDaBuscaTest {
         responsavelLocal = "Bistrô Ipê",
     )
 
-    /** O servidor de mentira. [aoChamar] decide cada `chamar_profissional` (1º, 2º...): resposta ou falha. */
+    /**
+     * O servidor de mentira. [aoChamar] decide cada `chamar_profissional` (1º, 2º...): resposta ou falha. Com [vagaAberta], a casa já tem o
+     * trabalho aberto nela, com o valor [valorDaVagaAberta] (0.2.95): o pedido pelo trabalho recebe `409 trabalho_ja_aberto` e só o pedido
+     * pelo `vaga_id` dela entra.
+     */
     private class Servidor(val garcom: String, val aoChamar: suspend (Int) -> Unit) {
+        var vagaAberta: String? = null
+        var valorDaVagaAberta: Long = 0
         val corpos = mutableListOf<JsonObject>()
     }
 
@@ -100,10 +106,24 @@ class KoinGuardaDaBuscaTest {
                     )
                 caminho.endsWith("/buscar_profissionais") ->
                     respond("""{"itens":[${cartao("p1", servidor.garcom)},${cartao("p2", servidor.garcom)}],"proximo_cursor":null}""", HttpStatusCode.OK, json)
+                caminho.endsWith("/minhas_chamadas") && servidor.vagaAberta != null ->
+                    respond("""{"itens":[{${chamadaAberta(servidor)}}],"proximo_cursor":null}""", HttpStatusCode.OK, json)
+                caminho.endsWith("/detalhe_chamada") && servidor.vagaAberta != null ->
+                    respond(
+                        """{${chamadaAberta(servidor)},"regiao_administrativa":"Plano Piloto","inclui_refeicao":false,"inclui_transporte":false,"exige_material_proprio":false}""",
+                        HttpStatusCode.OK, json,
+                    )
                 caminho.endsWith("/chamar_profissional") -> {
                     val corpo = Json.parseToJsonElement((pedido.body as TextContent).text).jsonObject
                     servidor.corpos += corpo
                     servidor.aoChamar(servidor.corpos.size)
+                    val aberta = servidor.vagaAberta
+                    if (aberta != null && corpo["vaga_id"]?.jsonPrimitive?.content != aberta) {
+                        return@MockEngine respond(
+                            """{"code":"trabalho_ja_aberto","message":"trabalho_ja_aberto","details":"$aberta","hint":null}""",
+                            HttpStatusCode.Conflict, json,
+                        )
+                    }
                     val prof = corpo["profissional_id"]!!.jsonPrimitive.content
                     respond(
                         """{"id":"c-$prof","vaga_id":"vaga-1","profissional_id":"$prof","estabelecimento_id":"$casa","estado":"aberta","expira_em":"2026-11-29T00:00:00Z","criada_em":"2026-11-28T12:00:00Z"}""",
@@ -114,6 +134,13 @@ class KoinGuardaDaBuscaTest {
             }
         },
     )
+
+    /** O item `aberta` de `minhas_chamadas` da vaga já aberta (sem as chaves de fora), que o `detalhe_chamada` completa. */
+    private fun chamadaAberta(servidor: Servidor) =
+        """"id":"chamada-aberta","vaga_id":"${servidor.vagaAberta}","profissional_id":"p-9","estabelecimento_id":"$casa","estado":"aberta",""" +
+            """"expira_em":"2026-11-29T00:00:00Z","criada_em":"2026-11-28T12:00:00Z","funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},""" +
+            """"inicio_em":"${trabalho.inicio}","fim_em":"${trabalho.fim}","valor_centavos":${servidor.valorDaVagaAberta},""" +
+            """"outra_parte":{"id":"p-9","tipo":"profissional","nome":"Pessoa 9","reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}"""
 
     private fun comAplicacao(servidor: Servidor, comSeguranca: Boolean = false, bloco: suspend (Koin) -> Unit) = runBlocking {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -359,6 +386,59 @@ class KoinGuardaDaBuscaTest {
             val depois = pilha.visita(casa)
             assertTrue(depois.estado.value.resultados.isEmpty(), "a pendência da conta que saiu não volta")
             assertFalse(depois.estado.value.temEnvioPendente)
+        }
+    }
+
+    @Test
+    fun `a tela da conta que saiu, fechada depois, nao apaga a pendencia que a conta seguinte deixou na mesma casa`() {
+        val servidor = Servidor(garcom, semRede)
+        comAplicacao(servidor, comSeguranca = true) { koin ->
+            val daContaA = Pilha(koin)
+            daContaA.visita(casa) // a conta A abre a busca da casa e não chama ninguém: nada a guardar
+
+            koin.get<ArmazenamentoDeSessao>().limparSessao() // A sai com a tela ainda na pilha
+
+            val daContaB = Pilha(koin)
+            buscarEChamar(daContaB.visita(casa)) // B, na mesma casa, chama e fica incerto
+            daContaB.sair()
+
+            daContaA.sair() // o onCleared tardio da tela de A, sem pendência
+
+            assertTrue(daContaB.visita(casa).estado.value.temEnvioPendente, "a pendência de B tem de continuar guardada")
+        }
+    }
+
+    @Test
+    fun `409 trabalho_ja_aberto com termos diferentes, sair e voltar mantem a confirmacao e entra so pelo vaga_id`() {
+        val vaga = "44444444-4444-4444-4444-444444444444"
+        val servidor = Servidor(garcom) { }.apply {
+            vagaAberta = vaga
+            valorDaVagaAberta = 25_000
+        }
+        comAplicacao(servidor) { koin ->
+            val pilha = Pilha(koin)
+            val primeira = pilha.visita(casa)
+            buscarEChamar(primeira)
+            val termos = primeira.estado.value.termosParaConfirmar
+            assertNotNull(termos, "termos diferentes pedem a confirmação da casa")
+            assertEquals(25_000L, termos!!.valorCentavos)
+            pilha.sair()
+
+            val segunda = pilha.visita(casa)
+
+            assertEquals(termos, segunda.estado.value.termosParaConfirmar, "a confirmação pendente volta")
+            assertFalse(segunda.estado.value.podeChamar, "sem confirmar, nada sai")
+            segunda.chamar(trabalho).join()
+            assertEquals(1, servidor.corpos.size, "chamar de novo sem confirmar não manda nada")
+
+            segunda.confirmarTermosDaVagaAberta().join()
+
+            assertEquals(2, servidor.corpos.size)
+            val peloVagaId = servidor.corpos[1]
+            assertEquals(vaga, peloVagaId["vaga_id"]?.jsonPrimitive?.content)
+            assertFalse("valor_centavos" in peloVagaId, "entra na vaga que já existe, sem um trabalho novo")
+            assertTrue(segunda.estado.value.resultadosDaChamada["p1"] is ResultadoDaChamadaDaBusca.Enviada)
+            assertNull(segunda.estado.value.termosParaConfirmar)
         }
     }
 
