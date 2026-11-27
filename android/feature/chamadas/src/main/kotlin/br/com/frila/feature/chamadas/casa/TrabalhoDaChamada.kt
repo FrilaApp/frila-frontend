@@ -58,12 +58,15 @@ data class TrabalhoDaChamada(
 
 /** A mensagem de uma recusa de `chamar_profissional`, a mesma do iOS. Nunca carrega o corpo cru (RN15). */
 internal fun mensagemDaChamada(erro: ErroDaApi): String = when {
+    // 0.2.116: na vaga direta nova, valor zero ou negativo é `422 campo_invalido`, `details: valor_centavos`.
+    erro.codigo == CodigoErroAPI.CAMPO_INVALIDO && erro.detalhes == "valor_centavos" -> TextosChamadaCasa.VALOR_INVALIDO
     erro.codigo == CodigoErroAPI.CHAMADA_JA_ABERTA -> TextosChamadaCasa.JA_ABERTA
     erro.codigo == CodigoErroAPI.CHAMADA_INDISPONIVEL ||
         erro.codigo == CodigoErroAPI.PROFISSIONAL_INDISPONIVEL ||
         erro.codigo == CodigoErroAPI.NAO_ENCONTRADO -> TextosChamadaCasa.INDISPONIVEL
     erro.codigo == CodigoErroAPI.LIMITE_DE_CHAMADAS -> TextosChamadaCasa.LIMITE
-    recursoDesligado(erro) -> TextosChamadaCasa.DESLIGADO
+    // O servidor manda as duas formas: `recurso_desligado` puro e `sem_permissao` com `details: recurso_desligado` (como o iOS).
+    erro.codigo == CodigoErroAPI.RECURSO_DESLIGADO || recursoDesligado(erro) -> TextosChamadaCasa.DESLIGADO
     else -> TextosChamadaCasa.ERRO
 }
 

@@ -61,6 +61,8 @@ object TextosChamadaCasa {
     const val LIMITE = "Você atingiu o limite de chamadas. Aguarde antes de tentar novamente."
     const val DESLIGADO = "A chamada direta está indisponível no momento."
     const val ERRO = "Não foi possível concluir a chamada. Verifique sua conexão e tente novamente."
+    /** `422 campo_invalido`, `details: valor_centavos`: valor zero ou negativo na vaga direta nova (contrato 0.2.116). */
+    const val VALOR_INVALIDO = "Confira o valor informado."
 
     // --- Acompanhar -------------------------------------------------------------------------------
     const val ACOMPANHAR_TITULO = "Acompanhar chamadas"
