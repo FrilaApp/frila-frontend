@@ -154,6 +154,7 @@ class MainActivity : FragmentActivity() {
                             chamadaDiretaHabilitada = estadoConfig.chamadaDireta,
                             buscaProfissionaisHabilitada = estadoConfig.buscaProfissionais,
                             checkinPorCodigoHabilitado = estadoConfig.checkinPorCodigo,
+                            reenviarOtpEmSegundos = estadoConfig.reenviarOtpEmSegundos,
                             callbackOAuthSocial = callbackOAuthSocial,
                             aoConsumirCallbackOAuthSocial = { callbackOAuthSocial.value = null },
                             aoAbrirLoginSocial = { url -> abrirNavegadorLoginSocial(this@MainActivity, url) },

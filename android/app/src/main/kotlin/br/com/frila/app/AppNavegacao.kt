@@ -423,6 +423,8 @@ fun AppNavegacao(
     perfilRicoHabilitado: Boolean = false,
     /** Chave `foto_de_perfil` (`configuracao_do_app`, a do servidor): ligada, o profissional vê no perfil o atalho "Foto de perfil". Desligada (padrão), não vê. */
     fotoDePerfilHabilitada: Boolean = false,
+    /** Política opcional de espera (segundos) para fluxos GoTrue direto, vinda de `configuracao_do_app.reenviar_otp_em_segundos`. */
+    reenviarOtpEmSegundos: Int? = null,
     gerenciadorConsentimento: GerenciadorConsentimentoCrashlytics = getKoin().getOrNull() ?: object : GerenciadorConsentimentoCrashlytics {
         override fun coletaAtiva(): Boolean = false
         override fun precisaPerguntar(): Boolean = false
@@ -607,7 +609,12 @@ fun AppNavegacao(
                     TelaEntrada(
                         viewModel = viewModel,
                         aoReceberCodigo = {
-                            navController.navigate(Rotas.codigo(viewModel.estado.value.email))
+                            navController.navigate(
+                                Rotas.codigo(
+                                    viewModel.estado.value.email,
+                                    reenviarEmSegundos = reenviarOtpEmSegundos,
+                                ),
+                            )
                         },
                     )
                 }
@@ -621,7 +628,15 @@ fun AppNavegacao(
                 val viewModel: CriarContaViewModel = koinViewModel(parameters = { parametersOf(emailInicial) })
                 TelaCriarConta(
                     viewModel = viewModel,
-                    aoEnviarCodigo = { email -> navController.navigate(Rotas.codigo(email, ModoCodigo.CRIACAO)) },
+                    aoEnviarCodigo = { email ->
+                        navController.navigate(
+                            Rotas.codigo(
+                                email,
+                                ModoCodigo.CRIACAO,
+                                reenviarEmSegundos = reenviarOtpEmSegundos,
+                            ),
+                        )
+                    },
                     aoVoltarParaLogin = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }
@@ -634,7 +649,15 @@ fun AppNavegacao(
                 val viewModel: RecuperacaoSenhaViewModel = koinViewModel(parameters = { parametersOf(emailInicial) })
                 TelaRecuperacaoSenha(
                     viewModel = viewModel,
-                    aoAvancarParaCodigo = { email -> navController.navigate(Rotas.codigo(email, ModoCodigo.RECUPERACAO)) },
+                    aoAvancarParaCodigo = { email ->
+                        navController.navigate(
+                            Rotas.codigo(
+                                email,
+                                ModoCodigo.RECUPERACAO,
+                                reenviarEmSegundos = reenviarOtpEmSegundos,
+                            ),
+                        )
+                    },
                     aoVoltarParaLogin = { if (!navController.popBackStack(Rotas.ENTRADA, inclusive = false)) irParaEntrada() },
                 )
             }

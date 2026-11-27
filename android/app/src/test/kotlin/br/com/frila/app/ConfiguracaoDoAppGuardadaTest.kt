@@ -336,4 +336,35 @@ class ConfiguracaoDoAppGuardadaTest {
         )
         abertura.job.join()
     }
+
+    @Test
+    fun `reenviar_otp_em_segundos valido 30 ou 60 e preservado no JSON cache e estado e ausente ou nao positivo cai para null`() = runTest {
+        val json30 = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"plataforma":"android","versao_minima":"1.0.0","reenviar_otp_em_segundos":30}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val dto30 = configuracaoDoAppDeJson(json30)
+        assertEquals(30, dto30.reenviarOtpEmSegundos)
+        assertEquals(30, dto30.paraEstado().reenviarOtpEmSegundos)
+
+        val cache = CacheEmMemoria()
+        val guardada30 = obterConfiguracaoDoApp(cache, versaoApp = "1.2.0") { dto30 }
+        assertEquals(30, guardada30?.reenviarOtpEmSegundos)
+        assertEquals(30, configuracaoDoAppDeJson(dto30.paraJson()).reenviarOtpEmSegundos)
+
+        val json60 = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"plataforma":"android","versao_minima":"1.0.0","reenviar_otp_em_segundos":60}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals(60, configuracaoDoAppDeJson(json60).paraEstado().reenviarOtpEmSegundos)
+
+        val jsonAusente = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"plataforma":"android","versao_minima":"1.0.0"}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertNull(configuracaoDoAppDeJson(jsonAusente).paraEstado().reenviarOtpEmSegundos)
+
+        val jsonInvalido = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"plataforma":"android","versao_minima":"1.0.0","reenviar_otp_em_segundos":-5}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertNull(configuracaoDoAppDeJson(jsonInvalido).paraEstado().reenviarOtpEmSegundos)
+        assertNull(ConfiguracaoDoAppDto("android", "1.0.0", reenviarOtpEmSegundos = 0).paraEstado().reenviarOtpEmSegundos)
+    }
 }

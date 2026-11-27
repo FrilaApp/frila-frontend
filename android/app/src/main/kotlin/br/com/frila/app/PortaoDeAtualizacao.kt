@@ -18,6 +18,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -43,6 +44,7 @@ data class ConfiguracaoDoAppDto(
     val urlDaLoja: String? = null,
     val mensagem: String? = null,
     val recursos: RecursosDoAppDto = RecursosDoAppDto(),
+    val reenviarOtpEmSegundos: Int? = null,
 )
 
 /**
@@ -79,6 +81,7 @@ internal fun configuracaoDoAppDeJson(json: JsonObject): ConfiguracaoDoAppDto {
             checkinPorCodigo = recursos?.get("checkin_por_codigo")?.jsonPrimitive?.booleanOrNull ?: false,
             buscaProfissionais = recursos?.get("busca_profissionais")?.jsonPrimitive?.booleanOrNull ?: false,
         ),
+        reenviarOtpEmSegundos = json["reenviar_otp_em_segundos"]?.jsonPrimitive?.intOrNull?.takeIf { it > 0 },
     )
 }
 
