@@ -413,8 +413,17 @@ internal fun horario(inicio: Instant?, fim: Instant?): String? {
     }
 }
 
-/** Os textos da folha de cancelamento da posição (os de `TextosCancelarVaga`, no mesmo tom; o efeito do cancelamento vem no PR seguinte). */
+/** Os textos da folha de cancelamento da posição (os de `TextosCancelarVaga`, no mesmo tom; o efeito é o de `TextosDoCancelamento` do iOS). */
 internal object TextosCancelarPosicao {
+    const val FALTAM_PARA_O_INICIO = "Faltam %s para o início."
+    const val MENOS_DE_UMA_HORA = "menos de 1 h"
+    const val HORAS = "%d h"
+    const val JA_COMECOU = "O turno já começou."
+    const val REABRE = "A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado."
+    const val NAO_REABRE = "A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado."
+    const val SEM_FALTA = "Não conta como falta para o profissional."
+    /** Sem o início do turno não dá para dizer se reabre: só o que vale nos dois casos. */
+    const val SEM_INICIO = "Quem estava confirmado será avisado. $SEM_FALTA"
     const val TITULO = "Cancelar posição"
     const val MOTIVO_TITULO = "Qual é o motivo?"
     const val DETALHES_OPCIONAIS = "Quer explicar melhor? (opcional)"
@@ -436,6 +445,12 @@ private fun FolhaDeMotivosDoCancelamento(estado: EstadoTurnoDoContratante, acoes
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.grupo),
     ) {
         TituloDaTela(TextosCancelarPosicao.TITULO)
+        Text(
+            text = avisoDoEfeitoDoCancelamento(estado.contexto.inicio, estado.agora()),
+            style = FrilaTipo.corpo,
+            color = FrilaTema.cores.tinta,
+            modifier = Modifier.testTag("efeito-do-cancelamento"),
+        )
         FrilaGrupoDeLinhas(titulo = TextosCancelarPosicao.MOTIVO_TITULO) {
             MotivoDeCancelamentoDaCasa.entries.forEach { motivo ->
                 linha {
@@ -478,4 +493,24 @@ internal object TextosDaAvaliacaoDaCasa {
         false -> "Turno avaliado · Resposta: Não"
         null -> "Turno avaliado"
     }
+}
+
+/**
+ * O que acontece depois de a casa cancelar a posição, dito antes do toque (RN12; `TextosDoCancelamento.aviso` do iOS, lado do contratante):
+ * quanto falta para o início e, **antes** dele, que a posição volta a ser oferecida; **a partir** dele (`antecedência <= 0`), que não reabre e
+ * o turno fica descoberto. Nos dois, quem estava confirmado é avisado e a casa não gera falta para o profissional. É a leitura local da regra
+ * pelo relógio: quem decide é o servidor, e o desfecho de verdade vem no `ResultadoCancelamento.reaberta`. Sem o início, só o que vale sempre.
+ */
+internal fun avisoDoEfeitoDoCancelamento(inicio: Instant?, agora: Instant): String {
+    if (inicio == null) return TextosCancelarPosicao.SEM_INICIO
+    val antecedencia = java.time.Duration.between(agora, inicio)
+    if (antecedencia <= java.time.Duration.ZERO) {
+        return "${TextosCancelarPosicao.JA_COMECOU} ${TextosCancelarPosicao.NAO_REABRE} ${TextosCancelarPosicao.SEM_FALTA}"
+    }
+    val tempo = if (antecedencia < java.time.Duration.ofHours(1)) {
+        TextosCancelarPosicao.MENOS_DE_UMA_HORA
+    } else {
+        TextosCancelarPosicao.HORAS.format(antecedencia.toHours())
+    }
+    return "${TextosCancelarPosicao.FALTAM_PARA_O_INICIO.format(tempo)} ${TextosCancelarPosicao.REABRE} ${TextosCancelarPosicao.SEM_FALTA}"
 }
