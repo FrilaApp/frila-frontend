@@ -249,6 +249,34 @@ class TelaPublicarVagaTest {
     }
 
     @Test
+    fun `mais opcoes anuncia Fechado, e Aberto depois do clique, e volta a Fechado`() {
+        montar()
+        val linha = rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo()
+        linha.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, TextosPublicarVaga.MAIS_OPCOES_FECHADO))
+
+        linha.performClick()
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, TextosPublicarVaga.MAIS_OPCOES_ABERTO))
+
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performClick()
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, TextosPublicarVaga.MAIS_OPCOES_FECHADO))
+    }
+
+    @Test
+    fun `a linha de mais opcoes e um botao com rotulo de acao, e a seta continua decorativa`() {
+        montar()
+
+        val linha = rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo()
+        linha.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        linha.assert(
+            SemanticsMatcher("rótulo da ação de toque = ${TextosPublicarVaga.MAIS_OPCOES}") {
+                (if (androidx.compose.ui.semantics.SemanticsActions.OnClick in it.config) it.config[androidx.compose.ui.semantics.SemanticsActions.OnClick].label else null) == TextosPublicarVaga.MAIS_OPCOES
+            },
+        )
+    }
+
+    @Test
     fun `erros de campo aparecem no proprio campo e o erro global acima do botao`() {
         montar(
             estado {

@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -396,7 +397,11 @@ fun ConteudoPublicarVaga(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = FrilaMetricas.alvoMinimo)
-                            .clickable(role = Role.Button) { maisOpcoesAberto = !maisOpcoesAberto }
+                            .clickable(onClickLabel = TextosPublicarVaga.MAIS_OPCOES, role = Role.Button) { maisOpcoesAberto = !maisOpcoesAberto }
+                            // O leitor de tela anuncia se a seção está aberta (a seta é só decoração), como o iOS (`accessibilityValue`).
+                            .semantics {
+                                stateDescription = if (maisOpcoesAberto) TextosPublicarVaga.MAIS_OPCOES_ABERTO else TextosPublicarVaga.MAIS_OPCOES_FECHADO
+                            }
                             .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.item),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.item),

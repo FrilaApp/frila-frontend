@@ -51,6 +51,11 @@ data class AvisoDeAberturaExterna(val mensagem: String, val paraCopiar: String? 
         fun semNavegador(url: String) =
             AvisoDeAberturaExterna("Não encontramos um navegador neste aparelho. Abra este endereço em outro navegador ou aparelho:", url)
 
+        fun semLojaNemNavegador(enderecoDaLoja: String) = AvisoDeAberturaExterna(
+            "Não encontramos a loja de aplicativos nem um navegador neste aparelho. Para atualizar, abra este endereço em outro navegador ou aparelho:",
+            enderecoDaLoja,
+        )
+
         /** O endereço do login social é de uso único (PKCE): copiá-lo não ajuda, então o aviso só explica. */
         val semNavegadorParaEntrar = AvisoDeAberturaExterna(
             "Não encontramos um navegador neste aparelho para entrar com o Google ou a Apple. " +
