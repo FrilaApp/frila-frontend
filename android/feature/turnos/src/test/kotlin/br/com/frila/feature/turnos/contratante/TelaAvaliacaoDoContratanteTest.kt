@@ -51,9 +51,22 @@ class TelaAvaliacaoDoContratanteTest {
         )
         return AvaliacaoViewModel(
             servicoTurnos = ServicoTurnos(cliente),
-            escopo = CoroutineScope(Dispatchers.Default),
+            escopo = CoroutineScope(Dispatchers.Main),
         )
     }
+
+    /**
+     * 6sHHfHUd: o view model desta tela roda, em produção, no `viewModelScope` (a thread principal). Com o escopo em
+     * `Dispatchers.Default`, a emissão do estado saía de uma thread de fundo e, de vez em quando, nunca chegava à tela: o view model em
+     * JA_AVALIADO, a coleta assinada, o looper ocioso e a árvore parada na pergunta inicial, mesmo avançando os relógios (MEDIDO: 12 em
+     * 200 aberturas com Default, 0 em 200 com Main; o mecanismo exato é DEDUZIDO, não provado). Na thread principal o trabalho só anda
+     * quando ela é processada, e por isso a espera faz `waitForIdle()` a cada checagem.
+     */
+    private fun aguardarEstado(vm: AvaliacaoViewModel, esperado: StatusAvaliacao) =
+        compose.waitUntil(5000) {
+            compose.waitForIdle()
+            vm.estado.value.status == esperado
+        }
 
     @Test
     fun aoCarregarExibePerguntaDoContratanteEOpcoesBinarias() {
@@ -94,7 +107,7 @@ class TelaAvaliacaoDoContratanteTest {
         }
 
         compose.onNodeWithText("Sim, chamaria").performClick()
-        compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.SUCESSO }
+        aguardarEstado(vm, StatusAvaliacao.SUCESSO)
         compose.waitForIdle()
 
         compose.onNodeWithText("Avaliação registrada").assertIsDisplayed()
@@ -121,7 +134,7 @@ class TelaAvaliacaoDoContratanteTest {
         }
 
         compose.onNodeWithText("Não chamaria").performClick()
-        compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.SUCESSO }
+        aguardarEstado(vm, StatusAvaliacao.SUCESSO)
         compose.waitForIdle()
 
         compose.onNodeWithText("Avaliação registrada").assertIsDisplayed()
@@ -146,7 +159,7 @@ class TelaAvaliacaoDoContratanteTest {
         }
 
         compose.onNodeWithText("Sim, chamaria").performClick()
-        compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.ERRO }
+        aguardarEstado(vm, StatusAvaliacao.ERRO)
         compose.waitForIdle()
 
         assertEquals(StatusAvaliacao.ERRO, vm.estado.value.status)
@@ -187,7 +200,7 @@ class TelaAvaliacaoDoContratanteTest {
                 }
             },
         )
-        return AvaliacaoViewModel(servicoTurnos = ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return AvaliacaoViewModel(servicoTurnos = ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Main))
     }
 
     @Test
@@ -199,7 +212,7 @@ class TelaAvaliacaoDoContratanteTest {
         }
 
         compose.onNodeWithText("Não chamaria").performClick()
-        compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        aguardarEstado(vm, StatusAvaliacao.JA_AVALIADO)
         compose.waitForIdle()
 
         compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
@@ -216,11 +229,8 @@ class TelaAvaliacaoDoContratanteTest {
         compose.setContent {
             FrilaTheme { TelaAvaliacaoDoContratante(turnoId = turnoId, viewModel = vm, aoVoltar = {}, estabelecimentoId = casaId) }
         }
-        compose.waitUntil(5000) { vm.estado.value.status == StatusAvaliacao.JA_AVALIADO }
-        // O estado do view model muda em outro thread (a leitura de abertura) e a tela o coleta no principal. Medido na suíte inteira: com o
-        // estado já em JA_AVALIADO a árvore seguia na pergunta inicial por mais de 5 s. Causa provável (hipótese, validada só pela
-        // estabilidade das rodadas): o looper principal do Robolectric não é processado enquanto o teste só consulta a árvore. Cada checagem
-        // faz `waitForIdle()` antes e a condição é a que a asserção afirma: o título visível.
+        aguardarEstado(vm, StatusAvaliacao.JA_AVALIADO)
+        // Cada checagem faz `waitForIdle()` antes e a condição é a que a asserção afirma: o título visível.
         compose.waitUntil(5000) {
             compose.waitForIdle()
             runCatching { compose.onNodeWithText("Turno já avaliado").assertIsDisplayed() }.isSuccess
