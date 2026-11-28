@@ -355,4 +355,39 @@ class PreferenciasChamadaViewModelTest {
         assertEquals(1, rede.doCaminho("/rpc/definir_preferencia_chamadas").size)
         assertFalse(vm.estado.value.salvando)
     }
+
+    @Test
+    fun `escolher quem pode chamar envia so aceita_de, sem aceita_de_quem_ja_trabalhou que nao mudou`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(aceitaChamadas = true, aceitaDe = "todos", aceitaDeQuemJaTrabalhou = true))
+        rede.ok("/rpc/definir_preferencia_chamadas", Fixtures.preferenciaJson(aceitaChamadas = true, aceitaDe = "so_cnpj"))
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.escolherQuemPodeChamar("so_cnpj")
+        vm.salvar().join()
+
+        val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
+        assertEquals(setOf("aceita_de"), corpo.keys)
+        assertEquals("so_cnpj", corpo["aceita_de"]!!.jsonPrimitive.content)
+        assertEquals("so_cnpj", vm.estado.value.aceitaDe)
+    }
+
+    @Test
+    fun `desligar quem ja trabalhou comigo envia so aceita_de_quem_ja_trabalhou, sem aceita_de que nao mudou`() = runBlocking {
+        val rede = rede(Fixtures.preferenciaJson(aceitaChamadas = true, aceitaDe = "so_cnpj", aceitaDeQuemJaTrabalhou = true))
+        rede.ok(
+            "/rpc/definir_preferencia_chamadas",
+            Fixtures.preferenciaJson(aceitaChamadas = true, aceitaDe = "so_cnpj", aceitaDeQuemJaTrabalhou = false),
+        )
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.alternarAceitaDeQuemJaTrabalhou(false)
+        vm.salvar().join()
+
+        val corpo = rede.doCaminho("/rpc/definir_preferencia_chamadas").single().corpo!!
+        assertEquals(setOf("aceita_de_quem_ja_trabalhou"), corpo.keys)
+        assertEquals("false", corpo["aceita_de_quem_ja_trabalhou"]!!.jsonPrimitive.content)
+        assertFalse(vm.estado.value.aceitaDeQuemJaTrabalhou)
+    }
 }

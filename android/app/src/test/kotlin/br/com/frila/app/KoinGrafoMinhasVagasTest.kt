@@ -1,7 +1,7 @@
 package br.com.frila.app
 
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
+import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.feature.vagas.painel.ListaMinhasVagas
 import br.com.frila.feature.vagas.painel.MinhasVagasViewModel
@@ -59,7 +59,7 @@ class KoinGrafoMinhasVagasTest : KoinTest {
         ]}
     """.trimIndent()
 
-    private fun clienteCom(pedidos: MutableList<Pedido>) = ClienteSupabase(
+    private fun clienteCom(pedidos: MutableList<Pedido>) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -89,6 +89,7 @@ class KoinGrafoMinhasVagasTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
@@ -154,5 +155,52 @@ class KoinGrafoMinhasVagasTest : KoinTest {
         assertEquals(setOf("v1", "v2"), itens.map { it.id }.toSet())
         assertEquals(listOf("v2"), itens.filter { it.recemPublicada }.map { it.id })
         assertTrue(itens.single { it.id == "v1" }.podeVerCandidatos)
+    }
+
+    /** Uk5UJWjQ, fatia 2: o grafo liga o "Confirmar presença" do cartão a `confirmar_checkin_manual` do `ServicoTurnos`. */
+    @Test
+    fun `ViewModel do grafo confirma a presenca do cartao por confirmar_checkin_manual`() = runBlocking {
+        val pedidos = mutableListOf<Pedido>()
+        val engine = MockEngine { request ->
+            pedidos += Pedido(request.url.encodedPath, (request.body as? TextContent)?.text)
+            respond(
+                """{"turno_id":"t1","tipo":"manual","verificacao":"verificado","registrado_em":"2026-11-12T21:05:00Z"}""",
+                HttpStatusCode.OK,
+                json,
+            )
+        }
+        val painelComPendente = painelJson
+            .replace("\"checkins_pendentes\":[]", "\"checkins_pendentes\":[\"t1\"]")
+            .replaceFirst(
+                "\"posicoes\":[]",
+                "\"posicoes\":[{\"id\":\"p1\",\"estado\":\"confirmada\",\"turno_id\":\"t1\",\"em_atraso\":false}]",
+            )
+        startKoin {
+            modules(
+                listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoDoGrafoDeMinhasVagas, moduloFeatures) +
+                    module {
+                        single {
+                            ServicoVagas(
+                                clienteSupabaseDeTeste(
+                                    baseUrl = "https://frila.supabase.co",
+                                    apiKey = "chave-teste",
+                                    engine = MockEngine { respond(painelComPendente, HttpStatusCode.OK, json) },
+                                ),
+                            )
+                        }
+                        single { ServicoTurnos(clienteSupabaseDeTeste(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)) }
+                    },
+            )
+        }
+        val viewModel = get<MinhasVagasViewModel> { parametersOf("est-1", null, null) }
+        viewModel.carregar().join()
+        assertTrue(viewModel.confirmaPeloCartao)
+        assertTrue(viewModel.estado.value.podeConfirmar("t1"))
+
+        viewModel.confirmarPresenca("t1").join()
+
+        val pedido = pedidos.single()
+        assertEquals("/rest/v1/rpc/confirmar_checkin_manual", pedido.caminho)
+        assertEquals("""{"turno_id":"t1"}""", pedido.corpo)
     }
 }

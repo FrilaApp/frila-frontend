@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.AvisoDaConfirmacao
@@ -60,7 +59,7 @@ class KoinGrafoTurnoDoContratanteTest : KoinTest {
     )
 
     private fun iniciarComRede(corpos: MutableList<Pair<String, String?>>) {
-        val cliente = ClienteSupabase(
+        val cliente = clienteSupabaseDeTeste(
             baseUrl = "https://frila.supabase.co",
             apiKey = "chave-teste",
             engine = MockEngine { request ->
@@ -82,6 +81,7 @@ class KoinGrafoTurnoDoContratanteTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }

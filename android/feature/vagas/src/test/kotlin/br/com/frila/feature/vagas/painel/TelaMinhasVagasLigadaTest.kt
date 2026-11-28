@@ -1,13 +1,21 @@
 package br.com.frila.feature.vagas.painel
 
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.PainelDto
+import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.PosicaoNoPainelDto
+import br.com.frila.core.rede.ReputacaoDto
 import br.com.frila.core.rede.VagaNoPainelDto
 import br.com.frila.core.rede.VagaResumoDto
 import java.time.Instant
@@ -148,5 +156,101 @@ class TelaMinhasVagasLigadaTest {
         rule.onNodeWithText("Acompanhar turno de profissional").performClick()
 
         assertEquals("v1" to "p3", recebido)
+    }
+
+    // ---- Uk5UJWjQ, fatia 1: "Presenças a confirmar" no topo (Painel.checkins_pendentes), como o iOS ----
+
+    private val ana = PerfilPublicoDto("pro-1", "profissional", "Ana Souza", null, ReputacaoDto(1, 1, null, 1, 1))
+
+    /** O painel com a posição p4 confirmada da Ana (turno t1) e os pendentes pedidos. */
+    private fun painelComPendentes(pendentes: List<String>) = painel().let { p ->
+        val daAna = PosicaoNoPainelDto(id = "p4", estado = "confirmada", turnoId = "t1", profissional = ana, emAtraso = false)
+        p.copy(checkinsPendentes = pendentes, vagas = p.vagas.map { it.copy(posicoes = it.posicoes + daAna) })
+    }
+
+    private fun montarComPainel(painel: PainelDto, aoAcompanharTurno: (String, String) -> Unit = { _, _ -> }) {
+        val vm = MinhasVagasViewModel(
+            estabelecimentoId = "est-1",
+            buscarPainel = { _, _, _ -> Result.success(painel) },
+            relogio = { agora },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme {
+                TelaMinhasVagas(
+                    viewModel = vm,
+                    aoVoltar = {},
+                    aoVerCandidatos = { _, _, _ -> },
+                    aoPublicarVaga = {},
+                    aoAcompanharTurno = aoAcompanharTurno,
+                )
+            }
+        }
+        rule.waitUntil(5_000) { rule.onAllNodesWithText("Garçom").fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun `painel com checkin pendente mostra Presencas a confirmar com o nome, e o toque abre o turno`() {
+        var recebido: Pair<String, String>? = null
+        montarComPainel(painelComPendentes(listOf("t1"))) { vagaId, posicaoId -> recebido = vagaId to posicaoId }
+
+        rule.onNodeWithText(TextosMinhasVagas.PRESENCAS_A_CONFIRMAR).assertIsDisplayed()
+        rule.onNode(hasTestTag("presenca-a-confirmar-t1") and hasAnyDescendant(hasText("Ana Souza"))).assertIsDisplayed()
+        rule.onNodeWithText(TextosMinhasVagas.EXPLICACAO_DA_CONFIRMACAO).assertIsDisplayed()
+
+        rule.onNodeWithTag("acompanhar-turno-t1").performClick()
+        assertEquals("v1" to "p4", recebido)
+    }
+
+    @Test
+    fun `sem checkin pendente a secao nao aparece`() {
+        montarComPainel(painelComPendentes(emptyList()))
+
+        assertEquals(0, rule.onAllNodesWithText(TextosMinhasVagas.PRESENCAS_A_CONFIRMAR).fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithTag("presenca-a-confirmar-t1").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `pendente que o painel nao traz fica de fora, sem secao vazia`() {
+        montarComPainel(painelComPendentes(listOf("t-de-outra-janela")))
+
+        assertEquals(0, rule.onAllNodesWithText(TextosMinhasVagas.PRESENCAS_A_CONFIRMAR).fetchSemanticsNodes().size)
+    }
+
+    // ---- Uk5UJWjQ, fatia 2: "Confirmar presença" no próprio cartão ----
+
+    @Test
+    fun `Confirmar presenca no cartao envia, tira o cartao e mostra Presenca confirmada`() {
+        val confirmados = mutableListOf<String>()
+        var leituras = 0
+        val vm = MinhasVagasViewModel(
+            estabelecimentoId = "est-1",
+            buscarPainel = { _, _, _ -> leituras++; Result.success(painelComPendentes(if (leituras == 1) listOf("t1") else emptyList())) },
+            confirmarCheckin = { turnoId ->
+                confirmados += turnoId
+                Result.success(br.com.frila.core.rede.ResultadoRegistroDto(turnoId, "manual", "verificado", "2026-11-12T21:05:00Z"))
+            },
+            relogio = { agora },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+        rule.setContent {
+            FrilaTheme { TelaMinhasVagas(viewModel = vm, aoVoltar = {}, aoVerCandidatos = { _, _, _ -> }, aoPublicarVaga = {}) }
+        }
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag("confirmar-presenca-t1").fetchSemanticsNodes().isNotEmpty() }
+
+        rule.onNodeWithTag("confirmar-presenca-t1").assertIsDisplayed().performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("t1"), confirmados)
+        rule.onNodeWithText(TextosMinhasVagas.PRESENCA_CONFIRMADA).assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("presenca-a-confirmar-t1").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `sem o caminho de confirmar o cartao so oferece Acompanhar turno`() {
+        montarComPainel(painelComPendentes(listOf("t1")))
+
+        rule.onNodeWithTag("acompanhar-turno-t1").assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("confirmar-presenca-t1").fetchSemanticsNodes().size)
     }
 }

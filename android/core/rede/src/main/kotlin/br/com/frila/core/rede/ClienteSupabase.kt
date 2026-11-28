@@ -29,6 +29,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.request
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.ContentType
@@ -96,6 +97,11 @@ class ClienteSupabase(
     private val json: Json = jsonFrila,
     /** L1-7d: avisado a cada resposta de erro da API (ver [RegistroDeErroDaApi]); nulo (padrão) não avisa ninguém. */
     private val registroDeErros: RegistroDeErroDaApi? = null,
+    /**
+     * #793: chamado depois que o Auth recusou o refresh e a sessão saiu do armazenamento, para o app completar a limpeza que o
+     * Sair faz (cache de imagens, corrotinas da sessão, cliente novo). Não é chamado se outra conta já tinha entrado.
+     */
+    private val aoRecusarSessao: () -> Unit = {},
 ) : Closeable {
     private val _fechado = AtomicBoolean(false)
     val estaFechado: Boolean get() = _fechado.get()
@@ -239,6 +245,12 @@ class ClienteSupabase(
     private suspend fun renovarTokens(parametros: RefreshTokensParams): BearerTokens? {
         val armazenamento = armazenamentoDeSessao ?: return null
         val sessaoAtual = armazenamento.obterSessao() ?: return null
+        // A renovação é da conta cuja chamada tomou 401, não de quem estiver guardado agora. A âncora é o token que a própria
+        // chamada mandou: no Ktor 2.3.12 o `oldTokens` vem do `AuthTokenHolder`, que outra chamada pode ter recarregado com a
+        // sessão de quem entrou depois (revisão do #1136). Se o token enviado não é o da sessão guardada (outra conta entrou, ou
+        // a chamada foi sem token), não há o que renovar: a chamada volta 401 para quem a fez, sem usar nem girar o token da nova.
+        val tokenEnviado = parametros.response.call.request.headers[HttpHeaders.Authorization]?.removePrefix("Bearer ")
+        if (tokenEnviado != sessaoAtual.accessToken) return null
 
         return try {
             val resposta = parametros.client.post(urlCompleta(CAMINHO_RENOVACAO)) {
@@ -249,7 +261,9 @@ class ClienteSupabase(
             if (!resposta.status.isSuccess()) {
                 // Só o Auth recusando o token encerra a sessão. 5xx, 429 e afins são falha
                 // passageira: a sessão fica e a próxima chamada tenta renovar de novo.
-                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO) armazenamento.limparSeRefreshTokenIgual(sessaoAtual.refreshToken)
+                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO && armazenamento.limparSeRefreshTokenIgual(sessaoAtual.refreshToken)) {
+                    aoRecusarSessao()
+                }
                 return null
             }
             val renovada = resposta.body<SessaoDto>()

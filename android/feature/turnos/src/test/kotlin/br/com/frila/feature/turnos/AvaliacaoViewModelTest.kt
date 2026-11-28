@@ -101,8 +101,10 @@ class AvaliacaoViewModelTest {
 
     @Test
     fun `avaliar recusado com avaliacao_ja_registrada encerra em JA_AVALIADO, mesmo sem conseguir reler o turno`() = runBlocking {
+        val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
         val viewModel = viewModelComEngine(
-            MockEngine {
+            MockEngine { request ->
+                caminhos += request.url.encodedPath
                 respond(
                     content = """{"code":"avaliacao_ja_registrada","message":"resposta diferente da ja gravada"}""",
                     status = HttpStatusCode.Conflict,
@@ -116,6 +118,7 @@ class AvaliacaoViewModelTest {
         // Era ERRO com "você já avaliou com uma resposta diferente" e os botões de volta (MO7DkVA2): agora é estado final.
         assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
         assertEquals(null, viewModel.estado.value.mensagemErro)
+        verificarQueExercitouO409(caminhos) // todas as respostas são 409: a leitura de abertura falha e não pode abrir em JA_AVALIADO
     }
 
     @Test
@@ -187,16 +190,35 @@ class AvaliacaoViewModelTest {
 
     private val jsonCabecalho = headersOf(HttpHeaders.ContentType, "application/json")
 
+    /**
+     * Prova que o teste exercitou o 409 e não só terminou em `JA_AVALIADO`: a leitura de abertura roda em paralelo ao envio e, se ela
+     * trouxer o voto antes do toque, a tela abre em "já avaliado" e o `avaliar` volta sem enviar. Aqui o envio saiu uma vez só e o turno foi
+     * relido DEPOIS dele (a releitura do 409; a de abertura vem antes).
+     */
+    private fun verificarQueExercitouO409(caminhos: List<String>, rotulo: String = "") {
+        val vistos = caminhos.toList()
+        val posicaoDoEnvio = vistos.indexOfFirst { it.endsWith("/avaliar") }
+        assertEquals(1, vistos.count { it.endsWith("/avaliar") }, "o envio saiu uma vez: $vistos $rotulo")
+        assertTrue(vistos.drop(posicaoDoEnvio + 1).any { it.endsWith("/meus_turnos") }, "releu o turno depois do 409: $vistos $rotulo")
+    }
+
     /** `avaliar` responde 409 e `meus_turnos` devolve `turnos`; guarda os caminhos chamados. */
-    private fun viewModelComConflito(turnos: String?, caminhos: MutableList<String>): AvaliacaoViewModel {
+    /**
+     * [turnosNaAbertura]: o que a PRIMEIRA leitura de `meus_turnos` devolve (a que a tela faz ao abrir, que roda em paralelo ao envio);
+     * as seguintes (a releitura depois do 409) devolvem [turnos]. Sem ele, todas devolvem [turnos]: com a avaliação já gravada, a leitura
+     * da abertura pode terminar antes do toque e a tela abre direto em "já avaliado", sem enviar nada.
+     */
+    private fun viewModelComConflito(turnos: String?, caminhos: MutableList<String>, turnosNaAbertura: String? = null): AvaliacaoViewModel {
+        val leiturasDeTurnos = java.util.concurrent.atomic.AtomicInteger(0)
         val engine = MockEngine { request ->
             val caminho = request.url.encodedPath
             caminhos += caminho
+            val corpoDosTurnos = if (turnosNaAbertura != null && caminho.endsWith("/meus_turnos") && leiturasDeTurnos.getAndIncrement() == 0) turnosNaAbertura else turnos
             when {
                 caminho.endsWith("/avaliar") -> respond(
                     """{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, jsonCabecalho,
                 )
-                caminho.endsWith("/meus_turnos") && turnos != null -> respond(turnos, HttpStatusCode.OK, jsonCabecalho)
+                caminho.endsWith("/meus_turnos") && corpoDosTurnos != null -> respond(corpoDosTurnos, HttpStatusCode.OK, jsonCabecalho)
                 else -> respond("""{"code":"erro_interno","message":"sintetico"}""", HttpStatusCode.InternalServerError, jsonCabecalho)
             }
         }
@@ -206,10 +228,14 @@ class AvaliacaoViewModelTest {
     @Test
     fun `409 avaliacao_ja_registrada vai a JA_AVALIADO, sem erro, e mostra a resposta gravada relida do turno`() = runBlocking {
         for (gravada in listOf(true, false)) {
-            val caminhos = mutableListOf<String>()
+            val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
             // Um turno de outro id, com a resposta oposta, vem antes: a releitura tem de achar o turno desta tela.
             val outro = turnoComAvaliacaoJson(!gravada, id = "99999999-9999-9999-9999-999999999999")
-            val viewModel = viewModelComConflito("[$outro,${turnoComAvaliacaoJson(gravada)}]", caminhos)
+            // Ao abrir o turno ainda não tem voto (senão a tela abriria em JA_AVALIADO sem enviar e o 409 nem aconteceria); o voto
+            // só aparece na releitura que o 409 manda fazer.
+            val viewModel = viewModelComConflito(
+                "[$outro,${turnoComAvaliacaoJson(gravada)}]", caminhos, turnosNaAbertura = "[${turnoComAvaliacaoJson(null)}]",
+            )
 
             // Pede o contrário do que está gravado: é o caso do 409 (resposta diferente).
             viewModel.avaliar(turnoId, !gravada).join()
@@ -217,35 +243,40 @@ class AvaliacaoViewModelTest {
             assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status, "gravada=$gravada")
             assertEquals(gravada, viewModel.estado.value.respostaRegistrada, "mostra a resposta do servidor, não a tentativa")
             assertEquals(null, viewModel.estado.value.mensagemErro)
-            assertTrue(caminhos.any { it.endsWith("/meus_turnos") }, "relê o turno: $caminhos")
+            verificarQueExercitouO409(caminhos, "gravada=$gravada")
         }
     }
 
     @Test
     fun `409 com a releitura do turno falhando ainda encerra em JA_AVALIADO, sem inventar a resposta`() = runBlocking {
-        val viewModel = viewModelComConflito(turnos = null, caminhos = mutableListOf())
+        val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val viewModel = viewModelComConflito(turnos = null, caminhos = caminhos)
 
         viewModel.avaliar(turnoId, true).join()
 
         assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
         assertEquals(null, viewModel.estado.value.respostaRegistrada)
         assertEquals(null, viewModel.estado.value.mensagemErro)
+        verificarQueExercitouO409(caminhos) // a leitura de abertura falha (500): só o 409 leva a JA_AVALIADO
     }
 
     @Test
     fun `409 com o turno sem avaliacao na lista encerra em JA_AVALIADO sem resposta`() = runBlocking {
-        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(null)}]", mutableListOf())
+        val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(null)}]", caminhos)
 
         viewModel.avaliar(turnoId, true).join()
 
         assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
         assertEquals(null, viewModel.estado.value.respostaRegistrada)
+        verificarQueExercitouO409(caminhos) // a abertura vem sem voto: só o 409 leva a JA_AVALIADO
     }
 
     @Test
     fun `depois do 409 um novo toque nao envia de novo`() = runBlocking {
-        val caminhos = mutableListOf<String>()
-        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(true)}]", caminhos)
+        val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
+        // Ao abrir, o turno ainda não tem voto; o outro membro vota depois, e é isso que o 409 e a releitura mostram.
+        val viewModel = viewModelComConflito("[${turnoComAvaliacaoJson(true)}]", caminhos, turnosNaAbertura = "[${turnoComAvaliacaoJson(null)}]")
 
         viewModel.avaliar(turnoId, false).join()
         val enviosAntes = caminhos.count { it.endsWith("/avaliar") }
@@ -381,8 +412,10 @@ class AvaliacaoViewModelTest {
     fun `na casa, a releitura do 409 tambem leva estabelecimento_id e acha a resposta gravada`() = runBlocking {
         // A leitura de abertura ainda não vê a avaliação (lista vazia); ela aparece depois, quando o 409 manda reler.
         val leituras = java.util.concurrent.atomic.AtomicInteger(0)
+        val caminhos = java.util.concurrent.CopyOnWriteArrayList<String>()
         val engine = MockEngine { request ->
             val caminho = request.url.encodedPath
+            caminhos += caminho
             when {
                 caminho.endsWith("/avaliar") -> respond(
                     """{"code":"avaliacao_ja_registrada","message":"x"}""", HttpStatusCode.Conflict, jsonCabecalho,
@@ -407,6 +440,7 @@ class AvaliacaoViewModelTest {
         assertEquals(StatusAvaliacao.JA_AVALIADO, viewModel.estado.value.status)
         assertEquals(false, viewModel.estado.value.respostaRegistrada, "a resposta gravada, achada pela releitura com a casa")
         assertEquals(2, leituras.get())
+        verificarQueExercitouO409(caminhos)
     }
 
 

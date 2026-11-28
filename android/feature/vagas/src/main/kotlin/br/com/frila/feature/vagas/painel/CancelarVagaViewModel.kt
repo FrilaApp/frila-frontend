@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.painel
 
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
@@ -21,14 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Os motivos que a casa escolhe ao cancelar. O texto é o `motivo` que vai ao servidor; `OUTRO` exige o campo livre. */
-enum class MotivoDeCancelamentoDaVaga(val texto: String, val exigeDetalhes: Boolean = false) {
-    MOVIMENTO_MENOR(TextosCancelarVaga.MOTIVO_MOVIMENTO_MENOR),
-    PREENCHIDA_FORA(TextosCancelarVaga.MOTIVO_PREENCHIDA_FORA),
-    MUDANCA_DE_PLANOS(TextosCancelarVaga.MOTIVO_MUDANCA_DE_PLANOS),
-    PROBLEMA_NO_LOCAL(TextosCancelarVaga.MOTIVO_PROBLEMA_NO_LOCAL),
-    OUTRO(TextosCancelarVaga.MOTIVO_OUTRO, exigeDetalhes = true),
-}
+/** Os motivos que a casa escolhe ao cancelar: os mesmos da posição (`MotivoDeCancelamentoDaCasa`, em `:core:dominio`). */
+typealias MotivoDeCancelamentoDaVaga = MotivoDeCancelamentoDaCasa
 
 data class EstadoCancelarVaga(
     /** O que acontece se confirmar, dito antes do toque (RN12). */
@@ -41,20 +36,10 @@ data class EstadoCancelarVaga(
     val naFila: Boolean = false,
 ) {
     /** O texto que vai ao servidor: o motivo e, se houver, o detalhe depois de dois pontos. `null` enquanto não dá para enviar. */
-    val motivoCompleto: String?
-        get() {
-            val escolhido = motivo ?: return null
-            val detalhe = detalhes.trim()
-            if (escolhido.exigeDetalhes) return detalhe.takeIf { it.length >= MINIMO_DO_MOTIVO }
-            return if (detalhe.isEmpty()) escolhido.texto else "${escolhido.texto}: $detalhe"
-        }
+    val motivoCompleto: String? get() = motivo?.textoParaOServidor(detalhes)
 
     /** Sem motivo não se cancela. Depois de uma falha dá para tentar de novo; depois de concluído, não. */
     val podeConfirmar: Boolean get() = !enviando && !concluida && !naFila && motivoCompleto != null
-
-    private companion object {
-        const val MINIMO_DO_MOTIVO = 3
-    }
 }
 
 /**

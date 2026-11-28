@@ -27,6 +27,9 @@ object TextosAberturaDeVaga {
     const val POSICOES_ABERTAS = "Posições abertas"
     const val POSICOES_DE = "%d de %d"
     const val RESPONSAVEL_NO_LOCAL = "Responsável no local"
+    const val RATEIO = "Rateio dos 10%"
+    const val SIM = "Sim"
+    const val NAO = "Não"
     const val TRAJE = "Traje"
     const val OBSERVACOES = "Observações"
 }
@@ -100,7 +103,7 @@ class AberturaDeVagaViewModel(
         else -> EstadoAberturaDeVaga.Falha(TextosAberturaDeVaga.ERRO_GENERICO, podeTentarDeNovo = true)
     }
 
-    private companion object {
+    internal companion object {
         const val ESTADO_PUBLICADA = "publicada"
         const val ESTADO_PREENCHIDA = "preenchida"
         const val ESTADO_CANCELADA = "cancelada"

@@ -44,6 +44,8 @@ class TelaDetalheChamadaRecebidaTest {
             }
         }
         rule.waitUntil(TIMEOUT_MS) { viewModel.estado.value.podeResponder }
+        // Espera o botão na TELA, não só o estado do ViewModel: o clique vem depois da recomposição.
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag("aceitar-chamada").fetchSemanticsNodes().isNotEmpty() }
         return viewModel
     }
 
