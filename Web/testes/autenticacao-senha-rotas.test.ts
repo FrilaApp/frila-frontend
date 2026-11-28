@@ -849,6 +849,7 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
     aberturaMock.lerEsperaOtpDiretoDesteAmbiente
       .mockResolvedValueOnce(30)
       .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(60)
       .mockResolvedValueOnce(undefined);
 
@@ -903,5 +904,86 @@ describe("Regras OTP Web: fallback conservador 60s, teto 3 UI, Confirmar inativo
     );
     expect(limite429).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "limite" });
     expect(resolverEsperaReenvioSegundos(undefined)).toBe(60);
+  });
+
+  it("regressão #1118: saídas de erro no passo codigo e desafio preservam reenviarEmSegundos do servidor (30s) sem voltar a 60s", async () => {
+    aberturaMock.lerEsperaOtpDiretoDesteAmbiente.mockResolvedValue(30);
+
+    // criar-conta: código incompleto, código inválido e erro no reenvio
+    expect(
+      await criarContaAction(
+        argumentos("/criar-conta", { email: "ana@frila.test", codigo: "12", intencao: "confirmar" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "codigo_incompleto", reenviarEmSegundos: 30 });
+
+    authMock.confirmarDispositivoOtp.mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" });
+    expect(
+      await criarContaAction(
+        argumentos("/criar-conta", { email: "ana@frila.test", codigo: "123456", intencao: "confirmar" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "codigo_invalido", reenviarEmSegundos: 30 });
+
+    authMock.pedirCodigo.mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    expect(
+      await criarContaAction(
+        argumentos("/criar-conta", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite", reenviarEmSegundos: 30 });
+
+    // recuperar-senha: código incompleto, código inválido e erro no reenvio
+    expect(
+      await recuperarSenhaAction(
+        argumentos("/recuperar-senha", { email: "ana@frila.test", codigo: "12", intencao: "confirmar" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "codigo_incompleto", reenviarEmSegundos: 30 });
+
+    authMock.confirmarDispositivoOtp.mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" });
+    expect(
+      await recuperarSenhaAction(
+        argumentos("/recuperar-senha", { email: "ana@frila.test", codigo: "123456", intencao: "confirmar" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "codigo_invalido", reenviarEmSegundos: 30 });
+
+    authMock.pedirCodigoRecuperacao.mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    expect(
+      await recuperarSenhaAction(
+        argumentos("/recuperar-senha", { email: "ana@frila.test", intencao: "pedir", reenvio: "1" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "ana@frila.test", erro: "limite", reenviarEmSegundos: 30 });
+
+    // entrar (demo codigo): código incompleto e código inválido
+    expect(
+      await entrarAction(
+        argumentos("/entrar", { email: "demo@frila.test", codigo: "", intencao: "confirmar" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "demo@frila.test", erro: "codigo_incompleto", reenviarEmSegundos: 30 });
+
+    authMock.entrarDemonstracao.mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" });
+    expect(
+      await entrarAction(
+        argumentos("/entrar", { email: "demo@frila.test", codigo: "000000", intencao: "confirmar" }, false),
+      ),
+    ).toEqual({ passo: "codigo", email: "demo@frila.test", erro: "codigo_invalido", reenviarEmSegundos: 30 });
+
+    // entrar (desafio): código incompleto, código inválido e erro no reenvio
+    expect(
+      await entrarAction(
+        argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", codigo: "12", intencao: "confirmar_desafio" }, false),
+      ),
+    ).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "codigo_incompleto", reenviarEmSegundos: 30 });
+
+    authMock.confirmarDispositivoOtp.mockResolvedValueOnce({ ok: false, motivo: "codigo_invalido" });
+    expect(
+      await entrarAction(
+        argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", codigo: "123456", intencao: "confirmar_desafio" }, false),
+      ),
+    ).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "codigo_invalido", reenviarEmSegundos: 30 });
+
+    authMock.reenviarDispositivoOtp.mockResolvedValueOnce({ ok: false, motivo: "limite" });
+    expect(
+      await entrarAction(
+        argumentos("/entrar", { email: "pessoa@frila.test", desafio_id: "des-1", intencao: "reenviar_desafio" }, false),
+      ),
+    ).toEqual({ passo: "desafio", email: "pessoa@frila.test", desafioId: "des-1", erro: "limite", reenviarEmSegundos: 30 });
   });
 });

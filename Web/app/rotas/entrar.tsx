@@ -98,11 +98,23 @@ export async function action({ request }: Route.ActionArgs) {
       return { passo: "email", email, erro: "codigo_apenas_demo" } satisfies Passo;
     }
     if (codigo.length === 0 || codigo.length > 64) {
-      return { passo: "codigo", email, erro: "codigo_incompleto" } satisfies Passo;
+      const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+      return {
+        passo: "codigo",
+        email,
+        erro: "codigo_incompleto",
+        ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+      } satisfies Passo;
     }
     const entrada = await auth.entrarDemonstracao(email, codigo);
     if (!entrada.ok) {
-      return { passo: "codigo", email, erro: entrada.motivo } satisfies Passo;
+      const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+      return {
+        passo: "codigo",
+        email,
+        erro: entrada.motivo,
+        ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+      } satisfies Passo;
     }
 
     const cabecalhos = new Headers();
@@ -115,7 +127,14 @@ export async function action({ request }: Route.ActionArgs) {
       return { passo: "email", email, erro: "conta_demo" } satisfies Passo;
     }
     if (!/^\d{6}$/.test(codigo)) {
-      return { passo: "desafio", email, desafioId, erro: "codigo_incompleto" } satisfies Passo;
+      const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+      return {
+        passo: "desafio",
+        email,
+        desafioId,
+        erro: "codigo_incompleto",
+        ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+      } satisfies Passo;
     }
     const lembrarDispositivo = formulario.get("lembrar_dispositivo") === "sim";
     const res = await auth.confirmarDispositivoOtp({
@@ -129,7 +148,14 @@ export async function action({ request }: Route.ActionArgs) {
       if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
         return comTentativa({ passo: "email", email, erro: res.motivo }) satisfies Passo;
       }
-      return comTentativa({ passo: "desafio", email, desafioId, erro: res.motivo }) satisfies Passo;
+      const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+      return comTentativa({
+        passo: "desafio",
+        email,
+        desafioId,
+        erro: res.motivo,
+        ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+      }) satisfies Passo;
     }
     const cabecalhos = new Headers();
     for (const linha of cookiesDaSessao(res.sessao, seguro)) cabecalhos.append("Set-Cookie", linha);
@@ -146,7 +172,14 @@ export async function action({ request }: Route.ActionArgs) {
       if (res.motivo === "desafio_expirado" || res.motivo === "desafio_ja_usado") {
         return comTentativa({ passo: "email", email, erro: res.motivo }) satisfies Passo;
       }
-      return comTentativa({ passo: "desafio", email, desafioId, erro: res.motivo }) satisfies Passo;
+      const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+      return comTentativa({
+        passo: "desafio",
+        email,
+        desafioId,
+        erro: res.motivo,
+        ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+      }) satisfies Passo;
     }
     return comTentativa({
       passo: "desafio",
