@@ -453,6 +453,86 @@ class PublicarVagaViewModelTest {
     }
 
     @Test
+    fun `editar o inicio depois de horario_invalido limpa o erro do inicio e o do fim`() {
+        val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "horario_invalido")
+        assertEquals(setOf(CampoPublicacao.INICIO, CampoPublicacao.FIM), vm.estado.value.errosDeCampo.keys)
+
+        vm.editarInicio(base.plus(Duration.ofHours(5)))
+
+        assertEquals(emptySet<CampoPublicacao>(), vm.estado.value.errosDeCampo.keys)
+        assertNull(vm.estado.value.erro)
+    }
+
+    @Test
+    fun `editar o fim depois de horario_invalido limpa so o erro do fim`() {
+        val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "horario_invalido")
+
+        vm.editarFim(vm.estado.value.inicio.plus(Duration.ofHours(6)))
+
+        assertEquals(setOf(CampoPublicacao.INICIO), vm.estado.value.errosDeCampo.keys)
+    }
+
+    @Test
+    fun `editar o inicio limpa o erro do modo, e deixa o erro de outro campo`() {
+        val comModo = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "modo")
+        assertEquals(setOf(CampoPublicacao.MODO), comModo.estado.value.errosDeCampo.keys)
+        comModo.editarInicio(base.plus(Duration.ofHours(5)))
+        assertEquals(emptySet<CampoPublicacao>(), comModo.estado.value.errosDeCampo.keys)
+
+        val comValor = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "valor_centavos")
+        comValor.editarInicio(base.plus(Duration.ofHours(5)))
+        assertEquals(setOf(CampoPublicacao.VALOR), comValor.estado.value.errosDeCampo.keys)
+    }
+
+    @Test
+    fun `escolher o modo depois da recusa limpa o erro do modo e o do inicio, e deixa o de outro campo`() {
+        val semAntecedencia = recusaDe(HttpStatusCode.UnprocessableEntity, "selecao_sem_antecedencia")
+        assertEquals(setOf(CampoPublicacao.INICIO), semAntecedencia.estado.value.errosDeCampo.keys)
+        semAntecedencia.escolherModo(ModoDaVaga.URGENCIA)
+        assertEquals(emptySet<CampoPublicacao>(), semAntecedencia.estado.value.errosDeCampo.keys)
+        assertNull(semAntecedencia.estado.value.erro)
+
+        val comModo = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "modo")
+        comModo.escolherModo(ModoDaVaga.URGENCIA)
+        assertEquals(emptySet<CampoPublicacao>(), comModo.estado.value.errosDeCampo.keys)
+
+        val comValor = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "valor_centavos")
+        comValor.escolherModo(ModoDaVaga.URGENCIA)
+        assertEquals(setOf(CampoPublicacao.VALOR), comValor.estado.value.errosDeCampo.keys)
+    }
+
+    @Test
+    fun `cada details da recusa marca o campo certo, tanto em campo_obrigatorio quanto em campo_invalido`() {
+        val esperado = mapOf(
+            "estabelecimento_id" to CampoPublicacao.ESTABELECIMENTO,
+            "regiao_administrativa" to CampoPublicacao.ESTABELECIMENTO,
+            "ponto" to CampoPublicacao.ESTABELECIMENTO,
+            "latitude" to CampoPublicacao.ESTABELECIMENTO,
+            "longitude" to CampoPublicacao.ESTABELECIMENTO,
+            "funcao_id" to CampoPublicacao.FUNCAO,
+            "inicio_em" to CampoPublicacao.INICIO,
+            "fim_em" to CampoPublicacao.FIM,
+            "local" to CampoPublicacao.LOCAL,
+            "valor_centavos" to CampoPublicacao.VALOR,
+            "posicoes" to CampoPublicacao.POSICOES,
+            "responsavel_local" to CampoPublicacao.RESPONSAVEL,
+            "modo" to CampoPublicacao.MODO,
+            "traje" to CampoPublicacao.TRAJE,
+            "observacoes" to CampoPublicacao.OBSERVACOES,
+        )
+        for ((detalhe, campo) in esperado) {
+            for (codigo in listOf("campo_obrigatorio", "campo_invalido")) {
+                val estado = recusaDe(HttpStatusCode.UnprocessableEntity, codigo, detalhe).estado.value
+
+                assertEquals(setOf(campo), estado.errosDeCampo.keys, "$codigo / $detalhe")
+                val antiContato = codigo == "campo_invalido" && campo == CampoPublicacao.OBSERVACOES
+                val erroGlobal = if (antiContato) ErroGlobalPublicacao.ANTI_CONTATO else ErroGlobalPublicacao.CONFIRA_CAMPOS
+                assertEquals(erroGlobal, estado.erro, "$codigo / $detalhe")
+            }
+        }
+    }
+
+    @Test
     fun `422 selecao_sem_antecedencia aponta o inicio e libera a edicao`() {
         val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "selecao_sem_antecedencia")
         val estado = vm.estado.value
