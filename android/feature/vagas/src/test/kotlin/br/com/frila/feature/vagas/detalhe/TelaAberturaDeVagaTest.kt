@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import br.com.frila.core.designsystem.componentes.AuditoriaSemanticaAcessibilidade
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
@@ -44,10 +45,15 @@ class TelaAberturaDeVagaTest {
 
     private fun contar(texto: String) = rule.onAllNodesWithText(texto).fetchSemanticsNodes().size
 
-    private fun montar(estado: EstadoAberturaDeVaga, toques: Toques = Toques()): Toques {
+    private fun montar(estado: EstadoAberturaDeVaga, toques: Toques = Toques(), rotuloDoVoltar: String? = null): Toques {
         rule.setContent {
             FrilaTheme {
-                ConteudoAberturaDeVaga(estado, aoTentarDeNovo = { toques.tentou++ }, aoVoltarParaFeed = { toques.voltou++ }) { vaga ->
+                ConteudoAberturaDeVaga(
+                    estado,
+                    aoTentarDeNovo = { toques.tentou++ },
+                    aoVoltarParaFeed = { toques.voltou++ },
+                    rotuloDoVoltar = rotuloDoVoltar,
+                ) { vaga ->
                     Text("vaga aberta ${vaga.id}")
                 }
             }
@@ -124,6 +130,18 @@ class TelaAberturaDeVagaTest {
             ),
         )
         rule.onNodeWithText(TextosVagaIndisponivel.CANCELADA_TITULO).assertExists()
+    }
+
+    @Test
+    fun `kNHS9OQ6 - o rotulo do voltar chega ao botao da vaga indisponivel, e o toque volta`() {
+        val toques = montar(
+            EstadoAberturaDeVaga.Indisponivel(MotivoIndisponibilidadeVaga.PREENCHIDA, ModoPreenchimentoVaga.SELECAO),
+            rotuloDoVoltar = TextosVagaIndisponivel.BOTAO_VER_MINHAS_CANDIDATURAS,
+        )
+
+        rule.onNodeWithText(TextosVagaIndisponivel.BOTAO_VER_MINHAS_CANDIDATURAS).performScrollTo().performClick()
+        rule.onAllNodesWithText(TextosVagaIndisponivel.BOTAO_VOLTAR_PADRAO).assertCountEquals(0)
+        assertEquals(1, toques.voltou)
     }
 
     @Test
