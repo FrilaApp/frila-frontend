@@ -204,16 +204,21 @@ class AvaliacaoViewModelTest {
 
     /** `avaliar` responde 409 e `meus_turnos` devolve `turnos`; guarda os caminhos chamados. */
     /**
-     * [turnosNaAbertura]: o que a PRIMEIRA leitura de `meus_turnos` devolve (a que a tela faz ao abrir, que roda em paralelo ao envio);
-     * as seguintes (a releitura depois do 409) devolvem [turnos]. Sem ele, todas devolvem [turnos]: com a avaliação já gravada, a leitura
-     * da abertura pode terminar antes do toque e a tela abre direto em "já avaliado", sem enviar nada.
+     * [turnosNaAbertura]: o que `meus_turnos` devolve ANTES de o envio chegar ao servidor (a leitura que a tela faz ao abrir); depois dele
+     * (a releitura do 409), devolve [turnos]. Sem ele, todas devolvem [turnos]: com a avaliação já gravada, a leitura da abertura pode
+     * terminar antes do toque e a tela abre direto em "já avaliado", sem enviar nada.
+     *
+     * YvTNwVzG: o corpo depende de o envio já ter chegado, e não da ordem das leituras. A leitura de abertura roda em paralelo ao envio
+     * (`Dispatchers.Default`) e às vezes chega ao servidor depois dele; com "a primeira leitura é a de abertura", a releitura do 409 levava o
+     * turno sem voto e a resposta saía nula (MEDIDO: 14 em 1000; 92 em 100 com a abertura atrasada de propósito).
      */
     private fun viewModelComConflito(turnos: String?, caminhos: MutableList<String>, turnosNaAbertura: String? = null): AvaliacaoViewModel {
-        val leiturasDeTurnos = java.util.concurrent.atomic.AtomicInteger(0)
+        val envioChegou = java.util.concurrent.atomic.AtomicBoolean(false)
         val engine = MockEngine { request ->
             val caminho = request.url.encodedPath
             caminhos += caminho
-            val corpoDosTurnos = if (turnosNaAbertura != null && caminho.endsWith("/meus_turnos") && leiturasDeTurnos.getAndIncrement() == 0) turnosNaAbertura else turnos
+            if (caminho.endsWith("/avaliar")) envioChegou.set(true)
+            val corpoDosTurnos = if (turnosNaAbertura != null && caminho.endsWith("/meus_turnos") && !envioChegou.get()) turnosNaAbertura else turnos
             when {
                 caminho.endsWith("/avaliar") -> respond(
                     """{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, jsonCabecalho,
