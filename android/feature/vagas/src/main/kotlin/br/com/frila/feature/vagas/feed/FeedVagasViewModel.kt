@@ -1,5 +1,7 @@
 package br.com.frila.feature.vagas.feed
 
+import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
+import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.EventoDeTelemetria
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,6 +47,8 @@ class FeedVagasViewModel(
     private val repositorioVagas: RepositorioVagas? = null,
     private val agora: () -> Instant = Instant::now,
     private val registrarEvento: (EventoDeTelemetria, String?, String?) -> Unit = { _, _, _ -> },
+    /** I1PonzKJ: estabelecimentos que o profissional bloqueou nesta sessão não aparecem no feed (iOS: `FeedVagasViewModel.bloqueios`). */
+    private val bloqueios: BloqueiosDaSessao? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -67,7 +71,20 @@ class FeedVagasViewModel(
             vagasCarregadas = emptyList()
             _estado.value = EstadoFeed()
         }
+        // Bloquear (ou desbloquear) com o feed aberto refaz a lista já carregada, sem nova ida ao servidor. Antes de a lista chegar,
+        // ou com ela em erro, não há o que refazer: o próprio carregamento já filtra pelo conjunto.
+        bloqueios?.let { sessao ->
+            escopoDeTrabalho.launch {
+                sessao.alvos.collect {
+                    val status = _estado.value.status
+                    if (status == StatusFeed.SUCESSO || status == StatusFeed.VAZIO) aplicarFiltros()
+                }
+            }
+        }
     }
+
+    private fun VagaAbertaDto.deEstabelecimentoBloqueado(): Boolean =
+        bloqueios?.contem(TipoDeAlvo.ESTABELECIMENTO, estabelecimento.id) == true
 
     private var preferenciasRestauradas = false
     private var gravacaoPreferencia: Job? = null
@@ -211,7 +228,7 @@ class FeedVagasViewModel(
      * refazer a chamada de `/rpc/vagas_abertas` só para reler o mesmo objeto.
      */
     fun encontrarVagaPorId(id: String): VagaAbertaDto? = vagasCarregadas.firstOrNull {
-        it.id == id && (!_estado.value.emCache || it.aindaDisponivelEm(agora()))
+        it.id == id && !it.deEstabelecimentoBloqueado() && (!_estado.value.emCache || it.aindaDisponivelEm(agora()))
     }
 
     fun aoAlterarTextoBusca(texto: String) {
@@ -306,7 +323,8 @@ class FeedVagasViewModel(
         if (filtroAtual.emCache) vagasCarregadas = vagasCarregadas.filter { it.aindaDisponivelEm(agora()) }
         val termoBusca = filtroAtual.textoBusca.trim()
 
-        val filtradas = vagasCarregadas
+        val visiveis = vagasCarregadas.filterNot { it.deEstabelecimentoBloqueado() }
+        val filtradas = visiveis
             .filter { vaga ->
                 termoBusca.isBlank() ||
                     vaga.funcao.nome.contains(termoBusca, ignoreCase = true) ||
@@ -336,7 +354,7 @@ class FeedVagasViewModel(
             .sortedWith(comparadorPara(filtroAtual.opcaoOrdenacao))
             .map { it.paraItem() }
 
-        val funcoesDisponiveis = vagasCarregadas.map { it.funcao.nome }.distinct().sorted()
+        val funcoesDisponiveis = visiveis.map { it.funcao.nome }.distinct().sorted()
 
         _estado.update {
             it.copy(

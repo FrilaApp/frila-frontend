@@ -444,7 +444,10 @@ val moduloFeatures = module {
         )
     }
     viewModel { CadastroViewModel(get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
-    viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
+    // I1PonzKJ: o feed lê os bloqueados da sessão (o mesmo conjunto em que Denúncia e Bloqueio avulso gravam); sem o conjunto, nada se esconde.
+    viewModel {
+        FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar, bloqueios = getOrNull())
+    }
     /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
     viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /**

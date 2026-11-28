@@ -1,5 +1,8 @@
 package br.com.frila.app
 
+import kotlinx.coroutines.runBlocking
+import br.com.frila.feature.vagas.feed.FeedVagasViewModel
+import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
@@ -52,6 +55,11 @@ class KoinGrafoBloqueiosDaSessaoTest : KoinTest {
     private var servidorRecusa = false
 
     private val casa = "casa-1"
+    private val vagaDaCasa = """[{"id":"v-1","funcao":{"id":"f-1","nome":"garçom","categoria":"Salão"},
+        "estabelecimento":{"id":"casa-1","tipo":"estabelecimento","nome":"Bar do Zé","reputacao":{"positivas":1,"total":1,"turnos_considerados":1,"turnos_realizados":1}},
+        "inicio_em":"2099-11-01T21:00:00Z","fim_em":"2099-11-02T03:00:00Z","local":"SQN 108","regiao_administrativa":"Asa Norte",
+        "distancia_km":4.2,"valor_centavos":16000,"posicoes_abertas":2,
+        "inclusos":{"inclui_refeicao":true,"inclui_transporte":false,"exige_material_proprio":false},"modo":"selecao"}]"""
 
     @BeforeEach
     fun antes() {
@@ -67,6 +75,7 @@ class KoinGrafoBloqueiosDaSessaoTest : KoinTest {
                         respond("""{"code":"erro","message":"x"}""", HttpStatusCode.InternalServerError, json)
                     caminho.endsWith("rpc/bloquear") || caminho.endsWith("rpc/desbloquear") ->
                         respond("""{"alvo_tipo":"estabelecimento","alvo_id":"$casa","criado_em":"2026-11-10T12:00:00Z"}""", HttpStatusCode.OK, json)
+                    caminho.endsWith("rpc/vagas_abertas") -> respond(vagaDaCasa, HttpStatusCode.OK, json)
                     caminho.endsWith("rpc/listar_bloqueios") ->
                         respond("""[{"alvo_tipo":"estabelecimento","alvo_id":"$casa","nome":"Bar do Zé","criado_em":"2026-11-10T12:00:00Z"}]""", HttpStatusCode.OK, json)
                     else -> respond("{}", HttpStatusCode.OK, json)
@@ -76,7 +85,7 @@ class KoinGrafoBloqueiosDaSessaoTest : KoinTest {
         startKoin {
             modules(
                 listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoDoGrafoDosBloqueios, moduloFeatures) +
-                    module { single { ServicoConfianca(cliente) } },
+                    module { single { ServicoConfianca(cliente) }; single { ServicoVagas(cliente) } },
             )
         }
     }
@@ -115,6 +124,18 @@ class KoinGrafoBloqueiosDaSessaoTest : KoinTest {
 
         assertTrue(sessao.contem(TipoDeAlvo.ESTABELECIMENTO, casa))
         assertTrue(avulso().estado.value.bloqueado, "ao sair e voltar, o bloqueado nao pode reaparecer")
+    }
+
+    @Test
+    fun `o feed do grafo esconde a vaga da casa bloqueada pelo bloqueio avulso, sem recarregar`() {
+        val feed = get<FeedVagasViewModel>()
+        runBlocking { feed.carregar().join() }
+        assertEquals(listOf("v-1"), feed.estado.value.vagas.map { it.id })
+
+        bloquearPeloAvulso()
+
+        esperar { feed.estado.value.vagas.isEmpty() }
+        assertTrue(feed.estado.value.vagas.isEmpty(), "a vaga da casa bloqueada nao pode seguir no feed")
     }
 
     @Test
