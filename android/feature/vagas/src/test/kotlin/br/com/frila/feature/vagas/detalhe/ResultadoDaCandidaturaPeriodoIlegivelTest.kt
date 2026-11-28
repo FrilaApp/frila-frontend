@@ -105,6 +105,22 @@ class ResultadoDaCandidaturaPeriodoIlegivelTest {
     @Test
     fun conflito_inicioIlegivelEscondeALinhaDoPeriodo() = semLinhaDoPeriodo(Tela.CONFLITO, vaga("isto-nao-e-uma-data", fimValido))
 
+    // O caso que mais engana: com o fim no FUTURO, um início inventado como "agora" daria uma duração positiva e plausível. Com o fim no passado (acima), a guarda
+    // de ordem esconderia a linha por acaso e mascararia o início inventado; por isso o fim aqui é de 2099, para o teste não envelhecer.
+    private val fimNoFuturo = "2099-01-01T00:00:00Z"
+
+    @Test
+    fun confirmado_inicioIlegivelComFimNoFuturoNaoInventaOInicioComoAgora() = semLinhaDoPeriodo(Tela.CONFIRMADO, vaga("isto-nao-e-uma-data", fimNoFuturo))
+
+    @Test
+    fun conflito_inicioIlegivelComFimNoFuturoNaoInventaOInicioComoAgora() = semLinhaDoPeriodo(Tela.CONFLITO, vaga("isto-nao-e-uma-data", fimNoFuturo))
+
+    @Test
+    fun confirmado_inicioVazioComFimNoFuturoNaoInventaOInicioComoAgora() = semLinhaDoPeriodo(Tela.CONFIRMADO, vaga("", fimNoFuturo))
+
+    @Test
+    fun conflito_inicioVazioComFimNoFuturoNaoInventaOInicioComoAgora() = semLinhaDoPeriodo(Tela.CONFLITO, vaga("", fimNoFuturo))
+
     @Test
     fun confirmado_inicioVazioEscondeALinhaDoPeriodo() = semLinhaDoPeriodo(Tela.CONFIRMADO, vaga("", fimValido))
 
