@@ -474,4 +474,37 @@ class AvaliacaoViewModelTest {
         assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status)
         assertEquals("Sem conexão. Verifique sua internet e tente de novo.", viewModel.estado.value.mensagemErro)
     }
+
+    // ---- J3ZnzMGt (item 224): 401 e 429 dizem o motivo, com os textos do iOS (MensagemDoErroAPI.texto) ----
+
+    private suspend fun mensagemDoErro(status: HttpStatusCode, corpo: String): String? {
+        val viewModel = viewModelComEngine(MockEngine { respond(corpo, status, jsonCabecalho) })
+        viewModel.avaliar(turnoId, true).join()
+        assertEquals(StatusAvaliacao.ERRO, viewModel.estado.value.status, "$status")
+        return viewModel.estado.value.mensagemErro
+    }
+
+    @Test
+    fun `401 ao avaliar diz que a sessao expirou`() = runBlocking {
+        assertEquals(
+            "Sua sessão expirou. Entre novamente para continuar.",
+            mensagemDoErro(HttpStatusCode.Unauthorized, """{"code":"nao_autenticado","message":"sintetico"}"""),
+        )
+    }
+
+    @Test
+    fun `429 ao avaliar pede para aguardar, com ou sem o codigo do dominio no corpo`() = runBlocking {
+        val esperado = "Você fez muitas tentativas. Aguarde antes de tentar novamente."
+        assertEquals(esperado, mensagemDoErro(HttpStatusCode.TooManyRequests, """{"code":"limite_excedido","message":"sintetico"}"""))
+        // O gateway pode devolver 429 sem o envelope do domínio: o cliente mapeia pelo status.
+        assertEquals(esperado, mensagemDoErro(HttpStatusCode.TooManyRequests, """{"message":"Too Many Requests"}"""))
+    }
+
+    @Test
+    fun `um erro sem motivo conhecido continua no tente de novo`() = runBlocking {
+        assertEquals(
+            "Não foi possível registrar sua avaliação. Tente de novo.",
+            mensagemDoErro(HttpStatusCode.InternalServerError, """{"code":"erro_interno","message":"sintetico"}"""),
+        )
+    }
 }
