@@ -45,7 +45,7 @@ public struct TelaMeuTurno: View {
                 cartaoTurno
                 avisosDaFila
                 if let desfecho = viewModel.desfechoDoCancelamento {
-                    AvisoFrila(verbatim: TextosDoCancelamento.desfecho(.posicao(desfecho), lado: .profissional), tom: .informativo)
+                    AvisoFrila(verbatim: TextosDoCancelamento.desfecho(.posicao(desfecho), lado: .profissional, origem: viewModel.turno.vaga.origem), tom: .informativo)
                         .accessibilityIdentifier("desfecho-do-cancelamento-no-turno")
                 }
                 if viewModel.cancelamentoNaFila {

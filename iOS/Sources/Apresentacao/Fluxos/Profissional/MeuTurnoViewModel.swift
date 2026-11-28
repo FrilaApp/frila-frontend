@@ -283,7 +283,8 @@ public final class MeuTurnoViewModel {
         return CancelamentoViewModel(
             lado: .profissional, posicaoID: turno.posicaoID, turnoID: turno.id, periodo: turno.vaga.periodo,
             api: api, relogio: relogio, fila: filaDeAcoes,
-            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho) }
+            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho) },
+            origem: turno.vaga.origem
         )
     }
 

@@ -81,6 +81,8 @@ public final class CancelamentoViewModel: Identifiable {
     public let lado: LadoDoCancelamento
     public let alvo: AlvoDoCancelamento
     public let periodo: Periodo
+    /// De onde a vaga veio: a direta não volta a ser oferecida, e os textos dizem isso. Ausente vale `publicacao`.
+    public let origem: OrigemVaga?
     public var motivo: MotivoDeCancelamento?
     public var detalhes: String = ""
     public private(set) var estado: EstadoDoCancelamento = .pronto
@@ -103,8 +105,10 @@ public final class CancelamentoViewModel: Identifiable {
         fila: (any FilaDeAcoes)? = nil,
         executar: @escaping @Sendable (String) async throws -> DesfechoDoCancelamento,
         aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in },
-        telemetria: RegistradorDeTelemetria? = nil
+        telemetria: RegistradorDeTelemetria? = nil,
+        origem: OrigemVaga? = nil
     ) {
+        self.origem = origem
         self.lado = lado
         self.alvo = alvo
         self.periodo = periodo
@@ -125,13 +129,15 @@ public final class CancelamentoViewModel: Identifiable {
         relogio: any Relogio = RelogioDoSistema(),
         fila: (any FilaDeAcoes)? = nil,
         aoConcluir: @escaping @MainActor (DesfechoDoCancelamento) -> Void = { _ in },
-        telemetria: RegistradorDeTelemetria? = nil
+        telemetria: RegistradorDeTelemetria? = nil,
+        origem: OrigemVaga? = nil
     ) {
         self.init(
             lado: lado, alvo: .posicao(id: posicaoID, turnoID: turnoID), periodo: periodo, relogio: relogio, fila: fila,
             executar: { .posicao(try await api.cancelarPosicao(id: posicaoID, motivo: $0)) },
             aoConcluir: aoConcluir,
-            telemetria: telemetria ?? RegistradorDeTelemetria(api: api)
+            telemetria: telemetria ?? RegistradorDeTelemetria(api: api),
+            origem: origem
         )
     }
 
@@ -176,7 +182,7 @@ public final class CancelamentoViewModel: Identifiable {
 
     /// O aviso que a folha mostra antes do toque: muda com a antecedência e com o lado.
     public var aviso: String {
-        TextosDoCancelamento.aviso(lado: lado, alvo: alvo, antecedencia: antecedencia, contaComoFalta: contaComoFalta)
+        TextosDoCancelamento.aviso(lado: lado, alvo: alvo, antecedencia: antecedencia, contaComoFalta: contaComoFalta, origem: origem)
     }
 
     // MARK: Motivo

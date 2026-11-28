@@ -46,6 +46,28 @@ private actor FilaDeAcoesMemoria: FilaDeAcoes {
         #expect(!MeuTurnoViewModel(turno: turnoCancelado, api: cancelado, relogio: RelogioFixo(agora)).podeCancelar)
     }
 
+    /// O turno com a vaga de outra origem, montado pelo formato do cache: o dublê de turno confirmado não cria vaga direta.
+    private func turno(_ turno: Turno, comOrigem origem: OrigemVaga) throws -> Turno {
+        let guardado = try JSONSerialization.jsonObject(with: JSONEncoder().encode(turno))
+        var campos = try #require(guardado as? [String: Any])
+        var vaga = try #require(campos["vaga"] as? [String: Any])
+        vaga["origem"] = origem.rawValue
+        campos["vaga"] = vaga
+        return try JSONDecoder().decode(Turno.self, from: JSONSerialization.data(withJSONObject: campos))
+    }
+
+    @Test("A folha de Meu turno recebe a origem da vaga", arguments: [OrigemVaga.publicacao, .chamadaDireta])
+    func meuTurnoPassaAOrigemParaAFolha(origem: OrigemVaga) async throws {
+        let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoLonge, relogio: RelogioFixo(agora))
+        let doDuble = try await turnoConfirmado(api)
+        let viewModel = MeuTurnoViewModel(turno: try turno(doDuble, comOrigem: origem), api: api, relogio: RelogioFixo(agora))
+        let folha = try #require(viewModel.criarCancelamentoViewModel())
+        #expect(folha.origem == origem)
+        #expect(folha.aviso.hasSuffix(origem == .chamadaDireta
+            ? "O estabelecimento será avisado e poderá chamar outra pessoa."
+            : "A vaga volta a ser oferecida a outros profissionais."))
+    }
+
     @Test func cancelarAMenosDe24HorasViraCanceladoComFaltaEAtualizaALista() async throws {
         let api = ApiClienteEmMemoria(cenario: .turnoConfirmadoPerto, relogio: RelogioFixo(agora))
         let turno = try await turnoConfirmado(api)

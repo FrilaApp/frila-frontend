@@ -15,10 +15,13 @@ enum TextosDoAcompanhamento {
     static let reabrirVaga = String(localized: "Reabrir vaga", bundle: bundleApresentacao)
     static let reabrirPergunta = String(localized: "Reabrir a vaga?", bundle: bundleApresentacao)
     static let reabrirAviso = String(localized: "Conta como falta para %@, e a vaga volta a ser oferecida a outros profissionais.", bundle: bundleApresentacao)
+    /// Vaga direta (`origem = chamada_direta`): provisório, até o texto final do Fabrício.
+    static let reabrirAvisoDireta = String(localized: "Conta como falta para %@. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos.", bundle: bundleApresentacao)
     static let esperar = String(localized: "Esperar", bundle: bundleApresentacao)
     static let cancelada = String(localized: "Esta posição foi cancelada.", bundle: bundleApresentacao)
     static let presencaConfirmada = String(localized: "Presença confirmada.", bundle: bundleApresentacao)
     static let vagaReaberta = String(localized: "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida.", bundle: bundleApresentacao)
+    static let vagaReabertaDireta = String(localized: "Vaga reaberta. A falta foi registrada, e a posição ficou aberta só para você chamar outra pessoa ou publicar para todos.", bundle: bundleApresentacao)
     static let faltaSemReabertura = String(localized: "Falta registrada. Falta menos de 1 hora para o fim do turno, e a vaga não foi reaberta.", bundle: bundleApresentacao)
     static let antesDaTolerancia = String(localized: "Ainda não passaram 15 minutos do início do turno.", bundle: bundleApresentacao)
     static let situacaoMudou = String(localized: "A situação deste turno mudou. Atualizamos a tela.", bundle: bundleApresentacao)
@@ -84,12 +87,16 @@ enum TextosDoAcompanhamento {
         falta ? contouFalta : naoContouFalta
     }
 
-    static func resultado(_ resultado: ResultadoDoAcompanhamento) -> String {
-        switch resultado {
+    static func resultado(_ resultado: ResultadoDoAcompanhamento, origem: OrigemVaga? = nil) -> String {
+        let direta = origem == .chamadaDireta
+        return switch resultado {
         case .presencaConfirmada: presencaConfirmada
-        case .vagaReaberta: vagaReaberta
+        case .vagaReaberta: direta ? vagaReabertaDireta : vagaReaberta
         case .faltaSemReabertura: faltaSemReabertura
-        case let .posicaoCancelada(reaberta): reaberta ? TextosDoCancelamento.posicaoCanceladaReaberta : TextosDoCancelamento.posicaoCanceladaDescoberta
+        case let .posicaoCancelada(reaberta):
+            reaberta
+                ? (direta ? TextosDoCancelamento.posicaoCanceladaReabertaDireta : TextosDoCancelamento.posicaoCanceladaReaberta)
+                : TextosDoCancelamento.posicaoCanceladaDescoberta
         case .vagaCancelada: TextosDoCancelamento.vagaCancelada
         case .cancelamentoNaFila: TextosDoCancelamento.naFila
         }
@@ -102,6 +109,14 @@ enum TextosDoAcompanhamento {
         case .situacaoMudou: desatualizado ? situacaoMudouSemAtualizar : situacaoMudou
         case let .api(erro): MensagemDoErroAPI.texto(erro)
         }
+    }
+
+    /// A pergunta antes de reabrir por atraso (D06). `nil` quando o alerta já está saindo.
+    static func avisoDeReabertura(_ turno: TurnoAcompanhado?) -> String {
+        String(
+            format: turno?.vaga.origem == .chamadaDireta ? reabrirAvisoDireta : reabrirAviso,
+            turno.map(nome) ?? profissional
+        )
     }
 
     static func nome(_ turno: TurnoAcompanhado) -> String {
@@ -709,7 +724,7 @@ struct AvisosDoAcompanhamento: View {
         if resultado != nil || falha != nil || desatualizado {
             VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                 if let resultado {
-                    AvisoFrila(verbatim: TextosDoAcompanhamento.resultado(resultado), tom: .informativo)
+                    AvisoFrila(verbatim: TextosDoAcompanhamento.resultado(resultado, origem: viewModel.origemDoResultado), tom: .informativo)
                         .accessibilityIdentifier("resultado-do-acompanhamento")
                 }
                 if let falha {
@@ -749,7 +764,7 @@ struct ConfirmacaoDeReabertura: ViewModifier {
                 Text(verbatim: TextosDoAcompanhamento.esperar)
             }
         } message: {
-            Text(verbatim: String(format: TextosDoAcompanhamento.reabrirAviso, turno.map(TextosDoAcompanhamento.nome) ?? TextosDoAcompanhamento.profissional))
+            Text(verbatim: TextosDoAcompanhamento.avisoDeReabertura(turno))
         }
     }
 }

@@ -140,7 +140,7 @@ public struct FolhaDeCancelamento: View {
     }
 
     @ViewBuilder private func desfechoView(_ desfecho: DesfechoDoCancelamento) -> some View {
-        AvisoFrila(verbatim: TextosDoCancelamento.desfecho(desfecho, lado: viewModel.lado), tom: .informativo)
+        AvisoFrila(verbatim: TextosDoCancelamento.desfecho(desfecho, lado: viewModel.lado, origem: viewModel.origem), tom: .informativo)
             .accessibilityIdentifier("desfecho-do-cancelamento")
         if case let .posicao(resultado) = desfecho, viewModel.lado == .profissional {
             Text(verbatim: resultado.falta ? TextosDoProfissional.Turnos.cancelamentoComFalta : TextosDoProfissional.Turnos.cancelamentoSemFalta)
