@@ -8,6 +8,7 @@ import io.ktor.client.request.parameter
 /**
  * `GET /rest/v1/especialidade` (contrato `listarEspecialidades`, RN44): as especialidades ativas de uma função, para o
  * profissional marcar até 8 em cada serviço. Leitura direta da tabela, aberta a qualquer usuário autenticado.
+ * Em ordem alfabética pelo nome (`order=nome.asc`, como o iOS): nem o view model nem a tela ordenam.
  * Fica aqui, e não no `:core:rede`, porque só a edição de serviços a usa.
  */
 class ServicoDeEspecialidades(private val provedorDeCliente: () -> ClienteSupabase) {
@@ -20,6 +21,7 @@ class ServicoDeEspecialidades(private val provedorDeCliente: () -> ClienteSupaba
             parameter("select", "id,funcao_id,nome,ativo")
             parameter("funcao_id", "eq.$funcaoId")
             parameter("ativo", "eq.true")
+            parameter("order", "nome.asc")
         }
         return cliente.corpoOuErro(resposta)
     }
