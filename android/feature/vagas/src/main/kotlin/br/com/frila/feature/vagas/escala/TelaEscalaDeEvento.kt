@@ -59,6 +59,7 @@ import br.com.frila.feature.vagas.publicacao.ModoDaVaga
 import br.com.frila.feature.vagas.publicacao.SeletorDeInstante
 import br.com.frila.feature.vagas.publicacao.TextosPublicarVaga
 import br.com.frila.feature.vagas.publicacao.avisoValorDiaria
+import br.com.frila.feature.vagas.publicacao.formatarDataEHora
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -399,6 +400,10 @@ private fun CartaoDaVaga(
                     color = cores.tintaSuave,
                 )
                 erros[CampoDoItem.MODO]?.let { Text(text = it, style = FrilaTipo.apoio, color = cores.tinta) }
+                // O prazo exato de escolha da vaga em seleção, como o iOS e a publicação de uma vaga só. O aviso de prazo curto fica de fora.
+                estado.prazoDeEscolha(item)?.let { prazo ->
+                    Text(text = TextosPublicarVaga.modoSelecaoPrazo(formatarDataEHora(prazo)), style = FrilaTipo.apoio, color = cores.tinta)
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
