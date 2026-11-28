@@ -63,19 +63,25 @@ fun AvisoFrila(
         TomAviso.INFORMATIVO -> Icons.Default.Info
     }
 
+    // Am0qWwYK: os prefixos do iOS (`AvisoFrila.prefixo`; padrão em `iOS/Docs/PadroesDeEstado.md:98`): "Erro: ", "Alerta: " e nada no
+    // informativo. SUCESSO não existe no iOS e fica como estava.
     val prefixoAcessibilidade = when (tom) {
         TomAviso.ERRO -> "Erro: "
-        TomAviso.ALERTA -> "Aviso: "
+        TomAviso.ALERTA -> "Alerta: "
         TomAviso.SUCESSO -> "Sucesso: "
-        TomAviso.INFORMATIVO -> "Informação: "
+        TomAviso.INFORMATIVO -> ""
     }
+    // O mesmo critério da tela (`isNullOrBlank`): título vazio ou em branco não aparece e não deixa ". " no texto falado.
+    val tituloVisivel = titulo?.takeIf { it.isNotBlank() }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .semantics {
+            // Um elemento só, como o `.accessibilityElement(children: .combine)` do iOS: os textos de dentro entram neste nó, e a mensagem
+            // não é lida duas vezes. O botão de fechar, clicável, segue sendo um elemento próprio.
+            .semantics(mergeDescendants = true) {
                 liveRegion = LiveRegionMode.Polite
-                contentDescription = "$prefixoAcessibilidade${titulo?.let { "$it. " } ?: ""}$mensagem"
+                contentDescription = "$prefixoAcessibilidade${tituloVisivel?.let { "$it. " } ?: ""}$mensagem"
             },
         shape = RoundedCornerShape(FrilaRaios.interno),
         color = cores.superficiePressionada,
@@ -97,9 +103,9 @@ fun AvisoFrila(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.junto),
             ) {
-                if (!titulo.isNullOrBlank()) {
+                if (tituloVisivel != null) {
                     Text(
-                        text = titulo,
+                        text = tituloVisivel,
                         style = FrilaTipo.rotuloSecundario,
                         color = cores.tinta,
                     )
