@@ -93,7 +93,15 @@ data class EstadoFeed(
     val haMaisPaginas: Boolean = false,
     /** A página seguinte está em voo: um segundo pedido não sai. */
     val carregandoMais: Boolean = false,
-)
+) {
+    /**
+     * Algum filtro tira vagas da lista: os do iOS (distância, função) e os que só o Android tem (remuneração, período e a faixa
+     * por hora ligada). A ordenação não conta: ela não esconde vaga nenhuma. A busca por texto também não (o vazio dela é outro).
+     */
+    val temFiltroAtivo: Boolean
+        get() = filtroDistancia != FiltroDistancia.QUALQUER || filtroFuncao != null ||
+            filtroRemuneracao != FiltroRemuneracao.QUALQUER || filtroPeriodo != FiltroPeriodo.QUALQUER || faixaRemuneracaoHora.ativa
+}
 
 /** Paridade com `TextosDoProfissional.Lista.perfilIncompativel` do iOS. */
 const val TEXTO_PERFIL_INCOMPATIVEL = "Esta lista é para quem trabalha como profissional."

@@ -122,7 +122,9 @@ fun TelaFeedVagas(
                             ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
                         }
                     }
-                    StatusFeed.VAZIO -> item(key = "vazio") { VazioFeed(textoBusca = estado.textoBusca) }
+                    StatusFeed.VAZIO -> item(key = "vazio") {
+                        VazioFeed(textoBusca = estado.textoBusca, comFiltro = estado.temFiltroAtivo, aoLimparFiltros = { viewModel.aoLimparFiltros() })
+                    }
                     StatusFeed.SUCESSO -> items(estado.vagas, key = { it.id }) { vaga ->
                         LaunchedEffect(vaga.id) { viewModel.registrarVagaVista(vaga.id) }
                         // O último cartão na tela pede a página seguinte (como o `.task` do último cartão no iOS).
@@ -444,19 +446,34 @@ private fun SkeletonFeedVagas(quantidade: Int = 3) {
     }
 }
 
+/**
+ * O vazio da lista, como o iOS (`TelaVagas.swift` `estadoVazio`): com filtro valendo, o fato e "Limpar filtros"; sem filtro,
+ * só o fato. O vazio da busca por texto segue com o texto dele.
+ */
 @Composable
-private fun VazioFeed(textoBusca: String) {
-    if (textoBusca.isNotBlank()) {
-        EstadoVazio(
+private fun VazioFeed(textoBusca: String, comFiltro: Boolean, aoLimparFiltros: () -> Unit) {
+    when {
+        textoBusca.isNotBlank() -> EstadoVazio(
             titulo = "Nenhuma vaga encontrada para \"${textoBusca.trim()}\".",
             mensagem = "Tente outra busca ou mude os filtros.",
         )
-    } else {
-        EstadoVazio(
-            titulo = "Nenhuma vaga encontrada com esses filtros.",
-            mensagem = "Tente mudar os filtros.",
+        comFiltro -> EstadoVazio(
+            titulo = TextosVazioDoFeed.COM_FILTROS_TITULO,
+            mensagem = TextosVazioDoFeed.COM_FILTROS_MENSAGEM,
+            textoAcao = TextosVazioDoFeed.LIMPAR_FILTROS,
+            aoClicarAcao = aoLimparFiltros,
         )
+        else -> EstadoVazio(titulo = TextosVazioDoFeed.SEM_FILTROS_TITULO, mensagem = TextosVazioDoFeed.SEM_FILTROS_MENSAGEM)
     }
+}
+
+/** Os textos do iOS (`TextosDoProfissional.Lista`, `vazioSemFiltros*`, `vazioComFiltros*` e `limparFiltros`). */
+internal object TextosVazioDoFeed {
+    const val SEM_FILTROS_TITULO = "Nenhuma vaga aberta agora."
+    const val SEM_FILTROS_MENSAGEM = "Volte mais tarde para ver novas vagas."
+    const val COM_FILTROS_TITULO = "Nenhuma vaga com esses filtros."
+    const val COM_FILTROS_MENSAGEM = "Tente outros filtros para ver mais vagas."
+    const val LIMPAR_FILTROS = "Limpar filtros"
 }
 
 /** Sem ponto base o servidor não tem de onde medir a distância: a saída é defini-lo. Textos iguais aos do iOS. */

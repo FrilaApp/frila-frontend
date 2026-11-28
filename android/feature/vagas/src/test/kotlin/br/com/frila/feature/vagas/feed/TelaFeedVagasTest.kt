@@ -152,7 +152,8 @@ class TelaFeedVagasTest {
             }
 
             compose.waitForIdle()
-            compose.onNodeWithText("Nenhuma vaga encontrada com esses filtros.").assertIsDisplayed()
+            // ANdaZu4f: sem filtro nenhum, o vazio não fala em filtros (como o iOS).
+            compose.onNodeWithText("Nenhuma vaga aberta agora.").assertIsDisplayed()
         }
     }
 
