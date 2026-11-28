@@ -64,6 +64,20 @@ class CalculadorContagemRegressivaTest {
     }
 
     @Test
+    fun `no instante exato do fim a janela ainda esta aberta, e um segundo depois o turno esta finalizado`() {
+        // O contrato aceita o toque recebido até fim_em, inclusive (openapi.yaml, /rpc/fazer_checkin).
+        val noFim = CalculadorContagemRegressiva.calcular(inicioTurno = inicioTurno, fimTurno = fimTurno, instanteAtual = fimTurno)
+        val depoisDoFim = CalculadorContagemRegressiva.calcular(
+            inicioTurno = inicioTurno,
+            fimTurno = fimTurno,
+            instanteAtual = fimTurno.plusSeconds(1),
+        )
+
+        assertEquals(EstadoContagemRegressiva.JanelaAberta, noFim)
+        assertEquals(EstadoContagemRegressiva.TurnoFinalizado, depoisDoFim)
+    }
+
+    @Test
     fun `trata relogio alterado e duracoes negativas defensivamente`() {
         val instanteNoFuturo = Instant.parse("2026-11-01T20:30:00Z")
         val estado = CalculadorContagemRegressiva.calcular(
@@ -81,5 +95,11 @@ class CalculadorContagemRegressivaTest {
         assertEquals("3h 15min", CalculadorContagemRegressiva.formatarTempoRestante(Duration.ofMinutes(195)))
         assertEquals("4min 20s", CalculadorContagemRegressiva.formatarTempoRestante(Duration.ofSeconds(260)))
         assertEquals("45s", CalculadorContagemRegressiva.formatarTempoRestante(Duration.ofSeconds(45)))
+    }
+
+    @Test
+    fun `minutos e segundos de um digito saem com zero a esquerda`() {
+        assertEquals("1h 05min", CalculadorContagemRegressiva.formatarTempoRestante(Duration.ofMinutes(65)))
+        assertEquals("4min 05s", CalculadorContagemRegressiva.formatarTempoRestante(Duration.ofSeconds(245)))
     }
 }
