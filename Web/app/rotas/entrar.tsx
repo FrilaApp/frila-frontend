@@ -17,6 +17,7 @@ import {
   visitanteDoPedido,
 } from "../servidor/sessao";
 import { textos } from "../textos/pt-BR";
+import { CampoDeSenha } from "../componentes/campo-de-senha";
 import { PassoCodigoOtp } from "./passo-codigo-otp";
 import type { Route } from "./+types/entrar";
 
@@ -229,15 +230,17 @@ export default function Entrar({ actionData, loaderData }: Route.ComponentProps)
           </label>
           <label className="flex flex-col gap-2 font-semibold" htmlFor="senha">
             {textos.entrar.rotuloDaSenha}
-            <input
+            <CampoDeSenha
               id="senha"
               name="senha"
-              type="password"
               autoComplete="current-password"
               required
-              aria-invalid={erro ? true : undefined}
-              aria-describedby={erro ? "erro" : undefined}
+              ariaInvalid={Boolean(erro)}
+              ariaDescribedBy={erro ? "erro" : undefined}
               className={classeDoCampo}
+              ocultarAoEnviar={enviando}
+              rotuloMostrar={textos.definirSenha.mostrarSenha}
+              rotuloOcultar={textos.definirSenha.ocultarSenha}
             />
           </label>
           {erro ? (
