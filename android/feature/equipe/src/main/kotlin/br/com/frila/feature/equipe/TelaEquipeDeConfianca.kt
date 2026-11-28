@@ -49,6 +49,8 @@ fun TelaEquipeDeConfianca(
     modifier: Modifier = Modifier,
     aoChamarDeNovo: ((PerfilPublicoDto) -> Unit)? = null,
     aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
+    /** Quem a pessoa bloqueou nesta sessão (I1PonzKJ): some da lista. O servidor tira o par bloqueado da equipe (B-022). */
+    estaBloqueado: (PerfilPublicoDto) -> Boolean = { false },
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -60,6 +62,7 @@ fun TelaEquipeDeConfianca(
         modifier = modifier,
         aoChamarDeNovo = aoChamarDeNovo,
         aoDenunciar = aoDenunciar,
+        estaBloqueado = estaBloqueado,
     )
 }
 
@@ -80,6 +83,7 @@ fun ConteudoEquipeDeConfianca(
     aoChamarDeNovo: ((PerfilPublicoDto) -> Unit)? = null,
     /** "Denunciar" por profissional da equipe, discreto no fim do cartão. `null` esconde a ação. */
     aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
+    estaBloqueado: (PerfilPublicoDto) -> Boolean = { false },
 ) {
     var idParaRemover by rememberSaveable { mutableStateOf<String?>(null) }
     val membros = (tela.estado as? EstadoEquipe.Conteudo)?.membros.orEmpty()
@@ -120,7 +124,13 @@ fun ConteudoEquipeDeConfianca(
                     EstadoErro(titulo = estado.mensagem, mensagem = null, aoTentarNovamente = aoTentarNovamente)
                 }
                 is EstadoEquipe.Conteudo -> {
-                    items(estado.membros, key = { it.id }) { perfil ->
+                    // Quem a pessoa bloqueou nesta sessão não é mais da equipe (o servidor o tirou, B-022): a lista já carregada, ainda na
+                    // pilha, o esconde até recarregar. Sem ninguém sobrando, o estado vazio e não uma lista em branco.
+                    val visiveis = estado.membros.filterNot(estaBloqueado)
+                    if (visiveis.isEmpty()) {
+                        item { EstadoVazio(titulo = TextosEquipe.VAZIO_TITULO, mensagem = TextosEquipe.VAZIO_MENSAGEM) }
+                    }
+                    items(visiveis, key = { it.id }) { perfil ->
                         CartaoDoMembro(
                             perfil = perfil,
                             removendo = tela.removendo == perfil.id,
