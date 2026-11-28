@@ -52,6 +52,8 @@ class ExclusaoDeContaViewModel(
      * (`TelaExclusaoDeConta.swift`), que não morre com a tela; aqui é um escopo de aplicação. Nulo: o mesmo escopo do ViewModel (os testes).
      */
     escopoDoPedido: CoroutineScope? = null,
+    /** Wx0DhfEh: o pedido em voo, compartilhado entre as telas (o Koin entrega um só). Sem ele, cada ViewModel tem o seu. */
+    private val emVoo: ExclusaoEmVoo = ExclusaoEmVoo(),
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
@@ -61,6 +63,13 @@ class ExclusaoDeContaViewModel(
     val estado: StateFlow<EstadoExclusaoDeConta> = _estado.asStateFlow()
 
     private var leituraDosTurnos: Job? = null
+
+    init {
+        // Tela reaberta com o pedido de outra no ar: já nasce "excluindo" (botão desligado), e volta a poder pedir quando a trava solta.
+        escopoDeTrabalho.launch {
+            emVoo.ativa.collect { noAr -> _estado.update { if (it.excluindo == noAr) it else it.copy(excluindo = noAr) } }
+        }
+    }
 
     /**
      * Lê os turnos futuros ao abrir a tela (contrato: a exclusão cancela os turnos futuros do profissional e avisa as
@@ -101,9 +110,11 @@ class ExclusaoDeContaViewModel(
      */
     fun confirmarExclusao(): Job {
         if (!_estado.value.podeExcluir) return escopoDeTrabalho.launch { }
+        // Um pedido só no ar, entre todas as telas (Wx0DhfEh): a tela reaberta não manda o segundo.
+        if (!emVoo.tentar()) return escopoDeTrabalho.launch { }
         _estado.update { it.copy(excluindo = true, mensagemErro = null) }
         // No escopo do pedido, e não no do ViewModel: com o pedido no ar, sair da tela não pode cancelá-lo (F4owLsLH).
-        return escopoDoPedido.launch {
+        val pedido = escopoDoPedido.launch {
             try {
                 val resultado = excluir()
                 _estado.update { it.copy(excluindo = false, resultado = resultado) }
@@ -118,6 +129,10 @@ class ExclusaoDeContaViewModel(
                 _estado.update { it.copy(excluindo = false, mensagemErro = TextosExclusaoDeConta.ERRO_GENERICO) }
             }
         }
+        // A trava solta quando o job acaba, de qualquer jeito: sucesso, recusa, exceção, cancelado no meio ou antes de começar. Sem isto, um
+        // job que morresse deixaria o botão desabilitado em silêncio.
+        pedido.invokeOnCompletion { emVoo.soltar() }
+        return pedido
     }
 
     private fun mensagemDeErro(erro: ErroDaApi): String = when (erro.codigo) {
