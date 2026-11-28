@@ -105,6 +105,7 @@ import br.com.frila.feature.equipe.casa.EquipeDaCasaViewModel
 import br.com.frila.feature.equipe.casa.TenhoUmConviteViewModel
 import br.com.frila.feature.equipe.casa.TrocarDeCasaViewModel
 import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
+import br.com.frila.feature.estabelecimento.BuscadorDeEnderecoDoSistema
 import br.com.frila.feature.estabelecimento.CadastroEstabelecimentoViewModel
 import br.com.frila.feature.vagas.candidatos.CandidatosDaVagaViewModel
 import br.com.frila.feature.vagas.publicacao.EstabelecimentoDaVaga
@@ -522,7 +523,9 @@ val moduloFeatures = module {
     /** Cadastro do estabelecimento do contratante (RF02, UC10). */
     viewModel {
         val membros = get<ServicoMembros>()
-        CadastroEstabelecimentoViewModel(cadastrar = membros::cadastrarEstabelecimento)
+        // Busca de endereço pelo Geocoder da plataforma; sem Context (testes de JVM) não há busca e o cadastro segue com as coordenadas digitadas.
+        val buscador = getOrNull<Context>()?.let { BuscadorDeEnderecoDoSistema(it, GeocodificadorDfOffline::casarRegiaoAdministrativa) }
+        CadastroEstabelecimentoViewModel(cadastrar = membros::cadastrarEstabelecimento, buscador = buscador)
     }
     /**
      * Publicação de vaga (RF04, UC01). A rota só traz o id da casa; endereço, Região Administrativa e
