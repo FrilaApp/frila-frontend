@@ -36,6 +36,38 @@ class PreparadorDeJpegDaFotoTest {
         assertEquals(900, resultado!!.size)
     }
 
+    // ---- 96u6Q0Cp: o limite é inclusivo, como o iOS (PreparadorDeFotoDoSistema.swift) ----
+
+    @Test
+    fun `exatamente o limite cabe, ja na primeira qualidade`() {
+        val tentadas = mutableListOf<Int>()
+        val resultado = PreparadorDeJpegDaFoto.comprimirAteCaber(limite = 1000) { qualidade ->
+            tentadas += qualidade
+            ByteArray(1000)
+        }
+        assertEquals(1000, resultado?.size)
+        assertEquals(listOf(90), tentadas)
+    }
+
+    @Test
+    fun `um byte acima do limite em todas as qualidades tenta as seis e devolve nulo`() {
+        val tentadas = mutableListOf<Int>()
+        val resultado = PreparadorDeJpegDaFoto.comprimirAteCaber(limite = 1000) { qualidade ->
+            tentadas += qualidade
+            ByteArray(1001)
+        }
+        assertNull(resultado)
+        assertEquals(PreparadorDeJpegDaFoto.QUALIDADES, tentadas)
+    }
+
+    @Test
+    fun `um byte acima na primeira e exatamente o limite na segunda fica com a segunda`() {
+        val resultado = PreparadorDeJpegDaFoto.comprimirAteCaber(limite = 1000) { qualidade ->
+            ByteArray(if (qualidade == 90) 1001 else 1000)
+        }
+        assertEquals(1000, resultado?.size)
+    }
+
     @Test
     fun `se nenhuma qualidade couber, devolve nulo`() {
         assertNull(PreparadorDeJpegDaFoto.comprimirAteCaber(limite = 10) { ByteArray(100) })
