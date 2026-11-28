@@ -140,7 +140,7 @@ class FuncoesEHorariosViewModelTest {
 
         val resultadoIgual = vm.adicionarJanela(diaSemana = 1, inicio = "09:00", fim = "09:00")
         assertFalse(resultadoIgual)
-        assertEquals(TextosFuncoesEHorarios.ERRO_HORARIOS_IGUAIS, vm.estado.value.erroValidacaoHorario)
+        assertEquals("O horário de início e fim não podem ser iguais.", vm.estado.value.erroValidacaoHorario)
     }
 
     @Test
@@ -205,7 +205,7 @@ class FuncoesEHorariosViewModelTest {
 
         val resultadoInvalido = vm.adicionarJanela(diaSemana = 1, inicio = "abc", fim = "16:00")
         assertFalse(resultadoInvalido)
-        assertEquals("Informe horários válidos no formato HH:mm.", vm.estado.value.erroValidacaoHorario)
+        assertEquals("Horário inválido. Use o formato HH:mm.", vm.estado.value.erroValidacaoHorario)
     }
 
     // ---- O8VICMDx: as bordas da hora, como o contrato pede (HoraDoDia ^([01][0-9]|2[0-3]):[0-5][0-9]$) ----
@@ -306,7 +306,7 @@ class FuncoesEHorariosViewModelTest {
         assertTrue(vm.estado.value.funcoesSelecionadas.isEmpty())
 
         vm.salvar().join()
-        assertEquals("Escolha ao menos uma função.", vm.estado.value.erro)
+        assertEquals("Selecione ao menos uma função.", vm.estado.value.erro)
         assertFalse(vm.estado.value.salvo)
         assertTrue(servidor.atualizacoes.isEmpty())
     }
