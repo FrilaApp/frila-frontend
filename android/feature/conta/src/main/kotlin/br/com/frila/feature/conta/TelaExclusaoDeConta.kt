@@ -1,5 +1,6 @@
 package br.com.frila.feature.conta
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -92,6 +93,9 @@ fun ConteudoExclusaoDeConta(
 ) {
     val cores = FrilaTema.cores
     var dialogoAberto by rememberSaveable { mutableStateOf(false) }
+    // rKCpWPez: o voltar do sistema também fica preso enquanto a exclusão roda, como o da barra. Tirar a tela da
+    // pilha limpa o ViewModel e cancela o pedido no meio; se o servidor já aceitou, a sessão não seria limpa.
+    BackHandler(enabled = estado.excluindo) {}
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
