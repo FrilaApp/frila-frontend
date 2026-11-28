@@ -31,20 +31,9 @@ import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
 import br.com.frila.core.dominio.modelo.Dinheiro
-import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.feature.vagas.R
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-private val FUSO_BRASILIA = ZoneId.of("America/Sao_Paulo")
-private val PT_BR = Locale.forLanguageTag("pt-BR")
-private val FORMATO_DATA = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy", PT_BR)
-private val FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm", PT_BR)
 
 /**
  * Tela de Turno Confirmado (Item #6 da Paridade / US04 / `TelaResultadoDaCandidatura` do iOS).
@@ -59,22 +48,7 @@ fun TelaTurnoConfirmado(
     modifier: Modifier = Modifier,
     quemRecebe: String? = null,
 ) {
-    val inicio = try {
-        instanteDoServidor(vaga.inicioEm).atZone(FUSO_BRASILIA)
-    } catch (_: Exception) {
-        Instant.now().atZone(FUSO_BRASILIA)
-    }
-    val fim = try {
-        instanteDoServidor(vaga.fimEm).atZone(FUSO_BRASILIA)
-    } catch (_: Exception) {
-        inicio.plusHours(6)
-    }
-    val duracao = Duration.between(inicio, fim)
-    val horas = duracao.toHours()
-    val minutos = duracao.toMinutes() % 60
-    val textoDuracao = if (minutos == 0L) "${horas} h" else "${horas} h ${minutos} min"
-    val dataExtenso = FORMATO_DATA.format(inicio.toLocalDate()).replaceFirstChar { it.titlecase(PT_BR) }
-    val periodoTexto = "$dataExtenso\ndas ${FORMATO_HORA.format(inicio)} às ${FORMATO_HORA.format(fim)}"
+    val periodo = periodoDoResultado(vaga)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -122,11 +96,14 @@ fun TelaTurnoConfirmado(
                         style = FrilaTipo.nome,
                         color = FrilaTema.cores.tinta,
                     )
-                    FrilaLinhaDeDado(
-                        icone = Icons.Default.DateRange,
-                        valor = periodoTexto,
-                        qualificador = "($textoDuracao de turno)",
-                    )
+                    // Sem período de verdade (data ilegível, fim que não vem depois do início), a linha some: nada de horário inventado.
+                    periodo?.let {
+                        FrilaLinhaDeDado(
+                            icone = Icons.Default.DateRange,
+                            valor = it.periodo,
+                            qualificador = "(${it.duracao} de turno)",
+                        )
+                    }
                     FrilaLinhaDeDado(
                         icone = Icons.Default.Place,
                         valor = "${vaga.local}, ${vaga.regiaoAdministrativa}",
