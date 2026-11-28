@@ -204,6 +204,8 @@ class CheckinViewModel(
         CodigoErroAPI.REGISTRO_NO_FUTURO -> TextosCheckoutECodigo.CHECKOUT_HORARIO_ERRADO
         CodigoErroAPI.NAO_ENCONTRADO -> TextosCheckoutECodigo.CHECKOUT_NAO_ENCONTRADO
         CodigoErroAPI.SEM_REDE -> TextosCheckoutECodigo.CHECKOUT_SEM_REDE
+        CodigoErroAPI.NAO_AUTENTICADO -> TextosCheckoutECodigo.SESSAO_EXPIRADA
+        CodigoErroAPI.SEM_PERMISSAO -> TextosCheckoutECodigo.SEM_PERMISSAO
         else -> TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO
     }
 
@@ -419,6 +421,9 @@ class CheckinViewModel(
         CodigoErroAPI.REGISTRO_NO_FUTURO -> "O horário do aparelho está incorreto. Ajuste e tente de novo."
         CodigoErroAPI.VAGA_ENCERRADA -> "Esta posição foi encerrada."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
+        CodigoErroAPI.NAO_AUTENTICADO -> TextosCheckoutECodigo.SESSAO_EXPIRADA
+        CodigoErroAPI.SEM_PERMISSAO -> TextosCheckoutECodigo.SEM_PERMISSAO
+        CodigoErroAPI.NAO_ENCONTRADO -> "Não encontramos este turno."
         else -> MENSAGEM_ERRO_CHECKIN
     }
 

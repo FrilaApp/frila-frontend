@@ -13,6 +13,10 @@ object TextosCheckoutECodigo {
     const val CHECKOUT_SEM_REDE = "Sem conexão. Verifique sua internet e tente de novo."
     const val CHECKOUT_NAO_ENCONTRADO = "Não encontramos este turno."
 
+    // 401 e 403 no check-in e no check-out: o mesmo texto do iOS (MensagemDoErroAPI.texto).
+    const val SESSAO_EXPIRADA = "Sua sessão expirou. Entre novamente para continuar."
+    const val SEM_PERMISSAO = "Sua conta não pode realizar esta ação."
+
     const val CODIGO_ROTULO = "Código de 6 números"
     const val CODIGO_EXPLICACAO = "A casa mostra um código de 6 números. Digite aqui para confirmar sua presença."
     const val BOTAO_CONFIRMAR_CODIGO = "Confirmar código"
