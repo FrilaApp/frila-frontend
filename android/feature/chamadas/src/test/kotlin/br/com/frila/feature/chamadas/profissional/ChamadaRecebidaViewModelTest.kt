@@ -200,9 +200,9 @@ class ChamadaRecebidaViewModelTest {
     }
 
     @Test
-    fun `bloqueio, conta suspensa, recurso desligado e rede viram mensagem propria ao responder`() = runBlocking {
+    fun `conta suspensa, recurso desligado e rede viram mensagem propria ao responder`() = runBlocking {
+        // O 404 (bloqueio) ao responder desliga as respostas em vez de só mostrar o erro: ChamadaRecebidaResponderBloqueadaTest.
         val casos = listOf(
-            Triple(HttpStatusCode.NotFound, Fixtures.erro("nao_encontrado"), TextosChamadaProfissional.INDISPONIVEL),
             Triple(HttpStatusCode.Forbidden, Fixtures.erro("conta_suspensa"), TextosChamadaProfissional.CONTA_SUSPENSA),
             Triple(HttpStatusCode.Forbidden, Fixtures.erro("sem_permissao", "recurso_desligado"), TextosChamadaProfissional.DESLIGADO),
             Triple(HttpStatusCode.BadGateway, "<html>502</html>", TextosChamadaProfissional.ERRO),

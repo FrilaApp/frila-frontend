@@ -228,8 +228,11 @@ class ChamadaRecebidaViewModel(
         )
         erro.recursoDesligado -> tela.copy(erro = TextosChamadaProfissional.DESLIGADO)
         erro.contaSuspensa -> tela.copy(erro = TextosChamadaProfissional.CONTA_SUSPENSA)
-        // Bloqueio entre as partes: o servidor devolve 404 e a chamada some do alcance (RF26).
-        erro.codigo == CodigoErroAPI.NAO_ENCONTRADO -> tela.copy(erro = TextosChamadaProfissional.INDISPONIVEL)
+        // Bloqueio entre as partes: o servidor devolve 404 e a chamada some do alcance (RF26). Como no 404 ao recarregar (#1243), as
+        // respostas desligam e a tela explica, mantendo o detalhe: com só o erro, Aceitar e Recusar seguiam na tela e o servidor recusaria
+        // de novo (SC5jtZfS).
+        erro.codigo == CodigoErroAPI.NAO_ENCONTRADO ->
+            tela.copy(erro = null, mensagemDeConcorrencia = TextosChamadaProfissional.INDISPONIVEL, mostrarRecusa = false)
         else -> tela.copy(erro = TextosChamadaProfissional.ERRO)
     }
 }
