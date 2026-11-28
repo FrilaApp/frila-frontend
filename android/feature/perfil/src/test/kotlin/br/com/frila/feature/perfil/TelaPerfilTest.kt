@@ -777,7 +777,9 @@ class TelaPerfilTest {
                     TelaPerfil(viewModel = viewModel, aoDeslogar = {})
                 }
             }
-            rule.waitForIdle()
+            // oCBz5Xxn: o avatar salvo entra no estado depois de uma leitura em Dispatchers.IO (carregarAvatarSalvo, ao montar a
+            // tela), que o waitForIdle() não espera. MEDIDO: 1 rodada vermelha em 200 só com o waitForIdle().
+            rule.waitUntil(5_000) { rule.onAllNodesWithContentDescription("Foto de perfil do profissional").fetchSemanticsNodes().isNotEmpty() }
 
             rule.onNodeWithContentDescription("Foto de perfil do profissional").assertIsDisplayed()
             assertTrue(rule.onAllNodesWithContentDescription("Sem foto de perfil cadastrada").fetchSemanticsNodes().isEmpty())
