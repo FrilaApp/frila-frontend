@@ -1,5 +1,6 @@
 package br.com.frila.feature.entrada.senha
 
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -38,6 +39,80 @@ class TelasSenhaComposeTest {
 
     @get:Rule
     val rule = createComposeRule()
+
+    @Test
+    fun definirSenhaPreservaMarcaDeSenhaNosDoisCamposDuranteRevelacao() {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val vm = DefinirSenhaViewModel(servicoSemantica(armazenamento), armazenamento,
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        rule.setContent { FrilaTheme { TelaDefinirSenha(vm, aoConcluir = {}) } }
+        val ausencias = conferirMarcaDeSenha("Nova senha", 0, true) +
+            conferirMarcaDeSenha("Confirmar senha", 1, true)
+        assertTrue("Sem marca de senha: $ausencias", ausencias.isEmpty())
+        assertEquals("ab", vm.estado.value.senha)
+        assertEquals("ab", vm.estado.value.confirmacao)
+    }
+
+    @Test
+    fun entradaPreservaMarcaDeSenhaOcultaEVisivel() {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val vm = EntradaComSenhaViewModel(servicoSemantica(armazenamento), armazenamento,
+            escopo = CoroutineScope(SupervisorJob() + Dispatchers.Default))
+        rule.setContent {
+            FrilaTheme { TelaEntradaComSenha(vm, aoAutenticar = {}, aoCriarConta = {},
+                aoRecuperarSenha = {}, aoEntrarDemonstracao = {}) }
+        }
+        val ausencias = conferirMarcaDeSenha("Senha", 0, false)
+        assertTrue("Sem marca de senha: $ausencias", ausencias.isEmpty())
+        assertEquals("ab", vm.estado.value.senha)
+    }
+
+    private fun servicoSemantica(armazenamento: ArmazenamentoDeSessaoEmMemoria) =
+        ServicoAutenticacao(ClienteSupabase("https://frila.supabase.co", "chave",
+            armazenamentoDeSessao = armazenamento,
+            engine = MockEngine { respond("{}", HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json")) }))
+
+    private fun conferirMarcaDeSenha(rotulo: String, indice: Int, breve: Boolean): List<String> {
+        val campo = rule.onNodeWithText(rotulo)
+        val ausencias = mutableListOf<String>()
+        fun conferir(etapa: String) {
+            if (!campo.fetchSemanticsNode().config.contains(androidx.compose.ui.semantics.SemanticsProperties.Password)) {
+                ausencias += "$rotulo: $etapa"
+            }
+        }
+        campo.performScrollTo()
+        rule.mainClock.autoAdvance = false
+        rule.mainClock.advanceTimeByFrame()
+        conferir("inicial")
+        campo.performTextInput("a")
+        rule.mainClock.advanceTimeByFrame()
+        campo.performTextInput("b")
+        rule.mainClock.advanceTimeByFrame()
+        conferir("apos digitar")
+        conferirTextoSemantico(rotulo, if (breve) "•b" else "••")
+        rule.mainClock.advanceTimeBy(800)
+        conferir("800 ms")
+        conferirTextoSemantico(rotulo, if (breve) "•b" else "••")
+        rule.mainClock.advanceTimeBy(400)
+        conferir("1200 ms")
+        conferirTextoSemantico(rotulo, "••")
+        rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Mostrar senha"))[indice].performClick()
+        rule.mainClock.advanceTimeByFrame()
+        conferir("visivel")
+        conferirTextoSemantico(rotulo, "ab")
+        rule.onNodeWithContentDescription("Ocultar senha").performClick()
+        rule.mainClock.advanceTimeByFrame()
+        conferir("oculta novamente")
+        conferirTextoSemantico(rotulo, "••")
+        rule.mainClock.autoAdvance = true
+        return ausencias
+    }
+
+    private fun conferirTextoSemantico(rotulo: String, esperado: String) {
+        assertEquals(esperado, rule.onNodeWithText(rotulo).fetchSemanticsNode().config[
+            androidx.compose.ui.semantics.SemanticsProperties.EditableText].text)
+    }
 
     @Test
     fun telaEntradaComSenhaExibeAcoesDeSenhaCriarContaRecuperarEDemoSemOtpRotineiro() {

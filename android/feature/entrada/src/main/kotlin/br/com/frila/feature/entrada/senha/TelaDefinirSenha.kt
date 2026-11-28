@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.password
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
@@ -458,6 +459,6 @@ internal fun CampoDeSenhaComRevelacaoBreve(
                 )
             }
         },
-        modifier = modifier,
+        modifier = modifier.semantics { password() },
     )
 }
