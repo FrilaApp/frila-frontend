@@ -255,7 +255,7 @@ public struct TelaDefinirSenha: View {
         .onChange(of: campoFocado) { _, novoCampo in
             guard let novoCampo else { return }
             withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
-                scrollProxy.scrollTo(novoCampo, anchor: .center)
+                scrollProxy.scrollTo(novoCampo, anchor: .top)
             }
         }
         .onDisappear {
