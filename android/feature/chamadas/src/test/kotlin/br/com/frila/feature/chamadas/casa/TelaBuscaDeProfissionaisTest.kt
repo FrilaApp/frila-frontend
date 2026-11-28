@@ -667,11 +667,16 @@ class TelaBuscaDeProfissionaisTest {
         rule.onNodeWithTag("folha-valor").performTextInput("49,99")
         rule.onNodeWithTag("folha-confirmar-total").performScrollTo().performClick()
         rule.onNodeWithTag("folha-responsavel").performScrollTo().performTextClearance()
-        rule.onNodeWithTag("folha-enviar").performScrollTo().performClick()
 
         rule.onNodeWithText(TextosChamadaCasa.FALTA_RESPONSAVEL).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
         rule.onNodeWithTag("folha-valor").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Error))
-        rule.onNodeWithTag("folha-enviar").assertIsEnabled()
+        // Item 262: o que falta (o responsável) desliga o botão desde já, não só depois do toque; antes ele ficava ligado.
+        rule.onNodeWithTag("folha-enviar").performScrollTo().assertIsNotEnabled()
+
+        // O aviso de valor baixo não bloqueia: com o responsável de volta, o botão liga mesmo com o aviso na tela.
+        rule.onNodeWithTag("folha-responsavel").performScrollTo().performTextInput("Lia")
+        rule.onNodeWithText(TextosChamadaCasa.VALOR_MUITO_BAIXO).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("folha-enviar").performScrollTo().assertIsEnabled()
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -118,8 +119,23 @@ internal fun FolhaDeChamadaDaBusca(
     var fimTexto by rememberSaveable { mutableStateOf(dataEHora(termino)) }
     var responsavel by rememberSaveable { mutableStateOf(estado.casa?.nome.orEmpty()) }
     var recado by rememberSaveable { mutableStateOf("") }
-    var faltando by rememberSaveable { mutableStateOf<String?>(null) }
+    // Só serve para refazer a conta na hora do toque (o relógio andou desde a última composição).
+    var toques by rememberSaveable { mutableStateOf(0) }
     val travada = estado.enviando || estado.resultadosDaChamada.isNotEmpty()
+    // O que falta, o tempo todo, como o iOS (`oQueFalta`): a mensagem acompanha o que a pessoa preenche e o botão só liga com tudo certo.
+    val situacao = remember(estado.filtroDaBusca, estado.casa, valor, totalConfirmado, inicioTexto, fimTexto, responsavel, recado, toques) {
+        validarFolhaDaBusca(
+            funcaoId = estado.filtroDaBusca?.funcaoId,
+            casa = estado.casa,
+            valorTexto = valor,
+            totalConfirmado = totalConfirmado,
+            inicioTexto = inicioTexto,
+            fimTexto = fimTexto,
+            responsavel = responsavel,
+            recado = recado,
+            agora = relogio(),
+        )
+    }
 
     FrilaBottomSheet(onDismissRequest = aoFechar, modifier = modifier, titulo = TextosChamadaCasa.BUSCA_FOLHA_TITULO) {
         Column(
@@ -130,6 +146,7 @@ internal fun FolhaDeChamadaDaBusca(
                 .padding(bottom = FrilaEspacamento.grupo),
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
+            Text(text = TextosChamadaCasa.BUSCA_FOLHA_EXPLICACAO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
             if (estado.casa == null) {
                 AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosChamadaCasa.BUSCA_SEM_CASA)
             }
@@ -188,8 +205,9 @@ internal fun FolhaDeChamadaDaBusca(
                 modifier = Modifier.testTag("folha-recado"),
             )
             if (estado.resultadosDaChamada.isEmpty()) {
-                faltando?.let { motivo ->
-                    if (!estado.enviando) MensagemJuntoAoBotao(motivo, modifier = Modifier.testTag("folha-falta"))
+                // "Sem casa" já tem o aviso no alto da folha: não repete a mesma frase junto do botão.
+                if (situacao is ResultadoDaFolha.Falta && !estado.enviando && situacao.motivo != TextosChamadaCasa.BUSCA_SEM_CASA) {
+                    MensagemJuntoAoBotao(situacao.motivo, modifier = Modifier.testTag("folha-falta"))
                 }
                 if (estado.enviando) {
                     Text(text = TextosChamadaCasa.CARREGANDO, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
@@ -197,6 +215,8 @@ internal fun FolhaDeChamadaDaBusca(
                 BotaoPrimario(
                     texto = TextosChamadaCasa.BUSCA_FOLHA_ENVIAR,
                     aoClicar = {
+                        // Refaz a conta com o relógio de agora: se o prazo de antecedência acabou entre a composição e o toque,
+                        // nada sai e a folha recompõe com o motivo novo.
                         val resultado = validarFolhaDaBusca(
                             funcaoId = estado.filtroDaBusca?.funcaoId,
                             casa = estado.casa,
@@ -209,14 +229,11 @@ internal fun FolhaDeChamadaDaBusca(
                             agora = relogio(),
                         )
                         when (resultado) {
-                            is ResultadoDaFolha.Falta -> faltando = resultado.motivo
-                            is ResultadoDaFolha.Pronto -> {
-                                faltando = null
-                                aoChamar(resultado.trabalho, resultado.recado)
-                            }
+                            is ResultadoDaFolha.Falta -> toques++
+                            is ResultadoDaFolha.Pronto -> aoChamar(resultado.trabalho, resultado.recado)
                         }
                     },
-                    habilitado = !estado.enviando,
+                    habilitado = !estado.enviando && situacao is ResultadoDaFolha.Pronto,
                     modifier = Modifier.fillMaxWidth().testTag("folha-enviar"),
                 )
             }
