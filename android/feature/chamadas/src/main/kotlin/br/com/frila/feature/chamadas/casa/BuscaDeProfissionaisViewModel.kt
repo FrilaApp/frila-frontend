@@ -557,6 +557,12 @@ class BuscaDeProfissionaisViewModel(
         recursoDesligado(erro) -> EstadoDaBusca.Indisponivel
         termosPendentes(erro) -> EstadoDaBusca.TermosPendentes()
         erro.codigo == CodigoErroAPI.LIMITE_EXCEDIDO -> EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_LIMITE_DE_BUSCAS)
+        // Como o iOS: a conta suspensa vem como `403 sem_permissao` com `details: conta_suspensa` (contrato 0.2.88) e, por garantia,
+        // como o código puro. O resto do `sem_permissao` (quem não é da casa, profissional) tem o texto de permissão. `recurso_desligado`
+        // e `termos_pendentes` já saíram acima.
+        erro.codigo == CodigoErroAPI.CONTA_SUSPENSA -> EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_CONTA_SUSPENSA)
+        erro.codigo == CodigoErroAPI.SEM_PERMISSAO ->
+            EstadoDaBusca.Erro(if (erro.detalhesComoCodigo == CodigoErroAPI.CONTA_SUSPENSA) TextosChamadaCasa.BUSCA_CONTA_SUSPENSA else TextosChamadaCasa.BUSCA_SEM_PERMISSAO)
         else -> EstadoDaBusca.Erro(TextosChamadaCasa.BUSCA_ERRO)
     }
 
