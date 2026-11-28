@@ -163,6 +163,35 @@ class PresencasAConfirmarViewModelTest {
         assertEquals(1, vm.estado.value.presencasAConfirmar.size)
     }
 
+    /**
+     * Item 186: 404, 403 e 401 ao confirmar no cartão, pelo cliente real. Cada um mostra a mensagem dele (a mesma da tela do turno da
+     * casa) e não é "a situação mudou": o botão fica, o cartão fica e o painel não é relido.
+     */
+    @Test
+    fun `404, 403 e 401 ao confirmar mostram a mensagem de cada um e deixam o botao`() = runBlocking {
+        val casos = listOf(
+            Triple(HttpStatusCode.NotFound, "nao_encontrado", "Não encontramos este turno."),
+            Triple(HttpStatusCode.Forbidden, "sem_permissao", "Você não tem permissão para confirmar a presença neste turno."),
+            Triple(HttpStatusCode.Unauthorized, "nao_autenticado", "Sua sessão expirou. Entre de novo."),
+        )
+        for ((status, codigo, mensagem) in casos) {
+            val rede = Rede { respond("""{"code":"$codigo","message":"x","details":null}""", status, json) }
+            val (vm, leituras) = viewModel(rede) { Result.success(painel(listOf("t1"))) }
+            vm.carregar().join()
+
+            vm.confirmarPresenca("t1").join()
+
+            val estado = vm.estado.value
+            assertEquals(mensagem, estado.avisoDaPresenca?.mensagem, codigo)
+            assertTrue(estado.avisoDaPresenca!!.erro, codigo)
+            assertTrue(estado.podeConfirmar("t1"), codigo)
+            assertEquals(listOf("t1"), estado.presencasAConfirmar.map { it.turnoId }, codigo)
+            assertTrue(estado.confirmando.isEmpty(), codigo)
+            assertEquals(1, leituras(), codigo)
+            assertEquals(1, rede.corpos.size, codigo)
+        }
+    }
+
     @Test
     fun `leitura que ja estava em voo antes da confirmacao nao traz o cartao de volta`() = runBlocking {
         val leituraVelha = CompletableDeferred<Unit>()
