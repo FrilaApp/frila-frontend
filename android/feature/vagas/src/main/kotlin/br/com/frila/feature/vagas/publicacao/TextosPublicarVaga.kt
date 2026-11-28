@@ -28,6 +28,10 @@ object TextosPublicarVaga {
     const val MODO_SELECAO_EXPLICACAO =
         "Você escolhe entre os candidatos. O início precisa estar a mais de 24 horas, e a vaga fecha sozinha 24 horas antes se ninguém for escolhido."
     const val MODO_SELECAO_SO_COM_ANTECEDENCIA = "A seleção fica disponível para vagas que começam em mais de 24 horas."
+
+    /** D2 (0.2.38): o prazo exato de escolha, mostrado na publicação (textos do iOS). */
+    fun modoSelecaoPrazo(dataEHora: String) = "Você terá até $dataEHora para escolher. Depois disso a vaga fecha sozinha."
+    const val MODO_SELECAO_PRAZO_CURTO = "Prazo curto: você terá menos de 12 horas para escolher antes de a vaga fechar."
     const val LOCAL = "Endereço do turno"
     const val LOCAL_AJUDA = "Vem preenchido com o endereço do estabelecimento. O check-in dos profissionais usa o ponto do cadastro."
     const val VALOR = "Valor por pessoa (R$)"

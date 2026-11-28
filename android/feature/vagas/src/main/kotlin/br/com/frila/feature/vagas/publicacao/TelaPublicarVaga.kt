@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -281,6 +282,22 @@ fun ConteudoPublicarVaga(
                     }
                 }
                 estado.errosDeCampo[CampoPublicacao.MODO]?.let { Text(text = it, style = FrilaTipo.apoio, color = cores.tinta) }
+                // D2 (cHT8Zvtw): o prazo exato de escolha e, abaixo de 12 h, o aviso de prazo curto, como o iOS.
+                estado.prazoDeEscolha?.let { prazo ->
+                    Text(
+                        text = TextosPublicarVaga.modoSelecaoPrazo(formatarDataEHora(prazo)),
+                        style = FrilaTipo.apoio,
+                        color = cores.tinta,
+                        modifier = Modifier.testTag("prazo-de-escolha-publicacao"),
+                    )
+                    if (estado.janelaDeEscolhaCurta) {
+                        AvisoFrila(
+                            tom = TomAviso.ALERTA,
+                            mensagem = TextosPublicarVaga.MODO_SELECAO_PRAZO_CURTO,
+                            modifier = Modifier.testTag("prazo-de-escolha-curto"),
+                        )
+                    }
+                }
             }
 
             // Local, valor e posições

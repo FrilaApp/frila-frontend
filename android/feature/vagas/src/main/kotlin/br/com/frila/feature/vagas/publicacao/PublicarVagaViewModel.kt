@@ -118,12 +118,25 @@ data class EstadoPublicarVaga(
     /** RN24: a seleção só existe com o início a mais de 24 horas. */
     val selecaoDisponivel: Boolean get() = inicio.isAfter(agora.plus(ANTECEDENCIA_DA_SELECAO))
 
+    /** D2 (MS-RF02, cHT8Zvtw): até quando a casa escolhe, 24 h antes do início; `null` fora do modo seleção (como o iOS). */
+    val prazoDeEscolha: Instant? get() =
+        if (modo == ModoDaVaga.SELECAO && selecaoDisponivel) inicio.minus(ANTECEDENCIA_DA_SELECAO) else null
+
+    /** A vaga nasce com menos de 12 horas para escolher: o formulário avisa antes de publicar. 12 h exatas não é curta. */
+    val janelaDeEscolhaCurta: Boolean get() {
+        val prazo = prazoDeEscolha ?: return false
+        return Duration.between(agora, prazo) < JANELA_DE_ESCOLHA_CURTA
+    }
+
     companion object {
         /** As antecedências do aviso de vaga vazia, em minutos, na ordem da tela: 2, 3 (padrão) e 6 horas. */
         val ALERTAS_DE_ANTECEDENCIA_MIN = listOf(120, 180, 360)
         const val POSICOES_MIN = 1
         const val POSICOES_MAX = 200
         val ANTECEDENCIA_DA_SELECAO: Duration = Duration.ofHours(24)
+
+        /** Abaixo disso a janela de escolha é "curta" (iOS `janelaDeEscolhaCurta`; inferência do app, o requisito não fixa). */
+        val JANELA_DE_ESCOLHA_CURTA: Duration = Duration.ofHours(12)
     }
 }
 

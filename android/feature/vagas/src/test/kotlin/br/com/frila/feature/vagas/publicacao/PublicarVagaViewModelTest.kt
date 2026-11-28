@@ -784,4 +784,48 @@ class PublicarVagaViewModelTest {
         assertEquals(rede.publicacoes[0].corpo, rede.publicacoes[1].corpo)
         assertEquals("360", rede.publicacoes[1].corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content)
     }
+
+    // ---- cHT8Zvtw (item 202): o prazo exato de escolha e a janela curta, como o iOS ----
+
+    private val agoraDoPrazo: Instant = Instant.parse("2026-11-10T15:00:00Z")
+
+    /** Uma vaga em seleção cujo prazo de escolha (24 h antes do início) fica a [ate] de agora. */
+    private fun emSelecaoComPrazoA(ate: java.time.Duration, modo: ModoDaVaga = ModoDaVaga.SELECAO): EstadoPublicarVaga {
+        val inicio = agoraDoPrazo.plus(EstadoPublicarVaga.ANTECEDENCIA_DA_SELECAO).plus(ate)
+        return EstadoPublicarVaga(inicio = inicio, fim = inicio.plus(java.time.Duration.ofHours(4)), modo = modo, agora = agoraDoPrazo)
+    }
+
+    @Test
+    fun `o prazo de escolha e 24 horas antes do inicio`() {
+        val estado = emSelecaoComPrazoA(java.time.Duration.ofHours(30))
+        assertEquals(estado.inicio.minus(java.time.Duration.ofHours(24)), estado.prazoDeEscolha)
+    }
+
+    @Test
+    fun `fora do modo selecao nao ha prazo nem aviso`() {
+        val estado = emSelecaoComPrazoA(java.time.Duration.ofHours(2), modo = ModoDaVaga.URGENCIA)
+        assertNull(estado.prazoDeEscolha)
+        assertFalse(estado.janelaDeEscolhaCurta)
+    }
+
+    @Test
+    fun `12 horas exatas para escolher nao e prazo curto`() {
+        assertFalse(emSelecaoComPrazoA(java.time.Duration.ofHours(12)).janelaDeEscolhaCurta)
+    }
+
+    @Test
+    fun `12 horas e 1 minuto para escolher nao e prazo curto`() {
+        assertFalse(emSelecaoComPrazoA(java.time.Duration.ofHours(12).plusMinutes(1)).janelaDeEscolhaCurta)
+    }
+
+    @Test
+    fun `11 horas e 59 minutos para escolher e prazo curto`() {
+        assertTrue(emSelecaoComPrazoA(java.time.Duration.ofHours(12).minusMinutes(1)).janelaDeEscolhaCurta)
+    }
+
+    @Test
+    fun `o prazo sai no fuso de Sao Paulo`() {
+        // 02:30 UTC do dia 11 é 23:30 do dia 10 em São Paulo.
+        assertEquals("10/11/2026 às 23:30", formatarDataEHora(Instant.parse("2026-11-11T02:30:00Z")))
+    }
 }

@@ -14,11 +14,14 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -501,5 +504,36 @@ class TelaPublicarVagaTest {
         rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
 
         rule.onNodeWithText("6 horas antes").performScrollTo().assertIsNotEnabled()
+    }
+
+    // ---- cHT8Zvtw (item 202) ----
+
+    @Test
+    fun `em selecao a tela mostra ate quando a casa escolhe, sem o aviso de prazo curto`() {
+        // Início em 40 h: o prazo (24 h antes) é 2026-11-11T07:00Z, 04:00 em São Paulo, 16 h a partir de agora.
+        montar(estado(inicio = base.plus(Duration.ofHours(40))) { copy(modo = ModoDaVaga.SELECAO) })
+
+        rule.onNodeWithTag("prazo-de-escolha-publicacao").performScrollTo()
+            .assertTextEquals(TextosPublicarVaga.modoSelecaoPrazo("11/11/2026 às 04:00"))
+        rule.onAllNodesWithTag("prazo-de-escolha-curto").assertCountEquals(0)
+    }
+
+    @Test
+    fun `com menos de 12 horas para escolher a tela avisa do prazo curto`() {
+        // Início em 35h30: o prazo é 2026-11-11T02:30Z, 23:30 do dia 10 em São Paulo, 11h30 a partir de agora.
+        montar(estado(inicio = base.plus(Duration.ofHours(35).plusMinutes(30))) { copy(modo = ModoDaVaga.SELECAO) })
+
+        rule.onNodeWithTag("prazo-de-escolha-publicacao").performScrollTo()
+            .assertTextEquals(TextosPublicarVaga.modoSelecaoPrazo("10/11/2026 às 23:30"))
+        rule.onNodeWithTag("prazo-de-escolha-curto").performScrollTo()
+        rule.onNodeWithText(TextosPublicarVaga.MODO_SELECAO_PRAZO_CURTO, substring = true).assertExists()
+    }
+
+    @Test
+    fun `em urgencia nao ha prazo de escolha`() {
+        montar(estado(inicio = base.plus(Duration.ofHours(40))))
+
+        rule.onAllNodesWithTag("prazo-de-escolha-publicacao").assertCountEquals(0)
+        rule.onAllNodesWithTag("prazo-de-escolha-curto").assertCountEquals(0)
     }
 }
