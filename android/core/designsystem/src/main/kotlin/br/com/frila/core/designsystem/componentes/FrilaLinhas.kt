@@ -170,13 +170,15 @@ fun FrilaLinhaDeNavegacao(
     subtitulo: String? = null,
     icone: ImageVector? = null,
     valor: String? = null,
+    /** O que o toque faz, para o TalkBack ("toque duas vezes para ..."): o `onClickLabel`, como o `CartaoVaga`. Nulo mantém o anúncio só de "botão". */
+    rotuloDaAcao: String? = null,
 ) {
     val cores = FrilaTema.cores
     LinhaDeGrupo(
         titulo = titulo,
         subtitulo = subtitulo,
         icone = icone,
-        modifier = modifier.clickable(role = Role.Button, onClick = aoClicar),
+        modifier = modifier.clickable(onClickLabel = rotuloDaAcao, role = Role.Button, onClick = aoClicar),
     ) {
         if (valor != null) {
             Text(text = valor, style = FrilaTipo.corpo, color = cores.tintaSuave)
