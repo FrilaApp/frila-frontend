@@ -341,6 +341,12 @@ class FeedVagasViewModel(
         aplicarFiltros()
     }
 
+    /** "Limpar filtros" do vazio: todos os filtros de [EstadoFeed.temFiltroAtivo] voltam ao padrão (a ordenação e a busca ficam). */
+    fun aoLimparFiltros(): Job {
+        _estado.update { it.copy(filtroDistancia = FiltroDistancia.QUALQUER, filtroFuncao = null) }
+        return aoLimparFiltrosAvancados()
+    }
+
     fun aoLimparFiltrosAvancados(): Job {
         _estado.update {
             it.copy(
