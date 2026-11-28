@@ -22,7 +22,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** O relato mínimo vale no contrato: `relato` com menos de 10 caracteres recebe `422 campo_invalido`. */
+/**
+ * O relato mínimo vale no contrato: `relato` com menos de 10 caracteres recebe `422 campo_invalido`. O servidor conta caracteres
+ * (`char_length` depois de `btrim`), não unidades UTF-16: um emoji vale 1.
+ */
 const val RELATO_MINIMO_CARACTERES = 10
 
 data class EstadoDenuncia(
@@ -38,7 +41,7 @@ data class EstadoDenuncia(
     val bloqueado: Boolean = false,
     val erroBloqueio: String? = null,
 ) {
-    val relatoValido: Boolean get() = relato.trim().length >= RELATO_MINIMO_CARACTERES
+    val relatoValido: Boolean get() = relato.trim().let { it.codePointCount(0, it.length) } >= RELATO_MINIMO_CARACTERES
     val podeEnviar: Boolean get() = relatoValido && !enviando && protocolo == null
 }
 
