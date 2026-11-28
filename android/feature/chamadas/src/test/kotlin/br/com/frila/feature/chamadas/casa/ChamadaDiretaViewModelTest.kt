@@ -306,6 +306,130 @@ class ChamadaDiretaViewModelTest {
         assertFalse(vm.estado.value.podeEnviar)
     }
 
+    // Cartão SQJCNThd (item 269): a função escolhida vai no corpo, e um id que não é do catálogo da casa é ignorado. Antes, só a escolha válida era
+    // coberta (a do teste do corpo do contrato); tirar a guarda do definirFuncao passava em silêncio, e um id que o servidor não conhece iria no pedido.
+    private val desconhecida = "99999999-9999-9999-9999-999999999999"
+
+    private fun Map<String, kotlinx.serialization.json.JsonElement>.semFuncao() = filterKeys { it != "funcao_id" }
+
+    @Test
+    fun `sem escolher, a chamada leva a primeira funcao do catalogo`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+
+        vm.enviar().join()
+
+        assertEquals(garcom, vm.corpoEnviado(rede)["funcao_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `escolher outra funcao muda a funcao da folha e o funcao_id do corpo`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+
+        vm.definirFuncao(barman)
+        assertEquals(barman, vm.estado.value.funcaoId)
+        vm.enviar().join()
+
+        assertEquals(barman, vm.corpoEnviado(rede)["funcao_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `escolher a funcao muda so o funcao_id, o resto do corpo e o mesmo`() = runBlocking {
+        val redeGarcom = rede()
+        viewModelCom(redeGarcom).preenchida().enviar().join()
+        val redeBarman = rede()
+        val vm = viewModelCom(redeBarman).preenchida()
+        vm.definirFuncao(barman)
+        vm.enviar().join()
+
+        assertEquals(
+            redeGarcom.doNome("chamar_profissional")[0].corpo.semFuncao(),
+            redeBarman.doNome("chamar_profissional")[0].corpo.semFuncao(),
+        )
+    }
+
+    @Test
+    fun `voltar a primeira funcao depois de escolher a segunda leva a primeira`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+
+        vm.definirFuncao(barman)
+        vm.definirFuncao(garcom)
+        vm.enviar().join()
+
+        assertEquals(garcom, vm.corpoEnviado(rede)["funcao_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `um id fora do catalogo e ignorado, e a funcao segue a do padrao`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+
+        vm.definirFuncao(desconhecida)
+        assertEquals(garcom, vm.estado.value.funcaoId)
+        vm.enviar().join()
+
+        assertEquals(garcom, vm.corpoEnviado(rede)["funcao_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `um id fora do catalogo nao desfaz a funcao ja escolhida`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+
+        vm.definirFuncao(barman)
+        vm.definirFuncao(desconhecida)
+        assertEquals(barman, vm.estado.value.funcaoId)
+        vm.enviar().join()
+
+        assertEquals(barman, vm.corpoEnviado(rede)["funcao_id"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `um id em branco ou so de espacos tambem e ignorado`() = runBlocking {
+        val vm = viewModelCom(rede()).preenchida()
+
+        vm.definirFuncao("")
+        vm.definirFuncao("   ")
+
+        assertEquals(garcom, vm.estado.value.funcaoId)
+    }
+
+    @Test
+    fun `antes de o catalogo carregar, escolher uma funcao nao muda nada`() = runBlocking {
+        val vm = viewModelCom(rede())
+
+        vm.definirFuncao(garcom)
+
+        assertNull(vm.estado.value.funcaoId)
+    }
+
+    @Test
+    fun `depois de enviada, escolher outra funcao e ignorado`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+        vm.enviar().join()
+
+        vm.definirFuncao(barman)
+
+        assertEquals(garcom, vm.estado.value.funcaoId)
+    }
+
+    @Test
+    fun `o reenvio da recorrencia leva a funcao escolhida, e nao a primeira do catalogo`() = runBlocking {
+        val rede = rede().apply { recusa("chamar_profissional", HttpStatusCode.Conflict, "recorrencia_nao_confirmada") }
+        val vm = viewModelCom(rede).preenchida()
+        vm.definirFuncao(barman)
+        vm.enviar().join()
+        rede.ok("chamar_profissional", chamadaJson)
+
+        vm.enviar(confirmoRecorrencia = true).join()
+
+        assertEquals(barman, vm.corpoEnviado(rede, 0)["funcao_id"]!!.jsonPrimitive.content)
+        assertEquals(barman, vm.corpoEnviado(rede, 1)["funcao_id"]!!.jsonPrimitive.content)
+    }
+
     @Test
     fun `J7 pede a confirmacao e o reenvio leva a mesma chave com confirmo_recorrencia`() = runBlocking {
         val rede = rede().apply { recusa("chamar_profissional", HttpStatusCode.Conflict, "recorrencia_nao_confirmada") }
