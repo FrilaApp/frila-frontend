@@ -98,7 +98,7 @@ class AcompanharChamadasViewModelTest {
     }
 
     @Test
-    fun `falha ao carregar mostra o erro e tentar novamente recupera`() = runBlocking {
+    fun `falha ao carregar fica como falha da carga, e nao como erro de acao, e tentar novamente recupera`() = runBlocking {
         var offline = true
         val rede = RedeDeTeste().apply {
             rota("minhas_chamadas") {
@@ -109,11 +109,13 @@ class AcompanharChamadasViewModelTest {
         val vm = viewModelCom(rede)
 
         vm.carregar().join()
-        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.erro)
+        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.falhaAoCarregar)
+        assertNull(vm.estado.value.erro)
         assertFalse(vm.estado.value.carregando)
 
         offline = false
         vm.carregar().join()
+        assertNull(vm.estado.value.falhaAoCarregar)
         assertNull(vm.estado.value.erro)
         assertEquals(1, vm.estado.value.chamadas.size)
     }
@@ -125,7 +127,8 @@ class AcompanharChamadasViewModelTest {
 
         vm.carregar().join()
 
-        assertEquals(TextosChamadaCasa.DESLIGADO, vm.estado.value.erro)
+        assertEquals(TextosChamadaCasa.DESLIGADO, vm.estado.value.falhaAoCarregar)
+        assertNull(vm.estado.value.erro)
     }
 
     @Test
@@ -137,8 +140,49 @@ class AcompanharChamadasViewModelTest {
 
         vm.carregar().join()
 
-        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.erro)
+        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.falhaAoCarregar)
+        assertNull(vm.estado.value.erro)
         assertFalse(vm.estado.value.carregando)
+    }
+
+    @Test
+    fun `falha que nao e da API ao carregar tambem fica como falha da carga`() = runBlocking {
+        val vm = AcompanharChamadasViewModel(
+            vagaId = vaga,
+            listar = { _, _, _ -> error("resposta ilegivel") },
+            cancelarChamada = { error("nao cancela") },
+            publicarAPartirDaChamada = { _, _, _ -> error("nao publica") },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+
+        vm.carregar().join()
+
+        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.falhaAoCarregar)
+        assertNull(vm.estado.value.erro)
+        assertFalse(vm.estado.value.carregando)
+    }
+
+    @Test
+    fun `cancelar com sucesso e a releitura falhando mostra o sucesso, guarda a lista e marca so a falha da carga`() = runBlocking {
+        val rede = RedeDeTeste()
+        var cancelada = false
+        rede.rota("minhas_chamadas") {
+            if (cancelada) throw ConnectTimeoutException("sem rota", null)
+            respond(pagina(resumo(idA, vaga, "aberta")), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        rede.rota("cancelar_chamada") {
+            cancelada = true
+            respond(chamadaCancelada(idA), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val vm = viewModelCom(rede)
+        vm.carregar().join()
+
+        vm.cancelar(idA).join()
+
+        assertEquals(TextosChamadaCasa.CHAMADA_CANCELADA_SUCESSO, vm.estado.value.sucesso)
+        assertNull(vm.estado.value.erro)
+        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.falhaAoCarregar)
+        assertEquals(1, vm.estado.value.chamadas.size)
     }
 
     @Test

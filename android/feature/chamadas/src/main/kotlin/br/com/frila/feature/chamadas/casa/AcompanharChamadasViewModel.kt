@@ -27,7 +27,13 @@ data class EstadoAcompanharChamadas(
     val carregando: Boolean = false,
     /** Cancelar ou publicar em voo: nenhuma outra ação dispara. */
     val acaoEmVoo: Boolean = false,
+    /** Erro de uma ação (cancelar, publicar); a falha de ler a lista é [falhaAoCarregar]. */
     val erro: String? = null,
+    /**
+     * rsojCnB5: a leitura da lista falhou. Com a lista vazia, a tela mostra o erro com "Tentar novamente" (e não "Nenhuma chamada
+     * encontrada"); com a lista já na tela, a mantém e avisa. Limpa na próxima leitura que der certo.
+     */
+    val falhaAoCarregar: String? = null,
     val sucesso: String? = null,
     /** A vaga normal aberta a partir da chamada (`publicar_a_partir_da_chamada`). */
     val vagaPublicadaId: String? = null,
@@ -124,18 +130,19 @@ class AcompanharChamadasViewModel(
             _estado.update {
                 it.copy(
                     carregando = false,
+                    falhaAoCarregar = null,
                     chamadas = daVaga,
                     vagaEncerrada = encerradaPeloServidor || vagaJaEncerrada(daVaga, relogio()),
                 )
             }
         } catch (erro: TimeoutCancellationException) {
-            _estado.update { it.copy(carregando = false, erro = TextosChamadaCasa.ERRO) }
+            _estado.update { it.copy(carregando = false, falhaAoCarregar = TextosChamadaCasa.ERRO) }
         } catch (erro: CancellationException) {
             throw erro
         } catch (erro: ErroDaApi) {
-            _estado.update { it.copy(carregando = false, erro = mensagemAoCarregar(erro)) }
+            _estado.update { it.copy(carregando = false, falhaAoCarregar = mensagemAoCarregar(erro)) }
         } catch (_: Exception) {
-            _estado.update { it.copy(carregando = false, erro = TextosChamadaCasa.ERRO) }
+            _estado.update { it.copy(carregando = false, falhaAoCarregar = TextosChamadaCasa.ERRO) }
         }
     }
 
