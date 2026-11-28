@@ -3,6 +3,8 @@ package br.com.frila.feature.vagas.detalhe
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.EstadoCandidatura
+import br.com.frila.core.rede.CandidaturaDto
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.VagaAbertaDto
 import br.com.frila.core.rede.VagaDto
@@ -45,6 +47,10 @@ sealed interface EstadoAberturaDeVaga {
         val motivo: MotivoIndisponibilidadeVaga,
         val modo: ModoPreenchimentoVaga? = null,
         val vagaCancelada: Boolean = false,
+        /** xdvUylw7: a candidatura da conta nesta vaga, quando ela explica mais do que o estado da vaga (só a recusada). */
+        val candidatura: EstadoCandidatura? = null,
+        /** xdvUylw7: a candidatura da conta expirou (o enum do domínio não tem `expirada`; a tela a recebe à parte). */
+        val candidaturaExpirada: Boolean = false,
     ) : EstadoAberturaDeVaga
 
     data class Falha(val mensagem: String, val podeTentarDeNovo: Boolean) : EstadoAberturaDeVaga
@@ -55,11 +61,15 @@ sealed interface EstadoAberturaDeVaga {
  * aviso, quando a vaga não está na lista já carregada. Paridade com `DetalheVagaViewModel` e
  * `IndisponibilidadeDaVaga` do iOS: `404` é vaga não encontrada, e só há candidatura com `publicada` e posição aberta.
  *
- * [buscarDetalhe] é `ServicoVagas.detalheVaga`. `escopo`: ver nota em `DetalheVagaViewModel`.
+ * [buscarDetalhe] é `ServicoVagas.detalheVaga`. [buscarMinhasCandidaturas] é `ServicoVagas.minhasCandidaturas`: com a vaga
+ * indisponível, a candidatura recusada ou expirada da conta explica mais do que o estado da vaga (os avisos `candidatura_recusada`
+ * e `selecao_encerrada` abrem esta tela), como `BuscaDaVagaDoAviso` do iOS (`DestinosDoAviso.swift:40-51`). Se a leitura falhar,
+ * vale o que o servidor disse da vaga. `escopo`: ver nota em `DetalheVagaViewModel`.
  */
 class AberturaDeVagaViewModel(
     val vagaId: String,
     private val buscarDetalhe: suspend (vagaId: String) -> VagaDto,
+    private val buscarMinhasCandidaturas: (suspend () -> List<CandidaturaDto>)? = null,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -75,14 +85,33 @@ class AberturaDeVagaViewModel(
         leitura?.takeIf { it.isActive }?.let { return it }
         _estado.value = EstadoAberturaDeVaga.Carregando
         return escopoDeTrabalho.launch {
-            _estado.value = try {
+            val lido = try {
                 situacaoDa(buscarDetalhe(vagaId))
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
                 falhaDe(erro)
             }
+            // A candidatura entra antes de a tela sair do "carregando": assim ela não mostra "Vaga preenchida" e troca de texto.
+            _estado.value = if (lido is EstadoAberturaDeVaga.Indisponivel) comACandidaturaDaConta(lido) else lido
         }.also { leitura = it }
+    }
+
+    /** A recusada e a expirada mudam o texto; as outras (pendente, aceita, retirada), a leitura que falha e a conta sem candidatura não. */
+    private suspend fun comACandidaturaDaConta(indisponivel: EstadoAberturaDeVaga.Indisponivel): EstadoAberturaDeVaga.Indisponivel {
+        val buscar = buscarMinhasCandidaturas ?: return indisponivel
+        val estadoDaMinha = try {
+            buscar().firstOrNull { it.vaga.id == vagaId }?.estado
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            null
+        }
+        return when (estadoDaMinha) {
+            CANDIDATURA_RECUSADA -> indisponivel.copy(candidatura = EstadoCandidatura.RECUSADA)
+            CANDIDATURA_EXPIRADA -> indisponivel.copy(candidaturaExpirada = true)
+            else -> indisponivel
+        }
     }
 
     private fun situacaoDa(vaga: VagaDto): EstadoAberturaDeVaga {
@@ -108,6 +137,8 @@ class AberturaDeVagaViewModel(
         const val ESTADO_PREENCHIDA = "preenchida"
         const val ESTADO_CANCELADA = "cancelada"
         const val MODO_SELECAO = "selecao"
+        const val CANDIDATURA_RECUSADA = "recusada"
+        const val CANDIDATURA_EXPIRADA = "expirada"
     }
 }
 

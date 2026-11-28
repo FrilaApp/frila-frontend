@@ -68,6 +68,8 @@ fun ConteudoAberturaDeVaga(
             modifier = modifier,
             modo = estado.modo,
             vagaCancelada = estado.vagaCancelada,
+            candidatura = estado.candidatura,
+            candidaturaExpirada = estado.candidaturaExpirada,
         )
         is EstadoAberturaDeVaga.Aberta -> vagaAberta(estado.vaga)
     }
