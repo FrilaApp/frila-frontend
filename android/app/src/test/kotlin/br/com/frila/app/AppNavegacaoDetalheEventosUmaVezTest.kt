@@ -540,7 +540,7 @@ class AppNavegacaoDetalheEventosUmaVezTest {
             rotaDestino = Rotas.VAGA_PREENCHIDA,
             aPartirDoFeed = true,
         ) {
-            rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_TITULO).assertExists()
+            rule.onNodeWithText("Esta vaga já foi preenchida").assertExists()
             rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_MENSAGEM_SELECAO).assertExists()
         }
         pedidos.clear()
@@ -551,7 +551,7 @@ class AppNavegacaoDetalheEventosUmaVezTest {
             rotaDestino = Rotas.VAGA_PREENCHIDA,
             aPartirDoFeed = false,
         ) {
-            rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_TITULO).assertExists()
+            rule.onNodeWithText("Esta vaga já foi preenchida").assertExists()
             rule.onNodeWithText(TextosVagaIndisponivel.PREENCHIDA_MENSAGEM_SELECAO).assertExists()
         }
     }

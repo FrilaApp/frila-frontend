@@ -87,6 +87,7 @@ import br.com.frila.feature.vagas.detalhe.AberturaDeVagaViewModel
 import br.com.frila.feature.vagas.detalhe.DetalheVagaViewModel
 import br.com.frila.feature.vagas.detalhe.MotivoIndisponibilidadeVaga
 import br.com.frila.feature.vagas.detalhe.ModoPreenchimentoVaga
+import br.com.frila.feature.vagas.detalhe.MotivoDaVagaPerdida
 import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
@@ -94,6 +95,7 @@ import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
 import br.com.frila.feature.vagas.detalhe.TelaFuncaoIncompativel
 import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
+import br.com.frila.feature.vagas.detalhe.TelaVagaPerdida
 import br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import br.com.frila.feature.vagas.feed.StatusFeed
@@ -1062,28 +1064,34 @@ fun AppNavegacao(
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
                     val vaga = vagaDaPilha(navController, entrada, vagaId)
                     val modo = if (vaga?.modo == "selecao") ModoPreenchimentoVaga.SELECAO else ModoPreenchimentoVaga.URGENCIA
-                    TelaVagaIndisponivel(
-                        motivo = MotivoIndisponibilidadeVaga.PREENCHIDA,
-                        modo = modo,
-                        aoVoltarParaFeed = {
-                            navController.navigate(Rotas.FEED) {
-                                popUpTo(Rotas.FEED) { inclusive = true }
-                            }
-                        },
-                    )
+                    val aoVoltarParaFeed = {
+                        navController.navigate(Rotas.FEED) {
+                            popUpTo(Rotas.FEED) { inclusive = true }
+                        }
+                    }
+                    // Como o iOS: o resultado com a "Vaga original". Sem a vaga em memória, fica a tela de vaga indisponível do aviso.
+                    if (vaga != null) {
+                        TelaVagaPerdida(motivo = MotivoDaVagaPerdida.PREENCHIDA, vaga = vaga, modo = modo, aoVoltarAoFeed = aoVoltarParaFeed)
+                    } else {
+                        TelaVagaIndisponivel(motivo = MotivoIndisponibilidadeVaga.PREENCHIDA, modo = modo, aoVoltarParaFeed = aoVoltarParaFeed)
+                    }
                 }
             }
 
-            composable(Rotas.VAGA_ENCERRADA) {
+            composable(Rotas.VAGA_ENCERRADA) { entrada ->
                 RotaProtegida(guardaBiometrico) {
-                    TelaVagaIndisponivel(
-                        motivo = MotivoIndisponibilidadeVaga.ENCERRADA,
-                        aoVoltarParaFeed = {
-                            navController.navigate(Rotas.FEED) {
-                                popUpTo(Rotas.FEED) { inclusive = true }
-                            }
-                        },
-                    )
+                    val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    val vaga = vagaDaPilha(navController, entrada, vagaId)
+                    val aoVoltarParaFeed = {
+                        navController.navigate(Rotas.FEED) {
+                            popUpTo(Rotas.FEED) { inclusive = true }
+                        }
+                    }
+                    if (vaga != null) {
+                        TelaVagaPerdida(motivo = MotivoDaVagaPerdida.ENCERRADA, vaga = vaga, aoVoltarAoFeed = aoVoltarParaFeed)
+                    } else {
+                        TelaVagaIndisponivel(motivo = MotivoIndisponibilidadeVaga.ENCERRADA, aoVoltarParaFeed = aoVoltarParaFeed)
+                    }
                 }
             }
 

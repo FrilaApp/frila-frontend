@@ -11,4 +11,14 @@
     <string name="conflito_horario_mensagem">Você já tem um turno confirmado que coincide com o horário desta vaga. Não é possível assumir dois turnos ao mesmo tempo.</string>
     <string name="conflito_horario_vaga_original">Vaga original</string>
     <string name="conflito_horario_ver_outras_vagas">Ver outras vagas</string>
+
+    <!-- Candidatura que perde a vaga (item 273): textos do iOS, por extenso -->
+    <string name="vaga_perdida_preenchida_titulo">Esta vaga já foi preenchida</string>
+    <string name="vaga_perdida_preenchida_urgencia">Foi rápido: outra pessoa aceitou antes. Nada muda na sua reputação.</string>
+    <string name="vaga_perdida_preenchida_selecao">O estabelecimento já escolheu quem vai trabalhar nesta vaga.</string>
+    <string name="vaga_perdida_encerrada_titulo">Esta vaga foi encerrada</string>
+    <string name="vaga_perdida_encerrada_mensagem">Esta vaga foi encerrada, cancelada ou o horário de início já passou.</string>
+    <string name="vaga_perdida_vaga_original">Vaga original</string>
+    <string name="vaga_perdida_ver_outras_vagas">Ver outras vagas perto de você</string>
+    <string name="vaga_perdida_valor_por_pessoa">%s por pessoa</string>
 </resources>
