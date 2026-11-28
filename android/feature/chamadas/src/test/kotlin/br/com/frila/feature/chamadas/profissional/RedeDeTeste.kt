@@ -35,8 +35,9 @@ internal object Fixtures {
         antecedencia: Int = 6,
         aceitaDe: String = "todos",
         aceitaDeQuemJaTrabalhou: Boolean = true,
-        pendencias: List<String> = emptyList(),
-    ) = """{"aceita_de_quem_ja_trabalhou":$aceitaDeQuemJaTrabalhou,"pausado_ate":${pausadoAte?.let { "\"$it\"" }},"antecedencia_minima_h":$antecedencia,"aceita_de":"$aceitaDe","aceita_chamadas":$aceitaChamadas,"pendencias_para_busca":[${pendencias.joinToString(",") { "\"$it\"" }}]}"""
+        /** `null` omite o campo, como o `meu_perfil_detalhado` faz até o backend #660. */
+        pendencias: List<String>? = emptyList(),
+    ) = """{"aceita_de_quem_ja_trabalhou":$aceitaDeQuemJaTrabalhou,"pausado_ate":${pausadoAte?.let { "\"$it\"" }},"antecedencia_minima_h":$antecedencia,"aceita_de":"$aceitaDe","aceita_chamadas":$aceitaChamadas${pendencias?.let { lista -> ""","pendencias_para_busca":[${lista.joinToString(",") { "\"$it\"" }}]""" } ?: ""}}"""
 
     fun perfilDetalhadoJson(
         funcoes: List<String> = listOf(funcaoJson),

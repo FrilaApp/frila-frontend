@@ -106,6 +106,8 @@ object TextosChamadaProfissional {
     const val ACEITO_O_QUE_APARECE =
         "Seu telefone, seu endereço e sua data de nascimento não aparecem. O Frila não troca telefone entre as partes."
     const val ACEITO_DESLIGAR = "Você pode desligar quando quiser. Desligar tira você da busca na hora."
+    /** O texto do iOS (`TextosBuscaDeProfissionais.apareceNaBusca`). */
+    const val APARECE_NA_BUSCA = "Você aparece na busca de profissionais."
     const val PENDENCIAS_TITULO = "Para aparecer na busca, falta:"
     const val PENDENCIA_SEM_SERVICO = "Definir ao menos um serviço com preço."
     const val PENDENCIA_SEM_REGIAO = "Marcar as regiões onde você atende."

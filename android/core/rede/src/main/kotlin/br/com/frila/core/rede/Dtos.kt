@@ -942,7 +942,11 @@ data class PreferenciaChamadasDto(
     @SerialName("antecedencia_minima_h") val antecedenciaMinimaH: Int,
     @SerialName("aceita_de") val aceitaDe: String,
     @SerialName("aceita_chamadas") val aceitaChamadas: Boolean? = null,
-    @SerialName("pendencias_para_busca") val pendenciasParaBusca: List<String> = emptyList(),
+    /**
+     * `null` quando o campo não veio: o `meu_perfil_detalhado` ainda não o manda (backend #660). Ausente não é "nada falta":
+     * só a lista presente e vazia diz que o profissional aparece na busca (djhyFA5Z).
+     */
+    @SerialName("pendencias_para_busca") val pendenciasParaBusca: List<String>? = null,
 )
 
 /**

@@ -31,11 +31,14 @@ data class EstadoPreferenciasChamada(
     val antecedenciaMinimaH: Int = 6,
     /** `todos` ou `so_cnpj`. */
     val aceitaDe: String = "todos",
-    /** O que ainda impede de aparecer na busca (`pendencias_para_busca` da última resposta). */
-    val pendencias: List<String> = emptyList(),
+    /** O que ainda impede de aparecer na busca (`pendencias_para_busca` da última resposta); `null` se o servidor não mandou o campo. */
+    val pendencias: List<String>? = null,
     val erro: String? = null,
     val sucesso: Boolean = false,
 ) {
+    /** djhyFA5Z: como o iOS (`apareceNaBusca`), a chave ligada e nada faltando; a lista ausente não conta como vazia. */
+    val apareceNaBusca: Boolean get() = aceitaChamadas && pendencias?.isEmpty() == true
+
     /** O dia em que a pausa acaba de fato: a retomada é às 00:00 do dia seguinte à data escolhida. */
     val diaDaRetomada: LocalDate get() = pausadoAte.plusDays(1)
 }

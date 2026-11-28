@@ -159,6 +159,40 @@ class TelasDoProfissionalTest {
         rule.onNodeWithText("• ${TextosChamadaProfissional.PENDENCIA_SEM_REGIAO}").performScrollTo().assertIsDisplayed()
     }
 
+    // ---- djhyFA5Z (item 237) ----
+
+    @Test
+    fun preferenciasComAceitoLigadoEListaVaziaDizQueApareceNaBusca() {
+        montarPreferencias(preferencias { copy(aceitaChamadas = true, pendencias = emptyList()) })
+
+        rule.onNodeWithTag("aparece-na-busca").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText(TextosChamadaProfissional.APARECE_NA_BUSCA).assertExists()
+        rule.onNodeWithTag("pendencias-busca").assertDoesNotExist()
+    }
+
+    @Test
+    fun preferenciasSemOCampoDePendenciasNaoDizNada() {
+        montarPreferencias(preferencias { copy(aceitaChamadas = true, pendencias = null) })
+
+        rule.onNodeWithTag("aparece-na-busca").assertDoesNotExist()
+        rule.onNodeWithTag("pendencias-busca").assertDoesNotExist()
+    }
+
+    @Test
+    fun preferenciasComPendenciaMostraAPendenciaENaoDizQueAparece() {
+        montarPreferencias(preferencias { copy(aceitaChamadas = true, pendencias = listOf("sem_regiao")) })
+
+        rule.onNodeWithTag("pendencias-busca").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("aparece-na-busca").assertDoesNotExist()
+    }
+
+    @Test
+    fun preferenciasComAChaveDesligadaNaoDizQueAparece() {
+        montarPreferencias(preferencias { copy(aceitaChamadas = false, pendencias = emptyList()) })
+
+        rule.onNodeWithTag("aparece-na-busca").assertDoesNotExist()
+    }
+
     @Test
     fun preferenciasSemAceitoLigadoNaoMostraPendencias() {
         montarPreferencias(preferencias { copy(aceitaChamadas = false, pendencias = listOf("sem_regiao")) })
