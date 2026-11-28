@@ -27,6 +27,9 @@ object TextosCandidatosDaVaga {
     const val ESCOLHER = "Escolher"
     const val ESCOLHER_NOME = "Escolher %s"
     const val DENUNCIAR = "Denunciar"
+    /** Os textos do iOS (`TextosDosCandidatos.verPerfil` e `verPerfilDe`). */
+    const val VER_PERFIL = "Ver perfil público"
+    const val VER_PERFIL_DE = "Ver perfil público de %s"
     const val DENUNCIAR_NOME = "Denunciar %s"
     const val ESCOLHENDO = "Confirmando…"
     const val PERGUNTA_DA_ESCOLHA = "Confirmar a escolha?"

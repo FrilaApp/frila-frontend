@@ -51,6 +51,7 @@ import br.com.frila.core.designsystem.componentes.EstiloDoSelo
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
 import br.com.frila.core.designsystem.componentes.FrilaLinhaDeDado
+import br.com.frila.core.designsystem.componentes.LinkFrila
 import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.componentes.RodapeAncorado
 import br.com.frila.core.designsystem.componentes.SeloDeStatus
@@ -76,6 +77,8 @@ data class AcoesCandidatosDaVaga(
     val aoVoltar: () -> Unit = {},
     /** Denunciar quem se candidatou (id do perfil público no [PerfilPublicoDto]). `null` esconde a ação. */
     val aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
+    /** "Ver perfil público" de quem se candidatou, com o id do profissional (como o iOS). `null` esconde o link. */
+    val aoVerPerfil: ((profissionalId: String) -> Unit)? = null,
 )
 
 /**
@@ -90,6 +93,7 @@ fun TelaCandidatosDaVaga(
     modifier: Modifier = Modifier,
     carregarFoto: suspend (String) -> ImageBitmap? = { null },
     aoDenunciar: ((PerfilPublicoDto) -> Unit)? = null,
+    aoVerPerfil: ((profissionalId: String) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -103,6 +107,7 @@ fun TelaCandidatosDaVaga(
             aoConfirmarEscolha = { viewModel.confirmarEscolha() },
             aoVoltar = aoVoltar,
             aoDenunciar = aoDenunciar,
+            aoVerPerfil = aoVerPerfil,
         ),
         carregarFoto = carregarFoto,
         modifier = modifier,
@@ -193,6 +198,7 @@ fun ConteudoCandidatosDaVaga(
                                 podeEscolher = estado.escolhendo == null,
                                 aoEscolher = { acoes.aoPedirEscolha(candidato) },
                                 aoDenunciar = acoes.aoDenunciar?.let { denunciar -> { denunciar(candidato.profissional) } },
+                                aoVerPerfil = acoes.aoVerPerfil?.let { ver -> { ver(candidato.profissional.id) } },
                                 carregarFoto = carregarFoto,
                             )
                         }
@@ -282,6 +288,7 @@ private fun CartaoDoCandidato(
     aoEscolher: () -> Unit,
     aoDenunciar: (() -> Unit)?,
     carregarFoto: suspend (String) -> ImageBitmap?,
+    aoVerPerfil: (() -> Unit)? = null,
 ) {
     val perfil = candidato.profissional
     val cores = FrilaTema.cores
@@ -311,6 +318,15 @@ private fun CartaoDoCandidato(
                     )
                 }
                 FrilaLinhaDeDado(icone = Icons.Filled.Star, valor = textoDaReputacao(candidato))
+            }
+            if (aoVerPerfil != null) {
+                LinkFrila(
+                    texto = TextosCandidatosDaVaga.VER_PERFIL,
+                    aoClicar = aoVerPerfil,
+                    modifier = Modifier
+                        .testTag("perfil-do-candidato-${candidato.candidaturaId}")
+                        .semantics { contentDescription = TextosCandidatosDaVaga.VER_PERFIL_DE.format(perfil.nome) },
+                )
             }
             BotaoSecundario(
                 texto = if (escolhendoEste) TextosCandidatosDaVaga.ESCOLHENDO else TextosCandidatosDaVaga.ESCOLHER,

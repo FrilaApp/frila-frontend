@@ -1917,6 +1917,11 @@ fun AppNavegacao(
                         aoDenunciar = { profissional ->
                             navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
+                        // R2fbierN: o perfil do candidato abre só para ler, sem "Chamar" (como o iOS). Sem a casa na rota (aviso push), o
+                        // segmento dela leva um marcador: com comChamar=false a rota não o usa.
+                        aoVerPerfil = { profissionalId ->
+                            navController.navigate(RotasChamadaCasa.perfilPublico(estabelecimentoId ?: "sem-casa", profissionalId, comChamar = false))
+                        },
                     )
                 }
             }
