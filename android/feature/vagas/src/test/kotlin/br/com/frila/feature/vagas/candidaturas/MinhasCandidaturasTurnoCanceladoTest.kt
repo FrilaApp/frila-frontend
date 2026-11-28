@@ -171,4 +171,16 @@ class MinhasCandidaturasTurnoCanceladoTest {
         assertFalse(itens(vm).getValue("c1").turnoCancelado)
         assertEquals(0, leiturasDeTurnos)
     }
+
+    @Test
+    fun `a aceita de turno cancelado diz Turno cancelado, a de turno de pe continua confirmada, e o destino de hoje fica`() {
+        estadosDosTurnos = { mapOf("t1" to "cancelada", "t2" to "confirmada") }
+        val vm = viewModel { listOf(candidatura("c1", "aceita", turnoId = "t1"), candidatura("c2", "aceita", turnoId = "t2")) }
+
+        vm.carregar()
+
+        assertEquals("Turno cancelado", itens(vm).getValue("c1").textoDoEstado)
+        assertEquals(TextosCandidaturas.ESTADO_ACEITA, itens(vm).getValue("c2").textoDoEstado)
+        assertEquals(DestinoDaCandidatura.Turno("t1"), itens(vm).getValue("c1").destino)
+    }
 }

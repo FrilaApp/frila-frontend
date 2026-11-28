@@ -23,6 +23,8 @@ object TextosCandidaturas {
     // O que cada candidatura diz de si
     const val ESTADO_PENDENTE = "Aguardando a escolha do estabelecimento"
     const val ESTADO_ACEITA = "Confirmada: o turno está em Meus turnos"
+    /** A aceita cujo turno foi cancelado (`meus_turnos`): não diz mais "Confirmada" (paridade com o iOS, `estadoTurnoCancelado`). */
+    const val ESTADO_TURNO_CANCELADO = "Turno cancelado"
     const val ESTADO_RECUSADA = "O estabelecimento escolheu outra pessoa"
     const val ESTADO_RETIRADA = "Candidatura retirada"
     const val ESTADO_EXPIRADA = "A vaga foi encerrada ou cancelada antes de a sua candidatura ser escolhida"

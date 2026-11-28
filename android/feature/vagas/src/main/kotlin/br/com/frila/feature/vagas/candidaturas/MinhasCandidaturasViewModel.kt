@@ -192,6 +192,7 @@ class MinhasCandidaturasViewModel(
         val texto = textoDoEstadoDaCandidatura(estado) ?: return null
         val aceita = estado == ESTADO_ACEITA
         val turno = turnoId
+        val turnoCancelado = aceita && turno != null && estadosDosTurnos[turno] == ESTADO_TURNO_CANCELADO
         return ItemCandidatura(
             id = id,
             vagaId = vaga.id,
@@ -201,13 +202,13 @@ class MinhasCandidaturasViewModel(
             fim = lerInstante(vaga.fimEm),
             valorCentavos = vaga.valorCentavos,
             pendente = estado == ESTADO_PENDENTE,
-            textoDoEstado = texto,
+            textoDoEstado = if (turnoCancelado) TextosCandidaturas.ESTADO_TURNO_CANCELADO else texto,
             destino = when {
                 aceita && turno != null -> DestinoDaCandidatura.Turno(turno)
                 aceita -> DestinoDaCandidatura.MeusTurnos
                 else -> DestinoDaCandidatura.Vaga(vaga.id)
             },
-            turnoCancelado = aceita && turno != null && estadosDosTurnos[turno] == ESTADO_TURNO_CANCELADO,
+            turnoCancelado = turnoCancelado,
         )
     }
 }
