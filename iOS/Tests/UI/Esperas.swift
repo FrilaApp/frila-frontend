@@ -271,11 +271,15 @@ func definirSenhaObrigatoria(
 
     let confirmacao = app.secureTextFields["definir-senha-confirmacao"]
     XCTAssertTrue(confirmacao.waitForExistence(timeout: timeout), "o campo de confirmação de senha deve existir", file: file, line: line)
-    if !confirmacao.isHittable {
-        fecharTeclado(app)
-        trazerAcimaDoRodape(confirmacao, rodape: salvar, em: app)
-    }
-    confirmacao.garantirFocoDoTeclado(file: file, line: line)
+    // Avança para a confirmação pelo botão Próximo do teclado (fluxo real do usuário),
+    // evitando fecharTeclado()/swipeDown que rolava o campo recém-focado para trás do teclado em AX5.
+    novaSenha.typeText("\n")
+    XCTAssertTrue(
+        esperarFocoDoTeclado(confirmacao, timeout: timeout),
+        "o campo de confirmação de senha deve receber foco de teclado após Próximo",
+        file: file,
+        line: line
+    )
     confirmacao.typeText(senha)
 
     tocarFechandoTeclado(salvar, em: app, timeout: timeout, file: file, line: line)

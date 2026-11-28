@@ -1,18 +1,107 @@
 import FrilaDominio
 import SwiftUI
+import UIKit
+
+public struct TrechoReveladoDeSenha: Equatable, Sendable {
+    public let intervaloUTF16: NSRange
+    public let caractere: String
+
+    public init(intervaloUTF16: NSRange, caractere: String) {
+        self.intervaloUTF16 = intervaloUTF16
+        self.caractere = caractere
+    }
+}
+
+public enum RegraDeRevelacaoBreveDeSenha {
+    public static let atrasoMascaramentoNs: UInt64 = 1_000_000_000
+
+    /// Decide se a edição deve revelar um único grafema recém-digitado.
+    /// Retorna `nil` em composição IME, seleção não-colapsada, deleção, colagem ou inserção de múltiplos grafemas.
+    public static func trechoRecemDigitado(
+        textoAnterior: String,
+        intervaloSubstituidoUTF16: NSRange,
+        substituicao: String,
+        emComposicaoIME: Bool,
+        emColagem: Bool
+    ) -> TrechoReveladoDeSenha? {
+        guard !emComposicaoIME, !emColagem else { return nil }
+        guard intervaloSubstituidoUTF16.length == 0 else { return nil }
+        guard substituicao.count == 1, let unico = substituicao.first else { return nil }
+        let nsAnterior = textoAnterior as NSString
+        guard intervaloSubstituidoUTF16.location >= 0,
+              intervaloSubstituidoUTF16.location <= nsAnterior.length
+        else { return nil }
+        let intervaloNovo = NSRange(
+            location: intervaloSubstituidoUTF16.location,
+            length: (substituicao as NSString).length
+        )
+        return TrechoReveladoDeSenha(intervaloUTF16: intervaloNovo, caractere: String(unico))
+    }
+
+    /// Monta a linha inteira mascarada com `•`, mantendo em claro apenas o único grafema de `trecho`.
+    public static func textoMascarado(texto: String, revelando trecho: TrechoReveladoDeSenha) -> String {
+        let nsTexto = texto as NSString
+        guard trecho.intervaloUTF16.location >= 0,
+              NSMaxRange(trecho.intervaloUTF16) <= nsTexto.length,
+              let rangeSwift = Range(trecho.intervaloUTF16, in: texto)
+        else {
+            return String(repeating: "\u{2022}", count: texto.count)
+        }
+        let antes = String(repeating: "\u{2022}", count: texto[..<rangeSwift.lowerBound].count)
+        let depois = String(repeating: "\u{2022}", count: texto[rangeSwift.upperBound...].count)
+        return antes + trecho.caractere + depois
+    }
+}
+
+public struct EstadoVisibilidadeDeSenha: Equatable, Sendable {
+    public private(set) var senhaVisivel: Bool
+    public private(set) var confirmacaoVisivel: Bool
+
+    public init(senhaVisivel: Bool = false, confirmacaoVisivel: Bool = false) {
+        self.senhaVisivel = senhaVisivel
+        self.confirmacaoVisivel = confirmacaoVisivel
+    }
+
+    public mutating func alternarSenha() {
+        senhaVisivel.toggle()
+    }
+
+    public mutating func alternarConfirmacao() {
+        confirmacaoVisivel.toggle()
+    }
+
+    public mutating func ocultarTudo() {
+        senhaVisivel = false
+        confirmacaoVisivel = false
+    }
+}
 
 public struct TelaDefinirSenha: View {
     @State private var viewModel: DefinirSenhaViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     private let permitirPular: Bool
     private let aoConcluir: (() -> Void)?
 
-    @FocusState private var campoFocado: Campo?
+    @State private var campoFocado: Campo?
+    @State private var visibilidade = EstadoVisibilidadeDeSenha()
+    @State private var focoCampos = FocoCamposSenha()
 
     private enum Campo: Hashable {
         case senha
         case confirmacao
+    }
+
+    @MainActor
+    private final class FocoCamposSenha {
+        weak var confirmacao: UITextField?
+
+        func focarConfirmacao() -> Bool {
+            guard let campo = confirmacao, campo.isEnabled, campo.window != nil else { return false }
+            return campo.becomeFirstResponder()
+        }
     }
 
     public init(
@@ -27,6 +116,7 @@ public struct TelaDefinirSenha: View {
     }
 
     public var body: some View {
+        ScrollViewReader { scrollProxy in
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.item) {
@@ -48,46 +138,89 @@ public struct TelaDefinirSenha: View {
                             .font(FrilaTipo.rotuloDeGrupo)
                             .foregroundStyle(FrilaCor.textoSecundario)
 
-                        SecureField(text: $viewModel.senha, prompt: Text("Mínimo de 8 caracteres", bundle: bundleApresentacao)) {
-                            Text("Nova senha", bundle: bundleApresentacao)
-                        }
-                        .textContentType(.newPassword)
-                        .submitLabel(.next)
-                        .focused($campoFocado, equals: .senha)
-                        .onSubmit { campoFocado = .confirmacao }
-                        .disabled(viewModel.carregando)
-                        .padding(.horizontal, FrilaEspaco.bloco)
-                        .frame(height: FrilaMetrica.alturaDoCampo)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                        CampoDeSenhaComVisibilidade(
+                            texto: $viewModel.senha,
+                            senhaVisivel: Binding(
+                                get: { visibilidade.senhaVisivel },
+                                set: { novo in
+                                    if novo != visibilidade.senhaVisivel {
+                                        visibilidade.alternarSenha()
+                                    }
+                                }
+                            ),
+                            placeholder: String(localized: "Mínimo de 8 caracteres", bundle: bundleApresentacao),
+                            rotuloAcessibilidade: String(localized: "Nova senha", bundle: bundleApresentacao),
+                            identificadorCampo: "definir-senha-campo",
+                            identificadorBotao: "definir-senha-alternar-visibilidade",
+                            returnKeyType: .next,
+                            habilitado: !viewModel.carregando,
+                            estaFocado: Binding(
+                                get: { campoFocado == .senha },
+                                set: { focado in
+                                    if focado {
+                                        campoFocado = .senha
+                                    } else if campoFocado == .senha {
+                                        campoFocado = nil
+                                    }
+                                }
+                            ),
+                            ocultarPorSeguranca: scenePhase != .active,
+                            aoSubmeter: {
+                                if !focoCampos.focarConfirmacao() {
+                                    campoFocado = .confirmacao
+                                }
+                            }
                         )
-                        .accessibilityIdentifier("definir-senha-campo")
+                        .frilaFormField(
+                            id: "definir-senha-campo",
+                            isFocused: campoFocado == .senha,
+                            onDismiss: { campoFocado = nil }
+                        )
                     }
+                    .id(Campo.senha)
 
                     VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                         Text("Confirmar senha", bundle: bundleApresentacao)
                             .font(FrilaTipo.rotuloDeGrupo)
                             .foregroundStyle(FrilaCor.textoSecundario)
 
-                        SecureField(text: $viewModel.confirmacao, prompt: Text("Repita a nova senha", bundle: bundleApresentacao)) {
-                            Text("Confirmar senha", bundle: bundleApresentacao)
-                        }
-                        .textContentType(.newPassword)
-                        .submitLabel(.done)
-                        .focused($campoFocado, equals: .confirmacao)
-                        .onSubmit { salvar() }
-                        .disabled(viewModel.carregando)
-                        .padding(.horizontal, FrilaEspaco.bloco)
-                        .frame(height: FrilaMetrica.alturaDoCampo)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                        CampoDeSenhaComVisibilidade(
+                            texto: $viewModel.confirmacao,
+                            senhaVisivel: Binding(
+                                get: { visibilidade.confirmacaoVisivel },
+                                set: { novo in
+                                    if novo != visibilidade.confirmacaoVisivel {
+                                        visibilidade.alternarConfirmacao()
+                                    }
+                                }
+                            ),
+                            placeholder: String(localized: "Repita a nova senha", bundle: bundleApresentacao),
+                            rotuloAcessibilidade: String(localized: "Confirmar senha", bundle: bundleApresentacao),
+                            identificadorCampo: "definir-senha-confirmacao",
+                            identificadorBotao: "definir-senha-confirmacao-alternar-visibilidade",
+                            returnKeyType: .done,
+                            habilitado: !viewModel.carregando,
+                            estaFocado: Binding(
+                                get: { campoFocado == .confirmacao },
+                                set: { focado in
+                                    if focado {
+                                        campoFocado = .confirmacao
+                                    } else if campoFocado == .confirmacao {
+                                        campoFocado = nil
+                                    }
+                                }
+                            ),
+                            ocultarPorSeguranca: scenePhase != .active,
+                            aoCriarCampo: { focoCampos.confirmacao = $0 },
+                            aoSubmeter: { salvar() }
                         )
-                        .accessibilityIdentifier("definir-senha-confirmacao")
+                        .frilaFormField(
+                            id: "definir-senha-confirmacao",
+                            isFocused: campoFocado == .confirmacao,
+                            onDismiss: { campoFocado = nil }
+                        )
                     }
+                    .id(Campo.confirmacao)
 
                     if viewModel.concluido {
                         Text("Senha salva nesta conta.", bundle: bundleApresentacao)
@@ -130,10 +263,26 @@ public struct TelaDefinirSenha: View {
         .frilaKeyboardDismissScope()
         .onChange(of: viewModel.senha) { _, _ in viewModel.erro = nil }
         .onChange(of: viewModel.confirmacao) { _, _ in viewModel.erro = nil }
+        .onChange(of: scenePhase) { _, novaFase in
+            if novaFase != .active {
+                visibilidade.ocultarTudo()
+            }
+        }
+        .onChange(of: campoFocado) { _, novoCampo in
+            guard let novoCampo else { return }
+            withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
+                scrollProxy.scrollTo(novoCampo, anchor: .top)
+            }
+        }
+        .onDisappear {
+            visibilidade.ocultarTudo()
+        }
+        }
     }
 
     private func salvar() {
         guard !viewModel.carregando else { return }
+        visibilidade.ocultarTudo()
         campoFocado = nil
         Task {
             if await viewModel.salvar() {
@@ -147,6 +296,505 @@ public struct TelaDefinirSenha: View {
             aoConcluir()
         } else {
             dismiss()
+        }
+    }
+}
+
+private final class CamadaLinhaMascaradaView: UIView {
+    private var qtdAntes: Int = 0
+    private var qtdDepois: Int = 0
+    private var caractere: String = ""
+    private var fonte: UIFont = UIFont.preferredFont(forTextStyle: .body)
+    private var pitchBolinha: CGFloat = 9.5
+    private var diametroBolinha: CGFloat = 6.5
+    private var centroYBolinha: CGFloat = 0
+    private var corTexto: UIColor = .label
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        accessibilityElementsHidden = true
+        clipsToBounds = true
+        contentMode = .redraw
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func atualizar(
+        qtdAntes: Int,
+        qtdDepois: Int,
+        caractere: String,
+        fonte: UIFont,
+        pitchBolinha: CGFloat,
+        centroYBolinha: CGFloat,
+        corTexto: UIColor,
+        corFundo: UIColor
+    ) {
+        self.qtdAntes = qtdAntes
+        self.qtdDepois = qtdDepois
+        self.caractere = caractere
+        self.fonte = fonte
+        self.pitchBolinha = max(6, pitchBolinha)
+        let escala = max(1, traitCollection.displayScale)
+        let brutoDiametro = self.pitchBolinha * 0.69
+        self.diametroBolinha = round(brutoDiametro * escala) / escala
+        self.centroYBolinha = centroYBolinha
+        self.corTexto = corTexto
+        self.backgroundColor = corFundo
+        setNeedsDisplay()
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        backgroundColor?.setFill()
+        ctx.fill(rect)
+
+        let larguraCaractere = ceil((caractere as NSString).size(withAttributes: [.font: fonte]).width)
+        let larguraCursor: CGFloat = 2
+        let folgaCursor: CGFloat = 1
+        let larguraAntes = CGFloat(qtdAntes) * pitchBolinha
+        let cursorXBruto = larguraAntes + larguraCaractere + folgaCursor
+        let larguraDisponivel = rect.width - larguraCursor
+        let deslocamentoX = cursorXBruto > larguraDisponivel ? (larguraDisponivel - cursorXBruto) : 0
+
+        let raio = diametroBolinha / 2
+        let yCentro = centroYBolinha > 0 ? centroYBolinha : rect.midY
+        ctx.setFillColor(corTexto.cgColor)
+
+        for i in 0..<qtdAntes {
+            let cx = deslocamentoX + (CGFloat(i) + 0.5) * pitchBolinha
+            ctx.fillEllipse(in: CGRect(x: cx - raio, y: yCentro - raio, width: diametroBolinha, height: diametroBolinha))
+        }
+
+        let alturaLinha = ceil(fonte.lineHeight)
+        let yTexto = (rect.height - alturaLinha) / 2
+        let xCaractere = deslocamentoX + larguraAntes
+        (caractere as NSString).draw(
+            at: CGPoint(x: xCaractere, y: yTexto),
+            withAttributes: [.font: fonte, .foregroundColor: corTexto]
+        )
+
+        let inicioDepois = xCaractere + larguraCaractere
+        for j in 0..<qtdDepois {
+            let cx = inicioDepois + (CGFloat(j) + 0.5) * pitchBolinha
+            ctx.fillEllipse(in: CGRect(x: cx - raio, y: yCentro - raio, width: diametroBolinha, height: diametroBolinha))
+        }
+
+        let xCursor = min(max(0, cursorXBruto + deslocamentoX), rect.width - larguraCursor)
+        ctx.fill(CGRect(x: xCursor, y: yTexto, width: larguraCursor, height: alturaLinha))
+    }
+}
+
+private final class CampoSeguroInternoUITextField: UITextField {
+    var emColagem: Bool = false
+    var aoMudarEstadoDeCaptura: (() -> Void)?
+    var aoRolarHorizontalmente: (() -> Void)?
+    private var ultimoOffsetX: CGFloat = 0
+
+    override func paste(_ sender: Any?) {
+        emColagem = true
+        defer { emColagem = false }
+        super.paste(sender)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let atualX = bounds.origin.x
+        if abs(atualX - ultimoOffsetX) > 0.5 {
+            ultimoOffsetX = atualX
+            aoRolarHorizontalmente?()
+        }
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if #available(iOS 17.0, *),
+           traitCollection.sceneCaptureState != previousTraitCollection?.sceneCaptureState {
+            aoMudarEstadoDeCaptura?()
+        }
+    }
+}
+
+struct CampoDeSenhaComVisibilidade: View {
+    @Binding var texto: String
+    @Binding var senhaVisivel: Bool
+    let placeholder: String
+    let rotuloAcessibilidade: String
+    let identificadorCampo: String
+    let identificadorBotao: String
+    let returnKeyType: UIReturnKeyType
+    let habilitado: Bool
+    @Binding var estaFocado: Bool
+    let ocultarPorSeguranca: Bool
+    var textContentType: UITextContentType = .newPassword
+    var revelacaoBreve: Bool = true
+    var aoCriarCampo: ((UITextField) -> Void)? = nil
+    let aoSubmeter: () -> Void
+
+    var body: some View {
+        HStack(spacing: FrilaEspaco.minimo) {
+            CampoDeSenhaComRevelacaoBreve(
+                texto: $texto,
+                senhaVisivel: $senhaVisivel,
+                placeholder: placeholder,
+                rotuloAcessibilidade: rotuloAcessibilidade,
+                identificadorAcessibilidade: identificadorCampo,
+                returnKeyType: returnKeyType,
+                habilitado: habilitado,
+                estaFocado: $estaFocado,
+                ocultarRevelacao: ocultarPorSeguranca,
+                textContentType: textContentType,
+                revelacaoBreve: revelacaoBreve,
+                aoCriarCampo: aoCriarCampo,
+                aoSubmeter: aoSubmeter
+            )
+
+            Button {
+                senhaVisivel.toggle()
+            } label: {
+                Image(systemName: senhaVisivel ? "eye.slash" : "eye")
+                    .font(.body)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!habilitado)
+            .accessibilityLabel(Text(senhaVisivel ? "Ocultar senha" : "Mostrar senha", bundle: bundleApresentacao))
+            .accessibilityValue(Text(senhaVisivel ? "Visível" : "Oculta", bundle: bundleApresentacao))
+            .accessibilityIdentifier(identificadorBotao)
+        }
+        .frame(minHeight: FrilaMetrica.alturaDoCampo)
+        .padding(.leading, FrilaEspaco.bloco)
+        .padding(.trailing, FrilaEspaco.minimo)
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+        )
+    }
+}
+
+private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
+    @Binding var texto: String
+    @Binding var senhaVisivel: Bool
+    let placeholder: String
+    let rotuloAcessibilidade: String
+    let identificadorAcessibilidade: String
+    let returnKeyType: UIReturnKeyType
+    let habilitado: Bool
+    @Binding var estaFocado: Bool
+    let ocultarRevelacao: Bool
+    let textContentType: UITextContentType
+    let revelacaoBreve: Bool
+    let aoCriarCampo: ((UITextField) -> Void)?
+    let aoSubmeter: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeUIView(context: Context) -> CampoSeguroInternoUITextField {
+        let campo = CampoSeguroInternoUITextField(frame: .zero)
+        campo.delegate = context.coordinator
+        campo.isSecureTextEntry = true
+        campo.textContentType = textContentType
+        campo.autocorrectionType = .no
+        campo.spellCheckingType = .no
+        campo.smartQuotesType = .no
+        campo.smartDashesType = .no
+        campo.smartInsertDeleteType = .no
+        if #available(iOS 17.0, *) {
+            campo.inlinePredictionType = .no
+        }
+        campo.autocapitalizationType = .none
+        campo.returnKeyType = returnKeyType
+        campo.font = UIFont.preferredFont(forTextStyle: .body)
+        campo.adjustsFontForContentSizeCategory = true
+        campo.textColor = FrilaCor.textoUIKit
+        campo.tintColor = campo.textColor
+        campo.backgroundColor = .clear
+        campo.borderStyle = .none
+        campo.clipsToBounds = true
+        campo.placeholder = placeholder
+        campo.accessibilityLabel = rotuloAcessibilidade
+        campo.accessibilityIdentifier = identificadorAcessibilidade
+        campo.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        campo.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        campo.addTarget(context.coordinator, action: #selector(Coordinator.textoMudou(_:)), for: .editingChanged)
+        context.coordinator.configurarSobreposicao(em: campo)
+        aoCriarCampo?(campo)
+        return campo
+    }
+
+    func updateUIView(_ uiView: CampoSeguroInternoUITextField, context: Context) {
+        context.coordinator.pai = self
+        let emCapturaOuInativo = ocultarRevelacao || context.coordinator.capturaAtiva(para: uiView)
+        if emCapturaOuInativo, senhaVisivel {
+            Task { @MainActor in
+                senhaVisivel = false
+            }
+        }
+        let deveFicarSeguro = !senhaVisivel || emCapturaOuInativo
+        if uiView.isSecureTextEntry != deveFicarSeguro {
+            let selecaoAnterior = uiView.selectedTextRange
+            let textoAtual = uiView.text
+            uiView.isSecureTextEntry = deveFicarSeguro
+            // Evita que o UIKit apague o campo no próximo toque após alternar isSecureTextEntry.
+            uiView.text = ""
+            uiView.text = textoAtual
+            if let selecaoAnterior {
+                uiView.selectedTextRange = selecaoAnterior
+            }
+            if !deveFicarSeguro {
+                context.coordinator.limparRevelacao()
+            }
+        }
+        if uiView.text != texto {
+            uiView.text = texto
+            context.coordinator.limparRevelacao()
+        }
+        uiView.isEnabled = habilitado
+        uiView.placeholder = placeholder
+        uiView.accessibilityLabel = rotuloAcessibilidade
+        uiView.accessibilityIdentifier = identificadorAcessibilidade
+        if !deveFicarSeguro || emCapturaOuInativo {
+            context.coordinator.limparRevelacao()
+        }
+        if estaFocado != context.coordinator.ultimoEstaFocadoAplicado {
+            context.coordinator.ultimoEstaFocadoAplicado = estaFocado
+            if estaFocado, !uiView.isFirstResponder, habilitado, uiView.window != nil {
+                uiView.becomeFirstResponder()
+            } else if !estaFocado, uiView.isFirstResponder {
+                uiView.resignFirstResponder()
+            }
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: CampoSeguroInternoUITextField, context: Context) -> CGSize? {
+        let largura = proposal.width ?? uiView.intrinsicContentSize.width
+        let altura = max(FrilaMetrica.alturaDoCampo, ceil(uiView.intrinsicContentSize.height))
+        return CGSize(width: largura, height: altura)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var pai: CampoDeSenhaComRevelacaoBreve
+        var ultimoEstaFocadoAplicado: Bool = false
+        private weak var campo: CampoSeguroInternoUITextField?
+        private let camadaRevelacao = CamadaLinhaMascaradaView(frame: .zero)
+        private var trechoPendente: TrechoReveladoDeSenha?
+        private var trechoAtivo: TrechoReveladoDeSenha?
+        private var tarefaOcultar: Task<Void, Never>?
+
+        init(_ pai: CampoDeSenhaComRevelacaoBreve) {
+            self.pai = pai
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        func configurarSobreposicao(em campo: CampoSeguroInternoUITextField) {
+            self.campo = campo
+            camadaRevelacao.isHidden = true
+            campo.addSubview(camadaRevelacao)
+
+            campo.aoRolarHorizontalmente = { [weak self] in
+                self?.limparRevelacao()
+            }
+
+            campo.aoMudarEstadoDeCaptura = { [weak self] in
+                Task { @MainActor in
+                    guard let self, let campo = self.campo else { return }
+                    if self.capturaAtiva(para: campo) {
+                        self.limparRevelacao()
+                    }
+                }
+            }
+
+            let centro = NotificationCenter.default
+            centro.addObserver(
+                self,
+                selector: #selector(aoPerderFocoDeAplicacao),
+                name: UIApplication.willResignActiveNotification,
+                object: nil
+            )
+            centro.addObserver(
+                self,
+                selector: #selector(aoMudarCapturaDeTela),
+                name: UIScreen.capturedDidChangeNotification,
+                object: nil
+            )
+        }
+
+        @objc private func aoPerderFocoDeAplicacao() {
+            limparRevelacao()
+            if pai.senhaVisivel {
+                pai.senhaVisivel = false
+            }
+        }
+
+        @objc private func aoMudarCapturaDeTela() {
+            guard let campo else { return }
+            if capturaAtiva(para: campo) {
+                limparRevelacao()
+                if pai.senhaVisivel {
+                    pai.senhaVisivel = false
+                }
+            }
+        }
+
+        func capturaAtiva(para textField: UITextField) -> Bool {
+            if #available(iOS 17.0, *), textField.traitCollection.sceneCaptureState == .active {
+                return true
+            }
+            if let screen = textField.window?.windowScene?.screen, screen.isCaptured {
+                return true
+            }
+            return UIScreen.main.isCaptured
+        }
+
+        func limparRevelacao() {
+            tarefaOcultar?.cancel()
+            tarefaOcultar = nil
+            trechoPendente = nil
+            trechoAtivo = nil
+            camadaRevelacao.isHidden = true
+            if let campo {
+                campo.tintColor = FrilaCor.textoUIKit
+            }
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            ultimoEstaFocadoAplicado = true
+            if !pai.estaFocado {
+                pai.estaFocado = true
+            }
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            limparRevelacao()
+            ultimoEstaFocadoAplicado = false
+            if pai.estaFocado {
+                pai.estaFocado = false
+            }
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            limparRevelacao()
+            pai.aoSubmeter()
+            return false
+        }
+
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            guard let ativo = trechoAtivo else { return }
+            guard let selecionada = textField.selectedTextRange, selecionada.isEmpty else {
+                limparRevelacao()
+                return
+            }
+            let offsetCursor = textField.offset(from: textField.beginningOfDocument, to: selecionada.start)
+            if offsetCursor != ativo.intervaloUTF16.location + ativo.intervaloUTF16.length {
+                limparRevelacao()
+            }
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            let anterior = textField.text ?? ""
+            let emComposicao = textField.markedTextRange != nil
+            let emColagem = (textField as? CampoSeguroInternoUITextField)?.emColagem ?? false
+            trechoPendente = RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+                textoAnterior: anterior,
+                intervaloSubstituidoUTF16: range,
+                substituicao: string,
+                emComposicaoIME: emComposicao,
+                emColagem: emColagem
+            )
+            if trechoPendente == nil {
+                limparRevelacao()
+            }
+            return true
+        }
+
+        @objc func textoMudou(_ textField: UITextField) {
+            let novoTexto = textField.text ?? ""
+            if pai.texto != novoTexto {
+                pai.texto = novoTexto
+            }
+            guard pai.revelacaoBreve,
+                  textField.isSecureTextEntry,
+                  !pai.ocultarRevelacao,
+                  !capturaAtiva(para: textField),
+                  let trecho = trechoPendente
+            else {
+                limparRevelacao()
+                return
+            }
+            trechoPendente = nil
+            exibirRevelacao(trecho, em: textField)
+        }
+
+        private func exibirRevelacao(_ trecho: TrechoReveladoDeSenha, em textField: UITextField) {
+            let textoAtual = textField.text ?? ""
+            guard let rangeSwift = Range(trecho.intervaloUTF16, in: textoAtual) else {
+                limparRevelacao()
+                return
+            }
+            let qtdAntes = textoAtual[..<rangeSwift.lowerBound].count
+            let qtdDepois = textoAtual[rangeSwift.upperBound...].count
+
+            let fonteAtual = textField.font ?? UIFont.preferredFont(forTextStyle: .body)
+            let limiteEdicao = textField.editingRect(forBounds: textField.bounds)
+            guard limiteEdicao.width > 4, limiteEdicao.height > 0 else {
+                limparRevelacao()
+                return
+            }
+
+            textField.layoutIfNeeded()
+            var pitchNativo: CGFloat = ceil(fonteAtual.pointSize * 0.56)
+            var centroYNativo: CGFloat = limiteEdicao.height / 2
+            if let p0 = textField.position(from: textField.beginningOfDocument, offset: 0),
+               let p1 = textField.position(from: p0, offset: 1),
+               let rRange = textField.textRange(from: p0, to: p1) {
+                let r0 = textField.firstRect(for: rRange)
+                if !r0.isNull, !r0.isInfinite, r0.width > 0 {
+                    pitchNativo = r0.width
+                    centroYNativo = r0.midY - limiteEdicao.minY
+                }
+            }
+
+            let corTexto = FrilaCor.textoUIKit
+            let corSuperficie = FrilaCor.superficieUIKit
+
+            camadaRevelacao.frame = limiteEdicao
+            camadaRevelacao.atualizar(
+                qtdAntes: qtdAntes,
+                qtdDepois: qtdDepois,
+                caractere: trecho.caractere,
+                fonte: fonteAtual,
+                pitchBolinha: pitchNativo,
+                centroYBolinha: centroYNativo,
+                corTexto: corTexto,
+                corFundo: corSuperficie
+            )
+            camadaRevelacao.isHidden = false
+            trechoAtivo = trecho
+            textField.tintColor = .clear
+            textField.bringSubviewToFront(camadaRevelacao)
+
+            tarefaOcultar?.cancel()
+            tarefaOcultar = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: RegraDeRevelacaoBreveDeSenha.atrasoMascaramentoNs)
+                guard !Task.isCancelled else { return }
+                self?.limparRevelacao()
+            }
         }
     }
 }

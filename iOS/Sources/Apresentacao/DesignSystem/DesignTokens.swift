@@ -32,6 +32,7 @@ public enum FrilaCor {
     static let fundoUIKit = UIColor(named: "Surface", in: recursos, compatibleWith: nil) ?? .systemBackground
     /// Cartões, campos e folhas sobre o fundo (`--cor-superficie`, `dynamicFormCardSurface`): #FFFFFF / #171717.
     public static let superficie = Color("SurfaceElevated", bundle: recursos)
+    static let superficieUIKit = UIColor(named: "SurfaceElevated", in: recursos, compatibleWith: nil) ?? .systemBackground
     /// Preenchimento dos campos de formulário (`dynamicFormFieldSurface`): a superfície, #FFFFFF no claro.
     public static let superficieDoCampo = Color("FieldSurface", bundle: recursos)
     /// Fundo do dia com horário na faixa semanal: um passo acima do campo, para ler de relance sobre o cartão.

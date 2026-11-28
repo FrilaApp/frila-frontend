@@ -1014,3 +1014,121 @@ private final class ApiConfirmacaoComPerfil: ApiClienteEncaminhador, @unchecked 
         )
     }
 }
+
+@Suite("RegraDeRevelacaoBreveDeSenha")
+struct RegraDeRevelacaoBreveDeSenhaTests {
+    @Test("revela apenas insercao de um grafema com selecao colapsada e suporta meio, acento composto e emoji")
+    func revelaUmGrafemaFimMeioEComposto() {
+        let fim = RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "aaaa",
+            intervaloSubstituidoUTF16: NSRange(location: 4, length: 0),
+            substituicao: "a",
+            emComposicaoIME: false,
+            emColagem: false
+        )
+        #expect(fim == TrechoReveladoDeSenha(intervaloUTF16: NSRange(location: 4, length: 1), caractere: "a"))
+
+        let meio = RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "aaaa",
+            intervaloSubstituidoUTF16: NSRange(location: 2, length: 0),
+            substituicao: "b",
+            emComposicaoIME: false,
+            emColagem: false
+        )
+        #expect(meio == TrechoReveladoDeSenha(intervaloUTF16: NSRange(location: 2, length: 1), caractere: "b"))
+
+        let emoji = "👨‍👩‍👧"
+        let resEmoji = RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "ab",
+            intervaloSubstituidoUTF16: NSRange(location: 1, length: 0),
+            substituicao: emoji,
+            emComposicaoIME: false,
+            emColagem: false
+        )
+        #expect(resEmoji == TrechoReveladoDeSenha(
+            intervaloUTF16: NSRange(location: 1, length: (emoji as NSString).length),
+            caractere: emoji
+        ))
+    }
+
+    @Test("nao revela em delecao, colagem (inclusive 1 caractere), substituicao de selecao, multi-caractere ou IME")
+    func naoRevelaEmCasosProibidos() {
+        #expect(RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "abc",
+            intervaloSubstituidoUTF16: NSRange(location: 2, length: 1),
+            substituicao: "",
+            emComposicaoIME: false,
+            emColagem: false
+        ) == nil)
+
+        #expect(RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "abc",
+            intervaloSubstituidoUTF16: NSRange(location: 3, length: 0),
+            substituicao: "x",
+            emComposicaoIME: false,
+            emColagem: true
+        ) == nil)
+
+        #expect(RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "abc",
+            intervaloSubstituidoUTF16: NSRange(location: 3, length: 0),
+            substituicao: "xyz",
+            emComposicaoIME: false,
+            emColagem: false
+        ) == nil)
+
+        #expect(RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "abc",
+            intervaloSubstituidoUTF16: NSRange(location: 1, length: 1),
+            substituicao: "z",
+            emComposicaoIME: false,
+            emColagem: false
+        ) == nil)
+
+        #expect(RegraDeRevelacaoBreveDeSenha.trechoRecemDigitado(
+            textoAnterior: "abc",
+            intervaloSubstituidoUTF16: NSRange(location: 3, length: 0),
+            substituicao: "a",
+            emComposicaoIME: true,
+            emColagem: false
+        ) == nil)
+    }
+
+    @Test("textoMascarado preserva bolinhas para todos os vizinhos e expoe no maximo o unico grafema revelado")
+    func textoMascaradoExpoeApenasUmGrafema() {
+        let noFim = TrechoReveladoDeSenha(intervaloUTF16: NSRange(location: 2, length: 1), caractere: "W")
+        #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "abW", revelando: noFim) == "\u{2022}\u{2022}W")
+
+        let noMeio = TrechoReveladoDeSenha(intervaloUTF16: NSRange(location: 1, length: 1), caractere: "Z")
+        #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "aZcd", revelando: noMeio) == "\u{2022}Z\u{2022}\u{2022}")
+
+        let emoji = "😀"
+        let comEmoji = TrechoReveladoDeSenha(
+            intervaloUTF16: NSRange(location: 1, length: (emoji as NSString).length),
+            caractere: emoji
+        )
+        #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "a\(emoji)b", revelando: comEmoji) == "\u{2022}\(emoji)\u{2022}")
+    }
+}
+
+@Suite("EstadoVisibilidadeDeSenha")
+struct EstadoVisibilidadeDeSenhaTests {
+    @Test("comeca oculto nos dois campos, alterna cada campo de forma independente e volta a oculto ao limpar")
+    func estadoInicialAlternanciaEReset() {
+        var estado = EstadoVisibilidadeDeSenha()
+        #expect(estado.senhaVisivel == false)
+        #expect(estado.confirmacaoVisivel == false)
+
+        estado.alternarSenha()
+        #expect(estado.senhaVisivel == true)
+        #expect(estado.confirmacaoVisivel == false)
+
+        estado.alternarConfirmacao()
+        #expect(estado.senhaVisivel == true)
+        #expect(estado.confirmacaoVisivel == true)
+
+        estado.ocultarTudo()
+        #expect(estado.senhaVisivel == false)
+        #expect(estado.confirmacaoVisivel == false)
+    }
+}
