@@ -449,6 +449,42 @@ class TelaCandidatosDaVagaTest {
         assertTrue("o texto longo tem de ser cortado", layout.hasVisualOverflow)
     }
 
+    private fun linhasDe(no: androidx.compose.ui.test.SemanticsNodeInteraction): androidx.compose.ui.text.TextLayoutResult {
+        val resultados = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        no.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action!!.invoke(resultados)
+        return resultados.single()
+    }
+
+    /** Sharingan no #1244: o corte de "onde trabalhou" (2 linhas, como o iOS) também precisa de teste. */
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `onde trabalhou corta em 2 linhas, como o iOS`() {
+        val ondeLongo = "Bar do Zé, Bistrô Ipê, Restaurante Sabor do Cerrado, Buffet Alvorada, Hotel Nacional, " +
+            "Choperia do Lago, Pizzaria Cruzeiro, Espaço de Eventos Asa Sul, Casa de Festas Sudoeste"
+        val candidato = caio.copy(profissional = caio.profissional.copy(ondeTrabalhei = ondeLongo))
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(candidato))))
+
+        val layout = linhasDe(rule.onNodeWithText(ondeLongo, useUnmergedTree = true))
+        assertEquals(2, layout.lineCount)
+        assertTrue("o texto longo tem de ser cortado", layout.hasVisualOverflow)
+    }
+
+    /** Sharingan no #1244: o corte dos cursos (2 linhas, como o iOS) também precisa de teste. */
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `cursos cortam em 2 linhas, como o iOS`() {
+        val cursosLongos = listOf(
+            "Bartender clássico", "Primeiros socorros", "Higiene e manipulação de alimentos", "Atendimento ao cliente",
+            "Coquetelaria autoral", "Serviço de vinhos", "Cerimonial e etiqueta", "Brigada de incêndio",
+        )
+        val candidato = caio.copy(profissional = caio.profissional.copy(cursos = cursosLongos))
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(candidato))))
+
+        val layout = linhasDe(rule.onNodeWithTag("cursos-do-candidato-c3", useUnmergedTree = true))
+        assertEquals(2, layout.lineCount)
+        assertTrue("o texto longo tem de ser cortado", layout.hasVisualOverflow)
+    }
+
     @Test
     fun `atende todo o DF aparece no lugar das regioes`() {
         val todoDf = caio.copy(profissional = caio.profissional.copy(atendeTodoDf = true))
