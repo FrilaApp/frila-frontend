@@ -39,6 +39,20 @@ class TelaAtualizacaoObrigatoriaTest {
         assertFalse(ComparadorDeVersao.precisaAtualizar(versaoAtual = "2.0.0", versaoMinima = "1.9.9"))
     }
 
+    // i3NSbCXD: o que separa o trim e o takeWhile, que os casos acima não distinguem.
+
+    @Test
+    fun `sufixo depois dos numeros nao conta, e 1_0_1-beta nao bloqueia contra a minima 1_0_1`() {
+        assertFalse(ComparadorDeVersao.precisaAtualizar(versaoAtual = "1.0.1-beta", versaoMinima = "1.0.1"))
+        assertTrue(ComparadorDeVersao.precisaAtualizar(versaoAtual = "1.0.0-rc1", versaoMinima = "1.0.1"))
+    }
+
+    @Test
+    fun `espacos em volta da versao nao contam, na atual e na minima`() {
+        assertFalse(ComparadorDeVersao.precisaAtualizar(versaoAtual = " 1.2.0", versaoMinima = "1.1.0"))
+        assertTrue(ComparadorDeVersao.precisaAtualizar(versaoAtual = "1.0.0", versaoMinima = " 1.1.0 "))
+    }
+
     @Test
     fun `TelaAtualizacaoObrigatoria exibe titulo com semantica heading e botao acessivel`() {
         var atualizou = false
