@@ -48,6 +48,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
@@ -333,11 +334,13 @@ internal fun CampoDeSenhaComRevelacaoBreve(
     valor: String,
     aoMudar: (String) -> Unit,
     rotulo: String,
-    dica: String,
+    dica: String? = null,
+    erro: String? = null,
     habilitado: Boolean,
     keyboardOptions: KeyboardOptions,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     ocultarAoEnviar: Boolean = false,
+    revelacaoBreve: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var valorCampo by remember { mutableStateOf(TextFieldValue(valor, selection = TextRange(valor.length))) }
@@ -395,11 +398,11 @@ internal fun CampoDeSenhaComRevelacaoBreve(
         }
     }
 
-    val visualTransformation = remember(visivel, intervaloRevelado) {
-        if (visivel) {
-            VisualTransformation.None
-        } else {
-            MascaramentoDeSenhaComRevelacaoBreve(intervaloRevelado = intervaloRevelado)
+    val visualTransformation = remember(visivel, intervaloRevelado, revelacaoBreve) {
+        when {
+            visivel -> VisualTransformation.None
+            revelacaoBreve -> MascaramentoDeSenhaComRevelacaoBreve(intervaloRevelado = intervaloRevelado)
+            else -> PasswordVisualTransformation()
         }
     }
 
@@ -412,7 +415,7 @@ internal fun CampoDeSenhaComRevelacaoBreve(
         aoMudar = { novo ->
             val textoMudou = novo.text != valorCampo.text
             if (textoMudou) {
-                if (!visivel) {
+                if (revelacaoBreve && !visivel) {
                     intervaloRevelado = intervaloCaractereRecemDigitado(valorCampo, novo)
                     if (intervaloRevelado != null) {
                         cicloRevelacao += 1
@@ -428,6 +431,7 @@ internal fun CampoDeSenhaComRevelacaoBreve(
         },
         rotulo = rotulo,
         dica = dica,
+        erro = erro,
         habilitado = habilitado,
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
