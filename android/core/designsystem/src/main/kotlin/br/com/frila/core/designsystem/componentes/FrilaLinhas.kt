@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -158,6 +160,33 @@ fun FrilaLinhaDeOpcao(
                 modifier = Modifier.size(24.dp),
             )
         }
+    }
+}
+
+/**
+ * Linha de interruptor (ligado ou desligado, que a pessoa pode desfazer): o rótulo à esquerda e o `Switch` à direita. A linha inteira
+ * é o alvo (48 dp no mínimo) e se anuncia como interruptor (`Role.Switch`, com o estado), não como botão de opção. Para escolha única
+ * entre várias, use [FrilaLinhaDeOpcao]. [editavel] falso desliga o toque.
+ */
+@Composable
+fun LinhaDeInterruptor(
+    rotulo: String,
+    ligado: Boolean,
+    editavel: Boolean,
+    aoMudar: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = FrilaMetricas.alvoMinimo)
+            .toggleable(value = ligado, enabled = editavel, role = Role.Switch, onValueChange = aoMudar)
+            .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.item),
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(rotulo, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta, modifier = Modifier.weight(1f))
+        Switch(checked = ligado, onCheckedChange = null, enabled = editavel)
     }
 }
 
