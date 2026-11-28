@@ -208,6 +208,49 @@ class FuncoesEHorariosViewModelTest {
         assertEquals("Informe horários válidos no formato HH:mm.", vm.estado.value.erroValidacaoHorario)
     }
 
+    // ---- O8VICMDx: as bordas da hora, como o contrato pede (HoraDoDia ^([01][0-9]|2[0-3]):[0-5][0-9]$) ----
+
+    @Test
+    fun `23h59 e a ultima hora aceita, e 24h00 e recusada`() {
+        val vm = ServidorFalso().viewModel()
+
+        assertTrue(vm.adicionarJanela(diaSemana = 1, inicio = "22:00", fim = "23:59"))
+        assertFalse(vm.adicionarJanela(diaSemana = 2, inicio = "24:00", fim = "02:00"))
+        assertEquals(TextosFuncoesEHorarios.ERRO_FORMATO_HORA, vm.estado.value.erroValidacaoHorario)
+    }
+
+    @Test
+    fun `minuto 60 e recusado`() {
+        val vm = ServidorFalso().viewModel()
+
+        assertFalse(vm.adicionarJanela(diaSemana = 3, inicio = "10:60", fim = "12:00"))
+        assertEquals(TextosFuncoesEHorarios.ERRO_FORMATO_HORA, vm.estado.value.erroValidacaoHorario)
+    }
+
+    @Test
+    fun `hora e minuto de um digito ficam com dois digitos na janela`() {
+        val vm = ServidorFalso().viewModel()
+
+        assertTrue(vm.adicionarJanela(diaSemana = 2, inicio = "8:5", fim = "9:00"))
+
+        val janela = vm.estado.value.disponibilidades.single { it.diaSemana == 2 }
+        assertEquals("08:05", janela.inicio)
+        assertEquals("09:00", janela.fim)
+    }
+
+    @Test
+    fun `a hora de um digito chega ao servidor com dois digitos`() {
+        val servidor = ServidorFalso()
+        val vm = servidor.viewModel()
+        runBlocking { vm.carregar().join() }
+
+        assertTrue(vm.adicionarJanela(diaSemana = 4, inicio = "8:00", fim = "16:30"))
+        runBlocking { vm.salvar().join() }
+
+        val enviadas = servidor.atualizacoes.single().disponibilidades.orEmpty()
+        assertTrue("enviadas: $enviadas", enviadas.any { it.diaSemana == 4 && it.inicio == "08:00" && it.fim == "16:30" })
+    }
+
     @Test
     fun `adicionar janela valida inclui nova faixa e limpa erro`() = runBlocking {
         val servidor = ServidorFalso()
