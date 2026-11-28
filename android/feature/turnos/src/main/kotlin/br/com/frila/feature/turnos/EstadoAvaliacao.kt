@@ -11,8 +11,8 @@ data class EstadoAvaliacao(
     val mensagemErro: String? = null,
 )
 
-/** Mesmo sentido dos avisos de avaliação offline e recusa do iOS. */
+/** Textos do iOS por extenso (`TextosDoProfissional.swift:357`, `TextosDaPresenca.swift:112`). */
 object TextosDaFilaDeAvaliacao {
-    const val NA_FILA = "Sua avaliação está guardada neste aparelho e será enviada quando a internet voltar."
-    const val RECUSADA = "A avaliação guardada neste aparelho não foi registrada. Esse envio não será repetido."
+    const val NA_FILA = "Avaliação salva. Será enviada quando a internet voltar."
+    const val RECUSADA = "A avaliação guardada neste aparelho não foi registrada. Você pode tentar novamente quando a avaliação estiver disponível."
 }
