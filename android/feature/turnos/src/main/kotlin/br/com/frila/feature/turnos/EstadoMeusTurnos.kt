@@ -30,13 +30,30 @@ data class ItemTurno(
     val comprovante: ComprovanteCheckin? = null,
     /** O ponto da vaga (`VagaResumo.ponto`): sem ele o check-in não mede a distância e vira manual (C0-7). */
     val pontoDaVaga: Coordenada? = null,
+    /** O endereço da vaga (`VagaResumo.local`), para o "Ver no mapa"; o atalho só aparece com [pontoDaVaga]. */
+    val local: String? = null,
     /** C0-9: id do perfil público da casa (`Turno.contraparte`), o alvo de "Denunciar" como no iOS (`TelaMeuTurno.swift:125`). */
     val contraparteId: String? = null,
     /** L1-4: quando o check-out foi registrado (`Turno.checkout_em`); `null` enquanto não houve. */
     val checkoutEm: Instant? = null,
     /** L2-1 (US14): quando o profissional avisou "Estou a caminho" (`Turno.a_caminho_em`); `null` enquanto não avisou. */
     val aCaminhoEm: Instant? = null,
-)
+    /** A vaga do turno (`Turno.vaga.id`): é por ela que se lê o responsável do local (`detalhe_vaga`). */
+    val vagaId: String = "",
+    /** Quem recebe o profissional no local (`Vaga.responsavel_local`, lido do `detalhe_vaga`); `null` até a leitura, ou sem ela. */
+    val quemRecebe: String? = null,
+) {
+    /**
+     * O que o cartão do turno agendado mostra depois de "Quem recebe:": o responsável do local ou, sem ele (ainda não lido, 404, em branco),
+     * o nome da casa, como o iOS (`MeuTurnoViewModel.quemRecebeExibicao`). O histórico não mostra a linha.
+     */
+    val quemRecebeNaTela: String?
+        get() = if (estado == ESTADO_AGENDADO) quemRecebe?.takeIf { it.isNotBlank() } ?: estabelecimentoNome else null
+
+    private companion object {
+        const val ESTADO_AGENDADO = "confirmada"
+    }
+}
 
 /** A recusa do "Estou a caminho" de um turno (L2-1). */
 data class ErroDoACaminho(val turnoId: String, val mensagem: String)

@@ -223,4 +223,93 @@ class TelaAvaliacaoTest {
         } finally { escopo.coroutineContext[kotlinx.coroutines.Job]?.cancel(); cliente.close() }
     }
 
+    // MO7DkVA2: o 409 avaliacao_ja_registrada deixa a tela em "já avaliado": sem botões de avaliar, com a resposta gravada relida do turno.
+    /** [avaliadoAoAbrir]: a leitura de abertura já traz a avaliação; senão ela só aparece na releitura do 409. */
+    private fun viewModelComConflito(gravada: Boolean?, avaliadoAoAbrir: Boolean = false): AvaliacaoViewModel {
+        val leituras = java.util.concurrent.atomic.AtomicInteger(0)
+        val turno = """
+            [{"id": "$turnoId", "posicao_id": "p1",
+              "vaga": {"id": "v1", "funcao": "garçom", "local": "CLS 405", "regiao_administrativa": "Plano Piloto",
+                       "inicio_em": "2026-11-01T21:00:00Z", "fim_em": "2026-11-02T03:00:00Z", "valor_centavos": 16000},
+              "contraparte": {"id": "c1", "tipo": "estabelecimento", "nome": "Bar do Zé",
+                              "reputacao": {"positivas": 1, "total": 1, "turnos_considerados": 1, "turnos_realizados": 1}},
+              "verificacao": "verificado", "valor_acordado_centavos": 16000, "pode_avaliar": false, "estado": "cumprida",
+              "avaliacao": ${gravada?.let { """{"turno_id": "$turnoId", "resposta": $it, "criada_em": "2026-11-02T04:00:00Z"}""" } ?: "null"},
+              "cancelamento": null}]
+        """.trimIndent()
+        val cabecalho = headersOf(HttpHeaders.ContentType, "application/json")
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { request ->
+                if (request.url.encodedPath.endsWith("/avaliar")) {
+                    respond("""{"code":"avaliacao_ja_registrada","message":"sintetico"}""", HttpStatusCode.Conflict, cabecalho)
+                } else {
+                    val n = leituras.incrementAndGet()
+                    respond(if (n == 1 && !avaliadoAoAbrir) "[]" else turno, HttpStatusCode.OK, cabecalho)
+                }
+            },
+        )
+        return AvaliacaoViewModel(servicoTurnos = ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Main))
+    }
+
+    /**
+     * Af5BOu4u, gêmeo do 6sHHfHUd: em produção o view model roda no `viewModelScope` (a thread principal). Com o escopo de
+     * [viewModelComConflito] em `Dispatchers.Default`, a emissão de JA_AVALIADO saía de uma thread de fundo e, de vez em quando, a
+     * árvore não a refletia na asserção seguinte (MEDIDO em "ao abrir": 4 em 200 com Default, 0 em 200 com Main; a falha do "409
+     * avaliacao_ja_registrada" na main tem o mesmo sintoma; o mecanismo exato é DEDUZIDO, não provado). Na thread principal o trabalho
+     * só anda quando ela é processada, e por isso a espera faz `waitForIdle()` a cada checagem.
+     */
+    private fun aguardarEstado(vm: AvaliacaoViewModel, esperado: StatusAvaliacao) =
+        compose.waitUntil(5000) {
+            compose.waitForIdle()
+            vm.estado.value.status == esperado
+        }
+
+    @Test
+    fun `409 avaliacao_ja_registrada mostra turno ja avaliado com a resposta gravada e sem botoes de avaliar`() {
+        val viewModel = viewModelComConflito(gravada = true)
+
+        compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
+
+        compose.onNodeWithText("Não trabalharia").performClick()
+        aguardarEstado(viewModel, StatusAvaliacao.JA_AVALIADO)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
+        compose.onNodeWithText("A avaliação registrada: você recomendou este local.").assertIsDisplayed()
+        compose.onNodeWithText("Sim, trabalharia").assertDoesNotExist()
+        compose.onNodeWithText("Não trabalharia").assertDoesNotExist()
+        compose.onNodeWithText("Voltar").assertIsDisplayed()
+    }
+
+    @Test
+    fun `409 sem a resposta na releitura mostra turno ja avaliado sem afirmar a resposta`() {
+        val viewModel = viewModelComConflito(gravada = null)
+
+        compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
+
+        compose.onNodeWithText("Sim, trabalharia").performClick()
+        aguardarEstado(viewModel, StatusAvaliacao.JA_AVALIADO)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Este turno já tem uma avaliação registrada.").assertIsDisplayed()
+        compose.onNodeWithText("Sim, trabalharia").assertDoesNotExist()
+        compose.onNodeWithText("Não trabalharia").assertDoesNotExist()
+    }
+
+    @Test
+    fun `ao abrir, turno que ja tem avaliacao mostra turno ja avaliado direto, sem a pergunta e sem tocar`() {
+        val viewModel = viewModelComConflito(gravada = false, avaliadoAoAbrir = true)
+
+        compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
+        aguardarEstado(viewModel, StatusAvaliacao.JA_AVALIADO)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
+        compose.onNodeWithText("A avaliação registrada: você não recomendou este local.").assertIsDisplayed()
+        compose.onNodeWithText("Sim, trabalharia").assertDoesNotExist()
+        compose.onNodeWithText("Não trabalharia").assertDoesNotExist()
+    }
 }
+

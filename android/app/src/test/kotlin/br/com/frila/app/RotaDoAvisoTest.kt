@@ -29,6 +29,7 @@ class RotaDoAvisoTest {
 
     private val candidatos = "candidatos_da_vaga/$vaga"
     private val turnoDaCasa = "turno_do_contratante_aviso/casa-1/$turno"
+    private val chamadasDaVaga = "chamada/acompanhar/$vaga"
 
     private val casos = listOf(
         Caso(AvisoDoToque("vaga", vagaId = vaga), Rotas.detalhe(vaga)),
@@ -56,9 +57,9 @@ class RotaDoAvisoTest {
         Caso(AvisoDoToque("midia_recusada"), null),
         Caso(AvisoDoToque("chamada_recebida", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("chamada_lembrete", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
-        Caso(AvisoDoToque("chamada_aceita", vagaId = vaga, chamadaId = chamada), null),
-        Caso(AvisoDoToque("chamada_recusada", vagaId = vaga, chamadaId = chamada), null),
-        Caso(AvisoDoToque("chamada_expirada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
+        Caso(AvisoDoToque("chamada_aceita", vagaId = vaga, chamadaId = chamada), null, chamadasDaVaga),
+        Caso(AvisoDoToque("chamada_recusada", vagaId = vaga, chamadaId = chamada), null, chamadasDaVaga),
+        Caso(AvisoDoToque("chamada_expirada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada", chamadasDaVaga),
         Caso(AvisoDoToque("chamada_cancelada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("chamada_encerrada", vagaId = vaga, chamadaId = chamada), "chamada/recebida/$chamada"),
         Caso(AvisoDoToque("turno_nao_verificado", turnoId = turno), Rotas.turnoAviso(turno), turnoDaCasa),
@@ -93,6 +94,17 @@ class RotaDoAvisoTest {
             assertEquals(caso.aviso.toString(), caso.casa ?: casa.rotaDeMinhasVagas, rotaDoAviso(caso.aviso, casa))
         }
         assertEquals(casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque("tipo_futuro", vagaId = vaga), casa))
+    }
+
+    @Test
+    fun `para a casa, a chamada aceita com turno vai ao turno, e vaga_id invalido das chamadas cai em Minhas vagas`() {
+        assertEquals(turnoDaCasa, rotaDoAviso(AvisoDoToque("chamada_aceita", vagaId = vaga, turnoId = turno, chamadaId = chamada), casa))
+        assertEquals(chamadasDaVaga, rotaDoAviso(AvisoDoToque("chamada_aceita", vagaId = vaga, turnoId = "turno-1", chamadaId = chamada), casa))
+        for (tipo in listOf("chamada_aceita", "chamada_recusada", "chamada_expirada")) {
+            assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, vagaId = "vaga-1", chamadaId = chamada), casa))
+            assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, vagaId = "../detalhe/x", chamadaId = chamada), casa))
+            assertEquals(tipo, casa.rotaDeMinhasVagas, rotaDoAviso(AvisoDoToque(tipo, chamadaId = chamada), casa))
+        }
     }
 
     @Test

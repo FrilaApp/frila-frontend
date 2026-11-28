@@ -58,6 +58,8 @@ fun TelaDetalheChamadaRecebida(
     aoAbrirTurno: ((turnoId: String) -> Unit)? = null,
     /** Denúncia e bloqueio de quem chamou (CD-RF12); a tela só reserva o lugar, o chamador traz o conteúdo. */
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
+    /** Bloqueada a casa, a chamada não se responde mais (o servidor a encerra, RF26): some o rodapé de aceitar e recusar. */
+    bloqueado: Boolean = false,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -72,6 +74,7 @@ fun TelaDetalheChamadaRecebida(
         aoVoltar = aoVoltar,
         aoAbrirTurno = aoAbrirTurno ?: { aoVoltar() },
         acoesDeSeguranca = acoesDeSeguranca,
+        bloqueado = bloqueado,
         modifier = modifier,
     )
 }
@@ -98,13 +101,16 @@ fun ConteudoDaChamadaRecebida(
     aoAbrirTurno: (String) -> Unit,
     modifier: Modifier = Modifier,
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
+    bloqueado: Boolean = false,
 ) {
     val detalhe = tela.detalhe
     val resultado = tela.resultado
-    val aceita = resultado != null && resultado.chamada.estado == "aceita"
+    // Aceita pelo resultado deste toque ou pelo detalhe de uma chamada reaberta (push, lista) ou conferida depois de um erro.
+    val aceita = tela.chamadaAceita
+    val turnoAceito = tela.turnoAceito
     val recusada = resultado != null && resultado.chamada.estado == "recusada"
     // Decidindo: a chamada está aberta e sem resposta. Respondendo, o aceite continua no lugar, só desligado.
-    val decidindo = detalhe != null && !aceita && !recusada &&
+    val decidindo = detalhe != null && !aceita && !recusada && !bloqueado &&
         (tela.podeResponder || (tela.respondendo && detalhe.estado == "aberta" && tela.mensagemDeConcorrencia == null))
 
     Scaffold(
@@ -128,11 +134,11 @@ fun ConteudoDaChamadaRecebida(
                         modifier = Modifier.fillMaxWidth().testTag("recusar-chamada"),
                     )
                 }
-            } else if (aceita && resultado?.turnoId != null) {
+            } else if (aceita && turnoAceito != null) {
                 RodapeAncorado {
                     BotaoPrimario(
                         texto = TextosChamadaProfissional.VER_TURNO,
-                        aoClicar = { aoAbrirTurno(resultado.turnoId!!) },
+                        aoClicar = { aoAbrirTurno(turnoAceito) },
                         modifier = Modifier.fillMaxWidth().testTag("ver-turno-aceito"),
                     )
                 }
@@ -155,7 +161,7 @@ fun ConteudoDaChamadaRecebida(
                     aoTentarNovamente = aoTentarNovamente,
                     modifierDoBotao = Modifier.testTag("tentar-novamente-chamada"),
                 )
-                aceita -> Aceita(resultado!!.local, resultado.responsavelLocal)
+                aceita -> Aceita(resultado?.local ?: detalhe.local, resultado?.responsavelLocal ?: detalhe.responsavelLocal)
                 recusada -> {
                     AvisoFrila(
                         tom = TomAviso.INFORMATIVO,

@@ -3,6 +3,7 @@ package br.com.frila.feature.perfil
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.regra.instanteDoServidor
+import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoTurnos
 import br.com.frila.core.rede.TurnoDto
@@ -242,7 +243,14 @@ class HistoricoDeTurnosViewModel(
                 val mensagem = if (erro.codigoOriginal == "intervalo_maximo_excedido") {
                     TextosHistoricoDeTurnos.INTERVALO_MAXIMO_EXCEDIDO
                 } else {
-                    erro.message ?: TextosHistoricoDeTurnos.ERRO_DESCONHECIDO
+                    // O `message` do ErroDaApi é o texto de depuração (`ErroDaApi(codigo=..., codigoOriginal=...)`): não vai à tela.
+                    when (erro.codigo) {
+                        CodigoErroAPI.SEM_REDE -> TextosHistoricoDeTurnos.SEM_REDE
+                        CodigoErroAPI.NAO_AUTENTICADO -> TextosHistoricoDeTurnos.SESSAO_EXPIRADA
+                        CodigoErroAPI.SEM_PERMISSAO, CodigoErroAPI.PERFIL_INCOMPATIVEL -> TextosHistoricoDeTurnos.SEM_PERMISSAO
+                        CodigoErroAPI.LIMITE_EXCEDIDO -> TextosHistoricoDeTurnos.LIMITE_EXCEDIDO
+                        else -> TextosHistoricoDeTurnos.ERRO_DESCONHECIDO
+                    }
                 }
                 _estado.update { it.copy(estado = EstadoHistorico.Erro(mensagem, repetivel)) }
             } catch (_: Exception) {

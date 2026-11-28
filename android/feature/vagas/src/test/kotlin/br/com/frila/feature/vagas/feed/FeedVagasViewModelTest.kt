@@ -155,6 +155,80 @@ class FeedVagasViewModelTest {
         assertTrue(!viewModel.estado.value.semPontoBase)
     }
 
+    // ZffCGTCS: conta de contratante recebe `422 perfil_incompativel`; "tentar de novo" falharia sempre (paridade com `FalhaDaLista.perfilIncompativel` do iOS).
+
+    private val textoPerfilIncompativel = "Esta lista é para quem trabalha como profissional."
+
+    @Test
+    fun `422 perfil_incompativel marca perfilIncompativel, com o texto da lista e sem virar falta de ponto base`() = runBlocking {
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                respond(
+                    content = """{"code":"perfil_incompativel","message":"perfil_incompativel","details":null}""",
+                    status = HttpStatusCode.UnprocessableEntity,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        viewModel.carregar().join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        assertTrue(viewModel.estado.value.perfilIncompativel)
+        assertEquals(textoPerfilIncompativel, viewModel.estado.value.mensagemErro)
+        assertTrue(!viewModel.estado.value.semPontoBase)
+    }
+
+    @Test
+    fun `outros erros nao marcam perfilIncompativel e recarregar com sucesso limpa a marca`() = runBlocking {
+        var resposta = """{"code":"perfil_incompativel","message":"x"}"""
+        var status = HttpStatusCode.UnprocessableEntity
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = resposta, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.carregar().join()
+        assertTrue(viewModel.estado.value.perfilIncompativel)
+
+        // Recarregar com sucesso, logo depois do erro de perfil, limpa a marca (sem passar por outro erro antes).
+        resposta = "[]"
+        status = HttpStatusCode.OK
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.VAZIO, viewModel.estado.value.status)
+        assertTrue(!viewModel.estado.value.perfilIncompativel)
+
+        for ((corpo, http) in listOf(
+            """{"code":"campo_invalido","message":"x","details":"limite"}""" to HttpStatusCode.UnprocessableEntity,
+            """{"code":"sem_permissao","message":"x"}""" to HttpStatusCode.Forbidden,
+            """{"code":"PGRST500","message":"erro"}""" to HttpStatusCode.InternalServerError,
+        )) {
+            resposta = corpo
+            status = http
+            viewModel.carregar().join()
+            assertEquals(StatusFeed.ERRO, viewModel.estado.value.status, corpo)
+            assertTrue(!viewModel.estado.value.perfilIncompativel, corpo)
+            assertTrue(viewModel.estado.value.mensagemErro != textoPerfilIncompativel, corpo)
+        }
+
+    }
+
+    @Test
+    fun `um erro de perfil seguido de outro erro tambem desmarca perfilIncompativel`() = runBlocking {
+        var resposta = """{"code":"perfil_incompativel","message":"x"}"""
+        var status = HttpStatusCode.UnprocessableEntity
+        val viewModel = viewModelComEngine(
+            MockEngine { respond(content = resposta, status = status, headers = headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        viewModel.carregar().join()
+        assertTrue(viewModel.estado.value.perfilIncompativel)
+
+        resposta = """{"code":"PGRST500","message":"erro"}"""
+        status = HttpStatusCode.InternalServerError
+        viewModel.carregar().join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        assertTrue(!viewModel.estado.value.perfilIncompativel)
+    }
+
     @Test
     fun `filtro de distancia 5km exclui vaga mais distante`() = runBlocking {
         val viewModel = viewModelComEngine(
@@ -538,6 +612,32 @@ class FeedVagasViewModelTest {
     }
 
     @Test
+    fun `atualizarEmSilencio troca a lista sem indicador, e a falha deixa a lista sem mensagem de erro (HaRJJ0L0)`() = runBlocking {
+        var chamada = 0
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                chamada++
+                when (chamada) {
+                    1 -> respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                    2 -> respond("[${vagaJson(id = "2", funcao = "barista")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                    else -> respond("""{"code": "500", "message": "erro"}""", HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+        viewModel.carregar().join()
+        assertEquals("garçom", viewModel.estado.value.vagas.single().funcaoNome)
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals("barista", viewModel.estado.value.vagas.single().funcaoNome, "a lista nova substituiu a velha")
+        assertEquals(false, viewModel.estado.value.atualizando, "sem indicador de atualização")
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals("barista", viewModel.estado.value.vagas.single().funcaoNome, "a falha deixa a lista como estava")
+        assertEquals(null, viewModel.estado.value.mensagemErro, "a falha silenciosa não vira mensagem de erro")
+        assertEquals(StatusFeed.SUCESSO, viewModel.estado.value.status)
+    }
+
+    @Test
     fun `filtro de remuneracao por hora exclui vagas abaixo do minimo selecionado (RF05, RN01)`() = runBlocking {
         // Todas as vagas duram 4 horas (18:00 às 22:00)
         // Vaga A: R$ 80,00 total = R$ 20,00/h
@@ -911,5 +1011,86 @@ class FeedVagasViewModelTest {
         viewModel.atualizar().join()
 
         assertEquals(OpcaoOrdenacaoVagas.MAIOR_VALOR, viewModel.estado.value.opcaoOrdenacao)
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao rele antes da carga nem com a tela em ERRO, e nao mexe no estado (HaRJJ0L0)`() = runBlocking {
+        var pedidos = 0
+        var falhar = true
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                pedidos++
+                if (falhar) {
+                    respond("""{"code": "perfil_incompativel", "message": "x"}""", HttpStatusCode.UnprocessableEntity, headersOf(HttpHeaders.ContentType, "application/json"))
+                } else {
+                    respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+                }
+            },
+        )
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(0, pedidos, "antes da carga não chama o servidor")
+        assertEquals(StatusFeed.CARREGANDO, viewModel.estado.value.status)
+
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        val pedidosAntes = pedidos
+        val estadoAntes = viewModel.estado.value
+        falhar = false
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(pedidosAntes, pedidos, "em ERRO não chama o servidor")
+        assertEquals(estadoAntes, viewModel.estado.value, "em ERRO o estado e as marcas de erro ficam como estavam")
+
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.SUCESSO, viewModel.estado.value.status)
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(pedidosAntes + 2, pedidos, "com a lista na tela, relê")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao aplica o que leu se uma carga virou a tela para ERRO enquanto lia (HaRJJ0L0)`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamada = 0
+        val json = headersOf(HttpHeaders.ContentType, "application/json")
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                when (++chamada) {
+                    1 -> respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, json)
+                    2 -> { portao.await(); respond("[${vagaJson(id = "2", funcao = "barista")}]", HttpStatusCode.OK, json) }
+                    else -> respond("""{"code": "500", "message": "erro"}""", HttpStatusCode.InternalServerError, json)
+                }
+            },
+        )
+        viewModel.carregar().join()
+        val silenciosa = viewModel.atualizarEmSilencio()
+        while (chamada < 2) kotlinx.coroutines.delay(5)
+
+        viewModel.carregar().join()
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status)
+        portao.complete(Unit)
+        silenciosa.join()
+
+        assertEquals(StatusFeed.ERRO, viewModel.estado.value.status, "a releitura que chegou depois não desfaz o erro")
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao abre outra leitura com o puxar para atualizar em voo (HaRJJ0L0)`() = runBlocking {
+        val portao = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var chamada = 0
+        val json = headersOf(HttpHeaders.ContentType, "application/json")
+        val viewModel = viewModelComEngine(
+            MockEngine {
+                if (++chamada == 2) portao.await()
+                respond("[${vagaJson(id = "1", funcao = "garçom")}]", HttpStatusCode.OK, json)
+            },
+        )
+        viewModel.carregar().join()
+        val puxar = viewModel.atualizar()
+        while (chamada < 2) kotlinx.coroutines.delay(5)
+
+        viewModel.atualizarEmSilencio().join()
+        assertEquals(2, chamada, "a releitura silenciosa não abre uma terceira leitura")
+        portao.complete(Unit)
+        puxar.join()
     }
 }

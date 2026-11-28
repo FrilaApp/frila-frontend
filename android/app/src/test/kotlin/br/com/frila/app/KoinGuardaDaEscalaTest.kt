@@ -40,15 +40,23 @@ class KoinGuardaDaEscalaTest {
     private val semRede = ErroDaApi(CodigoErroAPI.SEM_REDE, "sem_rede", null, "sintético")
 
     /** O servidor falso: as [respostas] em ordem (erro ou publicada); guarda cada corpo recebido. */
-    private class Servidor(private val respostas: List<Result<EscalaPublicadaDto>>, private val travarAPrimeira: Boolean = false) {
+    private class Servidor(
+        private val respostas: List<Result<EscalaPublicadaDto>>,
+        private val travarAPrimeira: Boolean = false,
+        /** Com ele, a primeira chamada só responde (com a 1ª resposta) depois de liberada: o teste faz algo com o envio em voo. */
+        private val segurarAPrimeira: kotlinx.coroutines.CompletableDeferred<Unit>? = null,
+    ) {
         val corpos = mutableListOf<NovaEscalaDto>()
         val servico: ServicoVagas = mockk {
             coEvery { listarFuncoes() } returns listOf(FuncaoDto("f1", "Garçom", "Salão"))
             coEvery { publicarEscala(any()) } coAnswers {
                 corpos += firstArg<NovaEscalaDto>()
+                // A resposta é a da ordem de chegada, decidida antes de esperar: outro envio pode chegar enquanto este espera.
+                val ordem = corpos.size
                 // A primeira chamada nunca responde: a pessoa sai da tela com o envio em voo.
-                if (travarAPrimeira && corpos.size == 1) kotlinx.coroutines.awaitCancellation()
-                respostas[corpos.size - 1].getOrThrow()
+                if (travarAPrimeira && ordem == 1) kotlinx.coroutines.awaitCancellation()
+                if (ordem == 1) segurarAPrimeira?.await()
+                respostas[ordem - 1].getOrThrow()
             }
         }
     }
@@ -180,6 +188,58 @@ class KoinGuardaDaEscalaTest {
 
                 assertNull(app.koin.get<GuardaDaEscala>().obter(casa.id), "o logout esvazia a guarda")
                 assertNull(visita(app.koin).estado.value.pendente, "a conta seguinte não herda a escala da que saiu")
+            }
+        } finally { app.close(); Dispatchers.resetMain() }
+    }
+
+    @Test
+    fun `logout com a publicacao em voo, a resposta que chega depois nao deixa a escala da conta que saiu para a seguinte`() {
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val servidor = Servidor(listOf(Result.failure(semRede)), segurarAPrimeira = liberar)
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val app = koinApplication { modules(moduloSeguranca, moduloFeatures, module { single { servidor.servico } }) }
+        try {
+            runBlocking {
+                val daContaA = visita(app.koin)
+                preencher(daContaA)
+                val envio = daContaA.publicar() // em voo: o servidor ainda não respondeu
+
+                app.koin.get<br.com.frila.core.seguranca.ArmazenamentoDeSessao>().limparSessao() // A sai com a tela aberta
+                liberar.complete(Unit) // a resposta de A chega depois: sem rede, a escala de A fica pendente
+                envio.join()
+
+                assertNull(app.koin.get<GuardaDaEscala>().obter(casa.id), "a guarda não pode voltar a ter a escala da conta que saiu")
+                val daContaB = visita(app.koin)
+                assertNull(daContaB.estado.value.pendente, "a conta seguinte, na mesma casa, não herda a escala nem a chave da que saiu")
+                assertEquals("", daContaB.estado.value.nome)
+            }
+        } finally { app.close(); Dispatchers.resetMain() }
+    }
+
+    @Test
+    fun `logout com a publicacao em voo, o sucesso que chega depois nao apaga a escala pendente da conta seguinte`() {
+        val liberar = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val servidor = Servidor(listOf(Result.success(publicada()), Result.failure(semRede)), segurarAPrimeira = liberar)
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val app = koinApplication { modules(moduloSeguranca, moduloFeatures, module { single { servidor.servico } }) }
+        try {
+            runBlocking {
+                val daContaA = visita(app.koin)
+                preencher(daContaA)
+                val envioDeA = daContaA.publicar() // em voo
+
+                app.koin.get<br.com.frila.core.seguranca.ArmazenamentoDeSessao>().limparSessao() // A sai com a tela aberta
+
+                val daContaB = visita(app.koin) // B, na mesma casa, publica e fica sem rede: a escala de B fica pendente
+                preencher(daContaB)
+                daContaB.publicar().join()
+                assertNotNull(app.koin.get<GuardaDaEscala>().obter(casa.id), "a pendência de B foi guardada")
+
+                liberar.complete(Unit) // a resposta de A chega depois, com sucesso: a tela de A tira a casa da guarda
+                envioDeA.join()
+
+                assertNotNull(app.koin.get<GuardaDaEscala>().obter(casa.id), "a tela da conta que saiu não pode apagar a pendência de B")
+                assertEquals(servidor.corpos[1].chave, app.koin.get<GuardaDaEscala>().obter(casa.id)?.pendente?.chave)
             }
         } finally { app.close(); Dispatchers.resetMain() }
     }

@@ -2,7 +2,6 @@ package br.com.frila.app
 
 import br.com.frila.core.dominio.modelo.PapelMembro
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoPerfil
 import br.com.frila.core.rede.ServicoVagas
@@ -47,7 +46,7 @@ class KoinGrafoEquipeDaCasaTest : KoinTest {
 
     private val moduloLocalizacaoFalso = module { single<ProvedorDeLocalizacao> { mockk(relaxed = true) } }
 
-    private fun cliente() = ClienteSupabase(
+    private fun cliente() = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -75,6 +74,7 @@ class KoinGrafoEquipeDaCasaTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }

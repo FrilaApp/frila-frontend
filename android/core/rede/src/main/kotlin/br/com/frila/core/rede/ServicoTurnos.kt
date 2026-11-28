@@ -2,6 +2,7 @@ package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.ResultadoCancelamento
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -25,6 +26,14 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
         val resposta = cliente.http.get(cliente.urlRpc("meus_turnos"))
         return cliente.corpoOuErro(resposta)
     }
+
+    /**
+     * O turno [turnoId] da conta já tem o check-out gravado (`checkout_em`)? Lido de `meus_turnos`. Serve à fila offline: o
+     * reenvio de um check-out já gravado, depois de `fim + 60 min`, volta `422 fora_da_janela` (contrato 0.2.83). Falha de rede
+     * ou de leitura lança, como [listarMeusTurnos]: quem chama decide o que fazer.
+     */
+    suspend fun checkoutGravado(turnoId: String): Boolean =
+        listarMeusTurnos().any { it.id == turnoId && it.checkoutEm != null }
 
     /**
      * `POST /rest/v1/rpc/fazer_checkin`. O chamador só manda a distância já calculada no
@@ -119,6 +128,18 @@ class ServicoTurnos(private val provedorDeCliente: () -> ClienteSupabase) {
         } catch (erro: Exception) {
             Result.failure(erro)
         }
+
+    /**
+     * `GET /rest/v1/rpc/meus_turnos?estabelecimento_id=...`: os turnos **da casa**, para quem é membro dela. Conta de contratante
+     * **sem** `estabelecimento_id` recebe lista vazia (contrato), então a tela do contratante tem de usar este método, não
+     * [listarMeusTurnos]. Não membro: `403 sem_permissao`.
+     */
+    suspend fun listarMeusTurnosDaCasa(estabelecimentoId: String): List<TurnoDto> {
+        val resposta = cliente.http.get(cliente.urlRpc("meus_turnos")) {
+            parameter("estabelecimento_id", estabelecimentoId)
+        }
+        return cliente.corpoOuErro(resposta)
+    }
 
     /**
      * `POST /rest/v1/rpc/avaliar`. Avaliação binária ("Você trabalharia nesse local de novo?",

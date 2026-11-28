@@ -7,10 +7,15 @@ import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.MidiaDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.OffsetDateTime
 
 /** Em que ponto está o envio da foto de perfil. */
 sealed interface EtapaDaFoto {
@@ -26,17 +31,99 @@ sealed interface EtapaDaFoto {
 }
 
 /**
- * Escolher a foto, prepará-la, conferir no aparelho e enviar (L1-3b). Só o envio: ver a foto atual, remover e pedir nova análise são do passo seguinte.
+ * O que `minhas_midias` diz da foto de perfil da conta (a mais recente que não foi removida) e o pedido de nova análise (cartão 1dRm7FAH).
+ */
+data class SituacaoDaFoto(
+    val midia: MidiaDto? = null,
+    /** Já se pediu a nova análise desta foto: o pedido vale uma vez, e o texto passa a dizer isso. */
+    val novaAnaliseJaPedida: Boolean = false,
+    val pedindoNovaAnalise: Boolean = false,
+    /** A falha do último pedido, em texto da tela. */
+    val aviso: String? = null,
+    /** `409 midia_indisponivel` com `details: expurgada`: o arquivo já foi apagado, a nova análise não existe mais e só resta enviar outra foto. */
+    val arquivoExpurgado: Boolean = false,
+) {
+    /** Uma vez por foto `recusada` ou `nao_publicada`, e só se o servidor ainda deixa (`pode_pedir_nova_analise`: o arquivo existe). */
+    val podePedirNovaAnalise: Boolean
+        get() = midia != null && midia.estado in ESTADOS_DE_NOVA_ANALISE && midia.podePedirNovaAnalise &&
+            !novaAnaliseJaPedida && !pedindoNovaAnalise && !arquivoExpurgado
+
+    private companion object {
+        val ESTADOS_DE_NOVA_ANALISE = setOf("recusada", "nao_publicada")
+    }
+}
+
+/**
+ * Escolher a foto, prepará-la, conferir no aparelho e enviar (L1-3b). O envio e, para a foto recusada ou não publicada, ver o estado e pedir a nova análise ([situacao]); ver a foto aprovada e remover são do passo seguinte.
  * As duas operações chegam por função (a ligação é do L1-7): [prepararJpeg] lê a foto escolhida (uma referência em texto) e devolve o JPEG pronto,
  * e [enviar] é o `FluxoDaFotoDePerfil.enviar`.
  */
 class FotoDePerfilViewModel(
     private val prepararJpeg: suspend (String) -> ByteArray,
     private val enviar: suspend (jpeg: ByteArray, enviarMesmoAssim: Boolean) -> SaidaDoEnvioDaFoto,
+    /** `ServicoMidia.minhasMidias`. */
+    private val listarMidias: suspend () -> List<MidiaDto> = { emptyList() },
+    /** `ServicoMidia.pedirNovaAnaliseMidia`. */
+    private val pedirNovaAnaliseMidia: suspend (midiaId: String) -> MidiaDto = { throw IllegalStateException("não ligado") },
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
+    private val _situacao = MutableStateFlow(SituacaoDaFoto())
+    val situacao: StateFlow<SituacaoDaFoto> = _situacao.asStateFlow()
+
+    /**
+     * Lê `minhas_midias` e fica com a foto de perfil mais recente da conta (sem a removida e sem a da casa). Se a leitura falha a tela
+     * segue como sempre, sem foto: enviar continua possível.
+     */
+    fun carregar(): Job = escopoDeTrabalho.launch {
+        val midias = try {
+            listarMidias()
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            return@launch
+        }
+        _situacao.update { it.comMidia(fotoDaConta(midias)) }
+    }
+
+    /**
+     * Pede a nova análise da foto `recusada` ou `nao_publicada` (uma vez; o 200 a leva a `em_analise`). Um pedido por vez. Falhando, mostra
+     * o aviso e relê as mídias (o servidor pode ter mudado o estado), como o iOS.
+     */
+    fun pedirNovaAnalise(): Job {
+        val anterior = _situacao.getAndUpdate { if (it.podePedirNovaAnalise && !ocupada()) it.copy(pedindoNovaAnalise = true, aviso = null) else it }
+        val midia = anterior.midia
+        if (midia == null || !anterior.podePedirNovaAnalise || ocupada()) return escopoDeTrabalho.launch { }
+        return escopoDeTrabalho.launch {
+            try {
+                val nova = pedirNovaAnaliseMidia(midia.id)
+                _situacao.update { it.copy(midia = if (nova.id == it.midia?.id) nova else it.midia, novaAnaliseJaPedida = true) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: Exception) {
+                // O arquivo apagado (`409 midia_indisponivel`, `details: expurgada`, contrato 0.2.54): não há o que reanalisar, só enviar outra foto.
+                val expurgada = erro is ErroDaApi && erro.codigo == CodigoErroAPI.MIDIA_INDISPONIVEL && erro.detalhes == "expurgada"
+                _situacao.update { it.copy(aviso = mensagemDaFalha(erro), arquivoExpurgado = expurgada) }
+                val midias = try { listarMidias() } catch (cancelado: CancellationException) { throw cancelado } catch (_: Exception) { null }
+                if (midias != null) _situacao.update { it.comMidia(fotoDaConta(midias)) }
+            } finally {
+                _situacao.update { it.copy(pedindoNovaAnalise = false) }
+            }
+        }
+    }
+
+    /** Outra foto (outro id) começa sem o que valia para a anterior. */
+    private fun SituacaoDaFoto.comMidia(nova: MidiaDto?): SituacaoDaFoto =
+        copy(midia = nova, arquivoExpurgado = arquivoExpurgado && nova?.id == midia?.id)
+
+    private fun fotoDaConta(midias: List<MidiaDto>): MidiaDto? = midias
+        .filter { it.tipo == "foto_perfil" && it.estabelecimentoId == null && it.estado != "removida" }
+        .maxByOrNull { instanteDaMidia(it.enviadaEm) }
+
+    private fun instanteDaMidia(texto: String?): Instant =
+        texto?.let { runCatching { OffsetDateTime.parse(it).toInstant() }.getOrNull() } ?: Instant.MIN
+
     private val _etapa = MutableStateFlow<EtapaDaFoto>(EtapaDaFoto.Parada)
     val etapa: StateFlow<EtapaDaFoto> = _etapa.asStateFlow()
 
@@ -112,6 +199,7 @@ class FotoDePerfilViewModel(
                 erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhesComoCodigo == CodigoErroAPI.RECURSO_DESLIGADO -> TextosDaFotoDePerfil.ERRO_RECURSO_DESLIGADO
                 erro.codigo == CodigoErroAPI.CONTA_SUSPENSA || "conta_suspensa" in chave -> TextosDaFotoDePerfil.ERRO_CONTA_SUSPENSA
                 erro.codigo == CodigoErroAPI.MIDIA_INVALIDA -> TextosDaFotoDePerfil.ERRO_RECUSADA_PELO_SERVIDOR
+                erro.codigo == CodigoErroAPI.MIDIA_INDISPONIVEL && erro.detalhes == "expurgada" -> TextosDaFotoDePerfil.ERRO_EXPURGADA
                 else -> TextosDaFotoDePerfil.ERRO_INDISPONIVEL_AGORA
             }
         }

@@ -2,6 +2,8 @@ package br.com.frila.app.ui
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,34 +24,63 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** O campo dentro do AlertDialog usa o Android real; o Robolectric cobre só a ação que o abre. */
+/**
+ * A folha de motivos da casa (Vmfnk4gQ) com o Android real: o campo do detalhe e o teclado. O Robolectric cobre a ação que abre a folha e a
+ * lógica dos motivos; aqui o texto digitado de verdade chega ao `cancelar_posicao`.
+ */
 @RunWith(AndroidJUnit4::class)
 class CancelamentoDaPosicaoInstrumentedTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun motivoObrigatorioEDigitadoCancelaAPosicaoEMostraResultado() {
+    private class Cancelamentos {
         var recebido: Pair<String, String>? = null
+    }
+
+    private fun montar(cancelamentos: Cancelamentos) {
         val vm = AcompanhamentoContratanteViewModel(
             contexto = ContextoDoTurnoContratante("turno", "Função sintética", "Casa sintética", null,
                 Instant.EPOCH.plusSeconds(3600), null, null, null, null, null, false, "posicao", "confirmada"),
             confirmar = { error("não confirma presença") },
             relogio = { Instant.EPOCH },
             cancelar = { id, motivo ->
-                recebido = id to motivo
+                cancelamentos.recebido = id to motivo
                 ResultadoCancelamento(id, false, true)
             },
         )
         compose.setContent { FrilaTheme { TelaTurnoDoContratante(vm, {}) } }
         compose.onNodeWithText("Cancelar posição").performScrollTo()
             .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+    }
+
+    @Test fun outroMotivoExigeODetalheDigitadoCancelaAPosicaoEMostraResultado() {
+        val cancelamentos = Cancelamentos()
+        montar(cancelamentos)
+
+        // Sem motivo escolhido, e depois com "Outro motivo" ainda sem o detalhe, o confirmar fica travado e nada é enviado.
         compose.onNodeWithText("Confirmar cancelamento")
-            .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
-        compose.onNodeWithText("Informe um motivo com pelo menos 3 caracteres.").assertIsDisplayed()
-        compose.runOnIdle { assertNull(recebido) }
-        compose.onNodeWithText("Motivo").performTextInput("Imprevisto")
+            .assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).assertIsNotEnabled()
+        compose.onNodeWithText("Outro motivo").performScrollTo().performClick()
+        compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+        compose.runOnIdle { assertNull(cancelamentos.recebido) }
+
+        compose.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").performScrollTo().performTextInput("Imprevisto")
         closeSoftKeyboard()
-        compose.onNodeWithText("Confirmar cancelamento").performClick()
-        compose.runOnIdle { assertEquals("posicao" to "Imprevisto", recebido) }
+        compose.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
+
+        compose.runOnIdle { assertEquals("posicao" to "Imprevisto", cancelamentos.recebido) }
+        compose.onNodeWithText("Posição cancelada. A vaga voltou a procurar profissional.")
+            .performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun motivoDaListaCancelaAPosicaoComOTextoDoMotivoEMostraResultado() {
+        val cancelamentos = Cancelamentos()
+        montar(cancelamentos)
+
+        compose.onNodeWithText("Movimento menor que o esperado").performScrollTo().performClick()
+        compose.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
+
+        compose.runOnIdle { assertEquals("posicao" to "Movimento menor que o esperado", cancelamentos.recebido) }
         compose.onNodeWithText("Posição cancelada. A vaga voltou a procurar profissional.")
             .performScrollTo().assertIsDisplayed()
     }

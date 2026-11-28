@@ -2,6 +2,7 @@
 <resources>
     <!-- Avaliação do Profissional pelo Contratante (Item #27 da Paridade) -->
     <string name="avaliacao_contratante_titulo">Avaliar turno</string>
+    <string name="turno_quem_recebe">Quem recebe: %s</string>
     <string name="avaliacao_contratante_pergunta">Chamaria este profissional de novo?</string>
     <string name="avaliacao_contratante_explicacao">Sua resposta é anônima e compõe a reputação do profissional no Frila. Cada turno concluído conta para o índice de recomendação.</string>
     <string name="avaliacao_contratante_sim">Sim, chamaria</string>
@@ -9,5 +10,9 @@
     <string name="avaliacao_contratante_sucesso">Avaliação registrada</string>
     <string name="avaliacao_contratante_sucesso_sim">Você recomendou este profissional.</string>
     <string name="avaliacao_contratante_sucesso_nao">Você não recomendou este profissional.</string>
+    <string name="avaliacao_contratante_ja_avaliado">Turno já avaliado</string>
+    <string name="avaliacao_contratante_ja_avaliado_sim">A avaliação registrada: você recomendou este profissional.</string>
+    <string name="avaliacao_contratante_ja_avaliado_nao">A avaliação registrada: você não recomendou este profissional.</string>
+    <string name="avaliacao_contratante_ja_avaliado_sem_resposta">Este turno já tem uma avaliação registrada.</string>
     <string name="avaliacao_contratante_voltar">Voltar</string>
 </resources>

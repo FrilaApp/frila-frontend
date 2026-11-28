@@ -25,7 +25,7 @@ class TelaFotoDePerfilTest {
 
     private val toques = mutableListOf<String>()
 
-    private fun mostrar(etapa: EtapaDaFoto) {
+    private fun mostrar(etapa: EtapaDaFoto, situacao: SituacaoDaFoto = SituacaoDaFoto()) {
         toques.clear()
         rule.setContent {
             FrilaTheme {
@@ -35,6 +35,8 @@ class TelaFotoDePerfilTest {
                     aoEnviarMesmoAssim = { toques += "mesmo-assim" },
                     aoEscolherOutra = { toques += "outra" },
                     aoTentarDeNovo = { toques += "de-novo" },
+                    situacao = situacao,
+                    aoPedirNovaAnalise = { toques += "nova-analise" },
                 )
             }
         }
@@ -96,5 +98,86 @@ class TelaFotoDePerfilTest {
         rule.onNodeWithText("Tentar de novo").assertIsDisplayed().performClick()
         rule.onNodeWithText("Escolher outra foto").assertIsDisplayed().performClick()
         assertEquals(listOf("de-novo", "outra"), toques)
+    }
+
+    // ---- Foto recusada ou não publicada (cartão 1dRm7FAH, fatia 1) ----
+
+    private fun midia(estado: String, motivo: String? = null, podePedir: Boolean = true) =
+        MidiaDto(id = "m1", tipo = "foto_perfil", estado = estado, motivoRecusa = motivo, podePedirNovaAnalise = podePedir)
+
+    @Test
+    fun recusadaMostraOEstadoOMotivoEOsDoisBotoes() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("recusada", motivo = "texto_ou_dado_pessoal")))
+
+        rule.onNodeWithText("Foto não publicada").assertIsDisplayed()
+        rule.onNodeWithText("Use uma foto sem texto, telefone, Pix, QR code ou documento.").assertIsDisplayed()
+        rule.onNodeWithText("Tentar outra foto").assertIsDisplayed().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        rule.onNodeWithText("Pedir nova análise").assertIsDisplayed().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        assertEquals(listOf("escolher", "nova-analise"), toques)
+    }
+
+    @Test
+    fun naoPublicadaTemOTextoProprioEOsDoisBotoes() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("nao_publicada")))
+
+        rule.onNodeWithText("Foto não publicada").assertIsDisplayed()
+        rule.onNodeWithText("Não conseguimos analisar sua foto agora. Peça uma nova análise ou tente outra foto.").assertIsDisplayed()
+        rule.onNodeWithText("Pedir nova análise").assertIsDisplayed()
+    }
+
+    @Test
+    fun semPermissaoDoServidorNaoOferecePedirNovaAnalise() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("recusada", podePedir = false)))
+
+        rule.onNodeWithText("Tentar outra foto").assertIsDisplayed()
+        rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
+    }
+
+    @Test
+    fun novaAnaliseJaPedidaTrocaOTextoENaoOfereceDeNovo() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("recusada", motivo = "foto_inadequada"), novaAnaliseJaPedida = true))
+
+        rule.onNodeWithText("A nova análise já foi pedida. Se a foto continuar sem aparecer, tente outra foto.").assertIsDisplayed()
+        rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
+        rule.onNodeWithText("Tentar outra foto").assertIsDisplayed()
+    }
+
+    @Test
+    fun depoisDoPedidoAFotoEstaEmAnalise() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("em_analise", podePedir = false), novaAnaliseJaPedida = true))
+
+        rule.onNodeWithText("Foto em análise").assertIsDisplayed()
+        rule.onNodeWithText(TextosDaFotoDePerfil.TEXTO_EM_ANALISE).assertIsDisplayed()
+        rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
+    }
+
+    @Test
+    fun falhaDoPedidoAparecePerto() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("recusada"), aviso = TextosDaFotoDePerfil.ERRO_SEM_REDE))
+
+        rule.onNodeWithText(TextosDaFotoDePerfil.ERRO_SEM_REDE).assertIsDisplayed()
+        rule.onNodeWithText("Pedir nova análise").assertIsDisplayed()
+    }
+
+    @Test
+    fun semFotoRecusadaATelaSegueComoSempre() {
+        mostrar(EtapaDaFoto.Parada, SituacaoDaFoto(midia = midia("aprovada")))
+
+        rule.onNodeWithText(TextosDaFotoDePerfil.EXPLICACAO).assertIsDisplayed()
+        rule.onNodeWithText("Escolher foto").assertIsDisplayed()
+        rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
+    }
+
+    @Test
+    fun arquivoExpurgadoDizQueFoiApagadoESoOferecePedirOutraFoto() {
+        mostrar(
+            EtapaDaFoto.Parada,
+            SituacaoDaFoto(midia = midia("recusada"), aviso = TextosDaFotoDePerfil.ERRO_EXPURGADA, arquivoExpurgado = true),
+        )
+
+        rule.onNodeWithText("O arquivo dessa foto já foi apagado. Envie outra foto.").assertIsDisplayed()
+        rule.onNodeWithText("Tentar outra foto").assertIsDisplayed().performClick()
+        rule.onNodeWithText("Pedir nova análise").assertDoesNotExist()
+        assertEquals(listOf("escolher"), toques)
     }
 }

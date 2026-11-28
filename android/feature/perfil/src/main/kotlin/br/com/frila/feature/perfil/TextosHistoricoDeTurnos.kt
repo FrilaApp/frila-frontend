@@ -23,6 +23,12 @@ object TextosHistoricoDeTurnos {
     const val TENTAR_NOVAMENTE = "Tentar novamente"
     const val ERRO_DESCONHECIDO = "Não foi possível exportar os turnos. Tente novamente."
 
+    // As recusas da API, com os textos do iOS (`MensagemDoErroAPI.texto`). Nunca a mensagem técnica do `ErroDaApi`.
+    const val SEM_REDE = "Sem conexão. Tente novamente quando a internet voltar."
+    const val SESSAO_EXPIRADA = "Sua sessão expirou. Entre novamente para continuar."
+    const val SEM_PERMISSAO = "Sua conta não pode realizar esta ação."
+    const val LIMITE_EXCEDIDO = "Você fez muitas tentativas. Aguarde antes de tentar novamente."
+
     fun resumo(de: String, ate: String): String =
         if (de == ate) "Em $de" else "De $de a $ate"
 }

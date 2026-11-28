@@ -37,6 +37,8 @@ import androidx.navigation.compose.rememberNavController
 import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
 import br.com.frila.app.falhas.TelaConsentimentoCrashlytics
 import br.com.frila.app.seguranca.CoordenadorDeLogout
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
+import br.com.frila.core.dominio.regra.ListaAtualizavel
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -88,6 +90,7 @@ import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
 import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
+import br.com.frila.feature.vagas.detalhe.TelaFuncaoIncompativel
 import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante
@@ -198,7 +201,7 @@ object Rotas {
     const val TURNO_AVISO = "meus_turnos/{turnoId}"
     const val EXCLUSAO_DE_CONTA = "exclusao_de_conta"
     const val CONTA_SUSPENSA = "conta_suspensa?motivo={motivo}&desde={desde}"
-    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}"
+    const val DENUNCIA = "denuncia/{alvoTipo}/{alvoId}?turnoId={turnoId}&chamadaId={chamadaId}&fotoId={fotoId}"
     const val EQUIPE = "equipe/{estabelecimentoId}"
     const val CADASTRO_ESTABELECIMENTO = "cadastro_estabelecimento"
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
@@ -210,7 +213,7 @@ object Rotas {
     const val TURNO_DO_CONTRATANTE = "turno_do_contratante/{estabelecimentoId}/{vagaId}/{posicaoId}"
     /** O turno da casa aberto pelo toque num push, que traz o `turno_id` e não a vaga nem a posição. */
     const val TURNO_DO_CONTRATANTE_AVISO = "turno_do_contratante_aviso/{estabelecimentoId}/{turnoId}"
-    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}"
+    const val CANDIDATOS_DA_VAGA = "candidatos_da_vaga/{vagaId}?posicoesAbertas={posicoesAbertas}&inicioDaVaga={inicioDaVaga}&estabelecimentoId={estabelecimentoId}"
 
     // Lote 2 do Android (L2-8).
     const val CANCELAR_VAGA = "cancelar_vaga/{vagaId}?inicioDaVaga={inicioDaVaga}"
@@ -225,13 +228,18 @@ object Rotas {
     const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
     const val VAGA_PREENCHIDA = "vaga_preenchida/{vagaId}"
     const val VAGA_ENCERRADA = "vaga_encerrada/{vagaId}"
-    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}"
+    const val FUNCAO_INCOMPATIVEL = "funcao_incompativel/{vagaId}"
+    const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}?estabelecimentoId={estabelecimentoId}"
 
     fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
     fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
     fun vagaPreenchida(vagaId: String) = "vaga_preenchida/$vagaId"
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
-    fun avaliacaoDoContratante(turnoId: String) = "avaliacao_contratante/$turnoId"
+    fun funcaoIncompativel(vagaId: String) = "funcao_incompativel/$vagaId"
+    fun avaliacaoDoContratante(turnoId: String, estabelecimentoId: String? = null): String {
+        val base = "avaliacao_contratante/$turnoId"
+        return if (estabelecimentoId == null) base else "$base?estabelecimentoId=${Uri.encode(estabelecimentoId)}"
+    }
 
     fun codigo(
         email: String,
@@ -277,11 +285,21 @@ object Rotas {
         return if (parametros.isEmpty()) "conta_suspensa" else "conta_suspensa?" + parametros.joinToString("&")
     }
 
-    /** `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). */
-    fun denuncia(alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String? = null, chamadaId: String? = null): String {
+    /**
+     * `alvoId` é o `id` do `PerfilPublico`; `turnoId` e `chamadaId` só associam a denúncia (contrato 0.2.71). `fotoId` é o
+     * `foto_id` do perfil, quando ele veio com foto: só com ele a tela oferece denunciar a foto (`midia_id`, 0.2.54).
+     */
+    fun denuncia(
+        alvoTipo: TipoDeAlvo,
+        alvoId: String,
+        turnoId: String? = null,
+        chamadaId: String? = null,
+        fotoId: String? = null,
+    ): String {
         val parametros = listOfNotNull(
             turnoId?.let { "turnoId=${Uri.encode(it)}" },
             chamadaId?.let { "chamadaId=${Uri.encode(it)}" },
+            fotoId?.let { "fotoId=${Uri.encode(it)}" },
         )
         val base = "denuncia/${alvoTipo.chave}/${Uri.encode(alvoId)}"
         return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
@@ -328,10 +346,11 @@ object Rotas {
      * `posicoesAbertas` e `inicioDaVaga` são opcionais: a tela de origem os informa quando conhece a vaga.
      * O início vai em ISO-8601 UTC, como o contrato o entrega.
      */
-    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null): String {
+    fun candidatosDaVaga(vagaId: String, posicoesAbertas: Int? = null, inicioDaVaga: Instant? = null, estabelecimentoId: String? = null): String {
         val parametros = listOfNotNull(
             posicoesAbertas?.let { "posicoesAbertas=$it" },
             inicioDaVaga?.let { "inicioDaVaga=${Uri.encode(it.toString())}" },
+            estabelecimentoId?.let { "estabelecimentoId=${Uri.encode(it)}" },
         )
         val base = "candidatos_da_vaga/${Uri.encode(vagaId)}"
         return if (parametros.isEmpty()) base else base + "?" + parametros.joinToString("&")
@@ -850,6 +869,10 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: FeedVagasViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    // HaRJJ0L0: relê ao voltar do segundo plano e com um push da conta, em silêncio (a lista não pisca). Sem o ponto central no Koin (testes de navegação que montam o próprio módulo), a rota segue sem a atualização.
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     val estadoFeed by viewModel.estado.collectAsStateWithLifecycle()
                     LaunchedEffect(estadoFeed.status) {
                         if (estadoFeed.status != StatusFeed.CARREGANDO) {
@@ -903,6 +926,9 @@ fun AppNavegacao(
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
                                 },
+                                aoNavegarParaFuncaoIncompativel = { vagaRecusada ->
+                                    navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
+                                },
                             )
                         }
                     } else {
@@ -934,6 +960,9 @@ fun AppNavegacao(
                                 },
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
+                                },
+                                aoNavegarParaFuncaoIncompativel = { vagaRecusada ->
+                                    navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
                                 },
                             )
                         }
@@ -996,6 +1025,25 @@ fun AppNavegacao(
                     } else {
                         FallbackVoltarAoFeed(navController, entrada)
                     }
+                }
+            }
+
+            composable(Rotas.FUNCAO_INCOMPATIVEL) {
+                RotaProtegida(guardaBiometrico) {
+                    TelaFuncaoIncompativel(
+                        // Como o iOS (`ajustarFuncoes` reabre a vaga): o resultado sai da pilha, e salvar ou voltar das
+                        // funções devolve a pessoa ao detalhe da vaga, para tentar de novo.
+                        aoAjustarFuncoes = {
+                            navController.navigate(Rotas.FUNCOES_E_HORARIOS) {
+                                popUpTo(Rotas.FUNCAO_INCOMPATIVEL) { inclusive = true }
+                            }
+                        },
+                        aoVoltarAoFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
                 }
             }
 
@@ -1138,6 +1186,9 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MEUS_TURNOS, atualizacao) { viewModel.atualizarSemPiscar().join() }
+                    }
                     ComConfirmacaoPorCodigo(
                         habilitada = checkinPorCodigoHabilitado,
                         aoPresencaVerificada = { viewModel.carregar() },
@@ -1172,12 +1223,23 @@ fun AppNavegacao(
                 }
             }
 
-            composable(Rotas.AVALIACAO_DO_CONTRATANTE) { entrada ->
+            composable(
+                route = Rotas.AVALIACAO_DO_CONTRATANTE,
+                arguments = listOf(
+                    navArgument("estabelecimentoId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId")
                     val viewModel: AvaliacaoViewModel = koinViewModel()
                     TelaAvaliacaoDoContratante(
                         turnoId = turnoId,
+                        estabelecimentoId = estabelecimentoId,
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
                     )
@@ -1476,6 +1538,7 @@ fun AppNavegacao(
                     navArgument("alvoId") { type = NavType.StringType },
                     navArgument("turnoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("chamadaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("fotoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
@@ -1487,8 +1550,9 @@ fun AppNavegacao(
                     } else {
                         val turnoId = entrada.arguments?.getString("turnoId")
                         val chamadaId = entrada.arguments?.getString("chamadaId")
+                        val fotoId = entrada.arguments?.getString("fotoId")
                         val viewModel: DenunciaViewModel = koinViewModel(
-                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId) },
+                            parameters = { parametersOf(alvoTipo, alvoId, turnoId, chamadaId, fotoId) },
                         )
                         TelaDenuncia(
                             viewModel = viewModel,
@@ -1513,6 +1577,12 @@ fun AppNavegacao(
                     val viewModel: EquipeDeConfiancaViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId) },
                     )
+                    // A tela relê sozinha a cada aparição: só a volta do segundo plano e o push entram (`.nunca` do iOS).
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.EQUIPE_DE_CONFIANCA, atualizacao, AtualizacaoAoAparecer.NUNCA) {
+                            viewModel.atualizarEmSilencio().join()
+                        }
+                    }
                     TelaEquipeDeConfianca(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
@@ -1525,7 +1595,7 @@ fun AppNavegacao(
                         },
                         // Denúncia sem turno associado: o alvo é o perfil público do membro da equipe.
                         aoDenunciar = { profissional ->
-                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
                     )
                 }
@@ -1650,6 +1720,9 @@ fun AppNavegacao(
                     val viewModel: MinhasVagasViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId, nomeEstabelecimento, vagaRecemPublicadaId) },
                     )
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     // L2-3: "Republicar posições em urgência" é uma confirmação na própria lista; cancelar e republicar são telas.
                     var restantesDe by remember { mutableStateOf<ItemMinhaVaga?>(null) }
                     TelaMinhasVagas(
@@ -1662,10 +1735,16 @@ fun AppNavegacao(
                         },
                         aoRepublicarPosicoesRestantes = { item -> restantesDe = item },
                         aoVerCandidatos = { vagaId, posicoesAbertas, inicioDaVaga ->
-                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga))
+                            navController.navigate(Rotas.candidatosDaVaga(vagaId, posicoesAbertas, inicioDaVaga, estabelecimentoId))
                         },
                         aoPublicarVaga = { id -> navController.navigate(Rotas.publicarVaga(id)) },
                         aoPublicarEscala = { id -> navController.navigate(Rotas.publicarEscala(id)) },
+                        // CD-RF09: da vaga que nasceu de uma chamada direta a casa acompanha as chamadas; só com a chave `chamada_direta` ligada.
+                        aoAcompanharChamadas = if (chamadaDiretaHabilitada) {
+                            { vagaId -> navController.navigate(RotasChamadaCasa.acompanhar(vagaId)) }
+                        } else {
+                            null
+                        },
                         aoAcompanharTurno = { vagaId, posicaoId ->
                             navController.navigate(Rotas.turnoDoContratante(estabelecimentoId, vagaId, posicaoId))
                         },
@@ -1717,6 +1796,9 @@ fun AppNavegacao(
             composable(Rotas.MINHAS_CANDIDATURAS) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MinhasCandidaturasViewModel = koinViewModel()
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_CANDIDATURAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     var retirando by remember { mutableStateOf<ItemCandidatura?>(null) }
                     TelaMinhasCandidaturas(
                         viewModel = viewModel,
@@ -1751,8 +1833,9 @@ fun AppNavegacao(
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
                     RotaTurnoDoContratante(
-                        estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty(),
+                        estabelecimentoId = estabelecimentoId,
                         vagaId = entrada.arguments?.getString("vagaId").orEmpty(),
                         posicaoId = entrada.arguments?.getString("posicaoId").orEmpty(),
                         buscarPainel = servicoVagas?.let { servico -> servico::painelEstabelecimento },
@@ -1764,7 +1847,7 @@ fun AppNavegacao(
                         },
                         aoPedirSuporte = pedirSuporte,
                         aoAvaliarTurno = { turnoId ->
-                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId, estabelecimentoId))
                         },
                     )
                 }
@@ -1794,7 +1877,7 @@ fun AppNavegacao(
                         },
                         aoPedirSuporte = pedirSuporte,
                         aoAvaliarTurno = { turnoId ->
-                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId))
+                            navController.navigate(Rotas.avaliacaoDoContratante(turnoId, estabelecimentoId))
                         },
                         aoNaoEncontrar = {
                             val minhasVagas = (papelDaRaiz as? PapelDaRaiz.Contratante)?.rotaDeMinhasVagas ?: Rotas.minhasVagas(estabelecimentoId)
@@ -1813,23 +1896,26 @@ fun AppNavegacao(
                     navArgument("vagaId") { type = NavType.StringType },
                     navArgument("posicoesAbertas") { type = NavType.StringType; nullable = true; defaultValue = null },
                     navArgument("inicioDaVaga") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("estabelecimentoId") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entrada ->
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
+                    // A casa, quando quem abriu a tela a conhece (Minhas vagas); o aviso push só traz a vaga.
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId")
                     // Valor que não é número, negativo ou data inválida vira "não informado": o ViewModel
                     // só perde o aviso da última posição e o prazo, nunca recebe lixo.
                     val posicoesAbertas = entrada.arguments?.getString("posicoesAbertas")?.toIntOrNull()?.takeIf { it >= 0 }
                     val inicioDaVaga = entrada.arguments?.getString("inicioDaVaga")?.let { runCatching { instanteDoServidor(it) }.getOrNull() }
                     val viewModel: CandidatosDaVagaViewModel = koinViewModel(
-                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga) },
+                        parameters = { parametersOf(vagaId, posicoesAbertas, inicioDaVaga, estabelecimentoId) },
                     )
                     TelaCandidatosDaVaga(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
                         // Denúncia sem turno associado: a candidatura ainda não virou turno.
                         aoDenunciar = { profissional ->
-                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id))
+                            navController.navigate(Rotas.denuncia(TipoDeAlvo.PROFISSIONAL, profissional.id, fotoId = profissional.fotoId))
                         },
                     )
                 }

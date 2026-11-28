@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.dominio.modelo.Dinheiro
@@ -303,6 +304,7 @@ class TelaPerfilTest {
             rule.waitForIdle()
 
             rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
             rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
             rule.waitForIdle()
 
@@ -356,6 +358,7 @@ class TelaPerfilTest {
             rule.onAllNodesWithText("Remunerações acordadas").assertCountEquals(0)
 
             rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
             rule.onNodeWithText("Excluir conta").performScrollTo().performClick()
             rule.waitForIdle()
 
@@ -774,7 +777,9 @@ class TelaPerfilTest {
                     TelaPerfil(viewModel = viewModel, aoDeslogar = {})
                 }
             }
-            rule.waitForIdle()
+            // oCBz5Xxn: o avatar salvo entra no estado depois de uma leitura em Dispatchers.IO (carregarAvatarSalvo, ao montar a
+            // tela), que o waitForIdle() não espera. MEDIDO: 1 rodada vermelha em 200 só com o waitForIdle().
+            rule.waitUntil(5_000) { rule.onAllNodesWithContentDescription("Foto de perfil do profissional").fetchSemanticsNodes().isNotEmpty() }
 
             rule.onNodeWithContentDescription("Foto de perfil do profissional").assertIsDisplayed()
             assertTrue(rule.onAllNodesWithContentDescription("Sem foto de perfil cadastrada").fetchSemanticsNodes().isEmpty())
@@ -1543,5 +1548,54 @@ class TelaPerfilTest {
         toggle.assertIsOff()
         toggle.performClick()
         assertEquals(true, alternouPara)
+    }
+
+    // ---- aEKuQB6w: "Sair da conta" pede confirmação, como o "Sair de todos" e como o iOS ----
+
+    @Test
+    fun sairDaContaSoSaiDepoisDeConfirmar() {
+        runBlocking {
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+            )
+            viewModel.carregar().join()
+            var saidas = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = { saidas++ },
+                        aoAbrirExclusaoDeConta = {},
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            // Tocar só abre a confirmação, com os textos do iOS.
+            rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.waitForIdle()
+            assertEquals(0, saidas)
+            rule.onNodeWithText(TextosConfirmarSaida.TITULO).assertIsDisplayed()
+            rule.onNodeWithText(TextosConfirmarSaida.EXPLICACAO).assertIsDisplayed()
+
+            // Cancelar fecha sem sair.
+            rule.onNodeWithTag(TextosConfirmarSaida.TAG_CANCELAR).performClick()
+            rule.waitForIdle()
+            assertEquals(0, saidas)
+            rule.onAllNodesWithText(TextosConfirmarSaida.TITULO).assertCountEquals(0)
+
+            // Sair sai uma vez e fecha a confirmação.
+            rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
+            rule.waitForIdle()
+            assertEquals(1, saidas)
+            rule.onAllNodesWithText(TextosConfirmarSaida.TITULO).assertCountEquals(0)
+        }
     }
 }

@@ -77,8 +77,10 @@ fun TurnoDto.paraItem(): ItemTurno {
         avaliacaoResposta = avaliacao?.resposta,
         comprovante = comprovanteMapeado,
         pontoDaVaga = vaga.ponto?.let { Coordenada(latitude = it.latitude, longitude = it.longitude) },
+        local = vaga.local,
         contraparteId = contraparte.id,
         checkoutEm = checkoutEm?.let { runCatching { instanteDoServidor(it) }.getOrNull() },
         aCaminhoEm = aCaminhoEm?.let { runCatching { instanteDoServidor(it) }.getOrNull() },
+        vagaId = vaga.id,
     )
 }

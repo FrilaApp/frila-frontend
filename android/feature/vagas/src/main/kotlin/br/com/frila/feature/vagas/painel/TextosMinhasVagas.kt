@@ -3,6 +3,8 @@ package br.com.frila.feature.vagas.painel
 /** Textos de Minhas vagas (paridade com `TextosMinhasVagas` de `MinhasVagas.swift`). */
 object TextosMinhasVagas {
     const val TITULO = "Minhas vagas"
+    /** O mesmo texto de `TextosChamadaCasa.ACOMPANHAR_TITULO` (`:feature:chamadas`) e do iOS (`TextosChamadaDireta.acompanharTitulo`). */
+    const val ACOMPANHAR_CHAMADAS = "Acompanhar chamadas"
     const val ROTULO_VOLTAR = "Voltar"
     const val EM_ALERTA = "Precisa de atenção"
     const val HOJE = "Hoje"
@@ -11,6 +13,20 @@ object TextosMinhasVagas {
     const val PUBLICAR_VAGA = "Publicar vaga"
     const val VER_CANDIDATOS = "Ver candidatos"
     const val ACOMPANHAR_TURNO_DE = "Acompanhar turno de %s"
+    /** "Presenças a confirmar" no topo da tela, com os textos do iOS (`TextosDoAcompanhamento`, `TelaTurnoDoContratante.swift`). */
+    const val PRESENCAS_A_CONFIRMAR = "Presenças a confirmar"
+    const val EXPLICACAO_DA_CONFIRMACAO = "Confirme se a pessoa chegou. Sem a sua confirmação, o turno fica como não verificado."
+    const val ACOMPANHAR_TURNO = "Acompanhar turno"
+    const val PROFISSIONAL_CONFIRMADO = "Profissional confirmado"
+    /** Confirmar no cartão: os mesmos textos da tela do turno da casa (`TextosTurnoDoContratante`) e do iOS. */
+    const val CONFIRMAR_PRESENCA = "Confirmar presença"
+    const val CONFIRMANDO = "Confirmando…"
+    const val PRESENCA_CONFIRMADA = "Presença confirmada."
+    const val SITUACAO_MUDOU = "A situação deste turno mudou. Atualizamos a tela."
+    const val ERRO_PRESENCA_NAO_ENCONTRADO = "Não encontramos este turno."
+    const val ERRO_PRESENCA_SEM_PERMISSAO = "Você não tem permissão para confirmar a presença neste turno."
+    const val ERRO_PRESENCA_SEM_REDE = "Sem conexão. A confirmação não foi enviada. Tente de novo quando a internet voltar."
+    const val ERRO_PRESENCA_GENERICO = "Não foi possível confirmar a presença. Tente novamente."
     const val PROFISSIONAL_SEM_NOME = "profissional"
     const val VER_CANDIDATOS_DE = "Ver candidatos da vaga de %s"
     const val RECEM_PUBLICADA = "Recém-publicada"

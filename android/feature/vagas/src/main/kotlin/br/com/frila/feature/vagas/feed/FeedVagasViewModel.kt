@@ -106,7 +106,7 @@ class FeedVagasViewModel(
     }
 
     fun carregar(): Job {
-        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null, semPontoBase = false) }
+        _estado.update { it.copy(status = StatusFeed.CARREGANDO, mensagemErro = null, semPontoBase = false, perfilIncompativel = false) }
         return escopoDeTrabalho.launch {
             try {
                 restaurarPreferencias()
@@ -117,11 +117,20 @@ class FeedVagasViewModel(
                 throw erro
             } catch (erro: Exception) {
                 _estado.update {
-                    it.copy(status = StatusFeed.ERRO, mensagemErro = mensagemDeErro(erro), semPontoBase = faltaPontoBase(erro))
+                    it.copy(
+                        status = StatusFeed.ERRO,
+                        mensagemErro = mensagemDeErro(erro),
+                        semPontoBase = faltaPontoBase(erro),
+                        perfilIncompativel = ehPerfilIncompativel(erro),
+                    )
                 }
             }
         }
     }
+
+    /** Como no iOS (`FalhaDaLista.perfilIncompativel`): a lista é de quem procura turno; conta de contratante recebe `422 perfil_incompativel`. */
+    private fun ehPerfilIncompativel(erro: Exception): Boolean =
+        erro is ErroDaApi && erro.codigo == CodigoErroAPI.PERFIL_INCOMPATIVEL
 
     /** Como no iOS (`FalhaDoFeed.semPontoDeReferencia`): sem ponto base, o servidor não tem de onde medir. */
     private fun faltaPontoBase(erro: Exception): Boolean =
@@ -170,6 +179,30 @@ class FeedVagasViewModel(
             } finally {
                 _estado.update { it.copy(atualizando = false) }
             }
+        }
+    }
+
+    /**
+     * Só com a lista na tela (SUCESSO ou VAZIO) e sem carga ou puxar para atualizar em voo, como o iOS: em CARREGANDO a releitura
+     * disputaria a carga e, se esta falhasse depois, trocaria a lista por erro; em ERRO ela chamaria o servidor à toa e, se a
+     * resposta virasse SUCESSO, deixaria a mensagem de erro e as marcas de `semPontoBase` e `perfilIncompativel` para trás.
+     */
+    private fun podeReler(): Boolean = _estado.value.let { (it.status == StatusFeed.SUCESSO || it.status == StatusFeed.VAZIO) && !it.atualizando }
+
+    /**
+     * Releitura automática (volta do segundo plano, push): troca a lista sem indicador e sem esqueleto, e uma falha deixa a lista
+     * como está, sem mensagem de erro (a tela não pode piscar nem perder o que mostra). Paridade com a releitura em silêncio do iOS.
+     */
+    fun atualizarEmSilencio(): Job = escopoDeTrabalho.launch {
+        if (!podeReler()) return@launch
+        try {
+            val resultado = buscarVagas()
+            // A carga ou um erro pode ter começado durante a leitura: quem manda na tela agora não é esta releitura.
+            if (podeReler()) aplicarResultado(resultado)
+        } catch (erro: CancellationException) {
+            throw erro
+        } catch (_: Exception) {
+            // Segue com o que já está na tela.
         }
     }
 
@@ -316,6 +349,7 @@ class FeedVagasViewModel(
 
     private fun mensagemDeErro(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo?.name) {
         "SEM_REDE" -> "Sem conexão. Verifique sua internet e tente de novo."
+        "PERFIL_INCOMPATIVEL" -> TEXTO_PERFIL_INCOMPATIVEL
         else -> "Não foi possível carregar as vagas. Tente de novo em instantes."
     }
 }

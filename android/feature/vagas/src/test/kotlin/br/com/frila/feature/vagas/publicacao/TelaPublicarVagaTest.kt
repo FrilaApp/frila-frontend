@@ -8,14 +8,17 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -52,6 +55,7 @@ class TelaPublicarVagaTest {
         var refeicao: Boolean? = null
         var maisUma = 0
         var menosUma = 0
+        var alerta: Int? = null
     }
 
     private fun estado(
@@ -82,6 +86,7 @@ class TelaPublicarVagaTest {
                         aoMaisUmaPosicao = { chamadas.maisUma++ },
                         aoMenosUmaPosicao = { chamadas.menosUma++ },
                         aoAlternarRefeicao = { chamadas.refeicao = it; estado = estado.copy(incluiRefeicao = it) },
+                        aoEscolherAlertaAntecedencia = { chamadas.alerta = it; estado = estado.copy(alertaAntecedenciaMin = it) },
                         aoPublicar = { chamadas.publicacoes++ },
                         aoVoltar = { chamadas.voltou++ },
                     ),
@@ -198,9 +203,9 @@ class TelaPublicarVagaTest {
     fun `o total da vaga mostra valor por pessoa vezes as posicoes`() {
         montar(estado { copy(valor = "140", posicoes = "2") })
 
-        rule.onNodeWithText("Total da vaga: R$ 280,00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Total da vaga: R$\u00A0280,00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Soma de 2 pessoas, pago direto a cada uma").assertIsDisplayed()
-        rule.onNodeWithText("Cerca de R$ 46,67 por hora").assertIsDisplayed()
+        rule.onNodeWithText("Cerca de R$\u00A046,67 por hora").assertIsDisplayed()
     }
 
     @Test
@@ -209,7 +214,7 @@ class TelaPublicarVagaTest {
 
         rule.onNodeWithText(TextosPublicarVaga.VALOR).performScrollTo().performTextInput("200")
 
-        rule.onNodeWithText("Total da vaga: R$ 200,00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Total da vaga: R$\u00A0200,00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosPublicarVaga.TOTAL_SINGULAR).assertIsDisplayed()
     }
 
@@ -274,6 +279,37 @@ class TelaPublicarVagaTest {
                 (if (androidx.compose.ui.semantics.SemanticsActions.OnClick in it.config) it.config[androidx.compose.ui.semantics.SemanticsActions.OnClick].label else null) == TextosPublicarVaga.MAIS_OPCOES
             },
         )
+    }
+
+    @Test
+    fun `erro anti-contato nas observacoes aparece no campo, mesmo com mais opcoes fechado, e como erro global`() {
+        montar(
+            estado {
+                copy(
+                    errosDeCampo = mapOf(CampoPublicacao.OBSERVACOES to TextosPublicarVaga.ERRO_ANTI_CONTATO),
+                    erro = ErroGlobalPublicacao.ANTI_CONTATO,
+                )
+            },
+        )
+
+        // "Mais opções" nasce fechado; o erro do campo escondido tem de abri-lo, senão a pessoa só vê o aviso global.
+        rule.onNodeWithText(TextosPublicarVaga.OBSERVACOES).performScrollTo().assertIsDisplayed()
+        rule.onAllNodesWithText(TextosPublicarVaga.ERRO_ANTI_CONTATO).assertCountEquals(2)
+    }
+
+    @Test
+    fun `erro no traje tambem abre mais opcoes`() {
+        montar(estado { copy(errosDeCampo = mapOf(CampoPublicacao.TRAJE to TextosPublicarVaga.CAMPO_INVALIDO), erro = ErroGlobalPublicacao.CONFIRA_CAMPOS) })
+
+        rule.onNodeWithText(TextosPublicarVaga.TRAJE).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `sem erro nos campos de mais opcoes a secao segue fechada`() {
+        montar(estado { copy(errosDeCampo = mapOf(CampoPublicacao.VALOR to TextosPublicarVaga.VALOR_CAMPO), erro = ErroGlobalPublicacao.CONFIRA_CAMPOS) })
+
+        rule.onNodeWithText(TextosPublicarVaga.TRAJE).assertDoesNotExist()
+        rule.onNodeWithText(TextosPublicarVaga.OBSERVACOES).assertDoesNotExist()
     }
 
     @Test
@@ -429,5 +465,41 @@ class TelaPublicarVagaTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
         rule.onNodeWithText(TextosPublicarVaga.PUBLICAR).assertIsEnabled().performClick()
         assertEquals(1, chamadas.publicacoes)
+    }
+
+    // ---- Quando avisar se a vaga seguir vazia (cartão 0Nm8bS1q) ----
+
+    @Test
+    fun `mais opcoes mostra avisar se a vaga seguir vazia com 2, 3 e 6 horas, e 3 horas marcada`() {
+        montar()
+        rule.onNodeWithText(TextosPublicarVaga.ALERTA).assertDoesNotExist()
+
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+
+        rule.onNodeWithText(TextosPublicarVaga.ALERTA).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("2 horas antes").performScrollTo().assertIsDisplayed().assertIsNotSelected()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        rule.onNodeWithText("3 horas antes").performScrollTo().assertIsDisplayed().assertIsSelected()
+        rule.onNodeWithText("6 horas antes").performScrollTo().assertIsDisplayed().assertIsNotSelected()
+    }
+
+    @Test
+    fun `escolher 6 horas chama o ViewModel com 360 e marca so a de 6 horas`() {
+        val chamadas = montar()
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+
+        rule.onNodeWithText("6 horas antes").performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+
+        assertEquals(360, chamadas.alerta)
+        rule.onNodeWithText("6 horas antes").assertIsSelected()
+        rule.onNodeWithText("3 horas antes").assertIsNotSelected()
+    }
+
+    @Test
+    fun `com a publicacao em curso as opcoes do aviso ficam desabilitadas`() {
+        montar(estado { copy(enviando = true) })
+        rule.onNodeWithText(TextosPublicarVaga.MAIS_OPCOES).performScrollTo().performClick()
+
+        rule.onNodeWithText("6 horas antes").performScrollTo().assertIsNotEnabled()
     }
 }

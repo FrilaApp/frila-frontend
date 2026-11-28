@@ -48,8 +48,10 @@ fun TelaAvaliacaoDoContratante(
     viewModel: AvaliacaoViewModel,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A casa de quem avalia: a releitura do turno precisa dela (`meus_turnos` sem `estabelecimento_id` é vazio para o contratante). */
+    estabelecimentoId: String? = null,
 ) {
-    LaunchedEffect(turnoId, viewModel) { viewModel.observar(turnoId) }
+    LaunchedEffect(turnoId, estabelecimentoId, viewModel) { viewModel.observar(turnoId, estabelecimentoId) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     var emEnvio by remember { mutableStateOf<Boolean?>(null) }
     val avaliar = { resposta: Boolean ->
@@ -74,6 +76,10 @@ fun TelaAvaliacaoDoContratante(
             when (estado.status) {
                 StatusAvaliacao.NA_FILA -> AvaliacaoNaFila(aoVoltar)
                 StatusAvaliacao.SUCESSO -> ConfirmacaoAvaliacaoContratante(
+                    resposta = estado.respostaRegistrada,
+                    aoVoltar = aoVoltar,
+                )
+                StatusAvaliacao.JA_AVALIADO -> JaAvaliadoContratante(
                     resposta = estado.respostaRegistrada,
                     aoVoltar = aoVoltar,
                 )
@@ -122,6 +128,37 @@ private fun PerguntaAvaliacaoContratante(
         habilitada = habilitada,
     )
     mensagemErro?.let { MensagemDeAcao(texto = it) }
+}
+
+/** 409 `avaliacao_ja_registrada` (a casa ou outro membro já avaliou este lado do turno): sem botões, com a resposta gravada se o servidor a devolveu. */
+@Composable
+private fun JaAvaliadoContratante(
+    resposta: Boolean?,
+    aoVoltar: () -> Unit,
+) {
+    TituloDaTela(
+        texto = stringResource(R.string.avaliacao_contratante_ja_avaliado),
+        modifier = Modifier.semantics { heading() },
+    )
+    Text(
+        text = when (resposta) {
+            true -> stringResource(R.string.avaliacao_contratante_ja_avaliado_sim)
+            false -> stringResource(R.string.avaliacao_contratante_ja_avaliado_nao)
+            null -> stringResource(R.string.avaliacao_contratante_ja_avaliado_sem_resposta)
+        },
+        style = FrilaTipo.corpo,
+        color = FrilaTema.cores.tinta,
+        modifier = Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
+    )
+    BotaoSecundario(
+        texto = stringResource(R.string.avaliacao_contratante_voltar),
+        aoClicar = aoVoltar,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("voltar-avaliacao-contratante"),
+    )
 }
 
 @Composable

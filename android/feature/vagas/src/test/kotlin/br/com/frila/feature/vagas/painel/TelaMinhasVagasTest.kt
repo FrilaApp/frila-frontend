@@ -51,12 +51,13 @@ class TelaMinhasVagasTest {
         recemPublicada: Boolean = false,
         comecaEm: Duration? = null,
         turnos: List<TurnoDoItem> = emptyList(),
+        chamadaDireta: Boolean = false,
     ) = ItemMinhaVaga(
         id = id, funcao = funcao, local = "SQN 108", inicio = inicio?.let(Instant::parse), fim = fim?.let(Instant::parse),
         valorCentavos = 16_000, selecao = selecao, oculta = oculta, alertaVagaVazia = secao == SecaoMinhasVagas.EM_ALERTA,
         candidatosPendentes = pendentes, totalPosicoes = total, confirmadas = confirmadas, posicoesAbertas = abertas,
         emAtraso = emAtraso, secao = secao, recemPublicada = recemPublicada, podeVerCandidatos = podeVerCandidatos,
-        comecaEm = comecaEm, turnos = turnos,
+        comecaEm = comecaEm, turnos = turnos, chamadaDireta = chamadaDireta,
     )
 
     private fun sucesso(vararg itens: ItemMinhaVaga) = EstadoMinhasVagas(lista = ListaMinhasVagas.Sucesso(itens.toList()))
@@ -68,12 +69,14 @@ class TelaMinhasVagasTest {
         var voltou = 0
         val candidatos = mutableListOf<ItemMinhaVaga>()
         val turnos = mutableListOf<Pair<String, String>>()
+        val acompanhar = mutableListOf<String>()
     }
 
     private fun montar(
         estado: EstadoMinhasVagas,
         nome: String? = "Bar da Lia",
         chamadas: Chamadas = Chamadas(),
+        comAcompanharChamadas: Boolean = false,
     ): Chamadas {
         rule.setContent {
             FrilaTheme {
@@ -87,6 +90,7 @@ class TelaMinhasVagasTest {
                         aoAcompanharTurno = { vagaId, posicaoId -> chamadas.turnos += vagaId to posicaoId },
                         aoPublicarVaga = { chamadas.publicou++ },
                         aoVoltar = { chamadas.voltou++ },
+                        aoAcompanharChamadas = if (comAcompanharChamadas) { vagaId -> chamadas.acompanhar += vagaId } else null,
                     ),
                 )
             }
@@ -129,7 +133,7 @@ class TelaMinhasVagasTest {
         rule.onNodeWithText("Garçom").assertIsDisplayed()
         rule.onNodeWithText("12/11/2026 18:00 – 13/11/2026 00:00").assertIsDisplayed()
         rule.onNodeWithText("SQN 108").assertIsDisplayed()
-        rule.onNodeWithText("R$ 160,00 por pessoa").assertIsDisplayed()
+        rule.onNodeWithText("R$\u00A0160,00 por pessoa").assertIsDisplayed()
         rule.onNodeWithText("3 posições · 1 de 3 confirmadas").assertIsDisplayed()
     }
 
@@ -218,6 +222,26 @@ class TelaMinhasVagasTest {
         assertEquals(2, chamada.posicoesAbertas)
         assertEquals(Instant.parse("2026-11-12T21:00:00Z"), chamada.inicio)
         assertEquals(0, rule.onAllNodesWithContentDescription("Ver candidatos da vaga de Barman").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `acompanhar chamadas aparece so na vaga direta, com a chave ligada, e entrega o id da vaga`() {
+        val chamadas = montar(
+            sucesso(item("direta", funcao = "Garçom", chamadaDireta = true), item("normal", funcao = "Barman")),
+            comAcompanharChamadas = true,
+        )
+
+        assertEquals(1, contar(TextosMinhasVagas.ACOMPANHAR_CHAMADAS))
+        rule.onNodeWithText(TextosMinhasVagas.ACOMPANHAR_CHAMADAS).assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+
+        assertEquals(listOf("direta"), chamadas.acompanhar)
+    }
+
+    @Test
+    fun `sem a chave de chamada direta ligada a vaga direta nao mostra acompanhar chamadas`() {
+        montar(sucesso(item("direta", chamadaDireta = true)), comAcompanharChamadas = false)
+
+        assertEquals(0, contar(TextosMinhasVagas.ACOMPANHAR_CHAMADAS))
     }
 
     @Test

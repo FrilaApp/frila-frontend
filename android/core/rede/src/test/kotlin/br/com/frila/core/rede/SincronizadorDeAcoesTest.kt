@@ -2,6 +2,7 @@ package br.com.frila.core.rede
 
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
@@ -164,5 +165,133 @@ class SincronizadorDeAcoesTest {
         sinc.sincronizar(); sinc.sincronizar()
         assertEquals(listOf(a), enviadas)
         assertTrue(comDisco.pendentes().isEmpty())
+    }
+
+    // ── Check-out já gravado e recusado com fora_da_janela (contrato 0.2.83, cartão foXSrNnS) ──────────────────────
+
+    private val turnosConferidos = mutableListOf<String>()
+    private fun comConferencia(resposta: suspend (String) -> Boolean) = SincronizadorDeAcoes(
+        fila, { conta() }, TipoAcaoPendente.entries.associateWith { envio },
+        checkoutJaGravado = { turno -> turnosConferidos += turno; resposta(turno) },
+    )
+
+    @Test fun `checkout recusado por fora_da_janela com a saida ja gravada sai da fila como enviado, sem aviso de recusa`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        comConferencia { true }.sincronizar()
+        assertEquals(listOf("turno-1"), turnosConferidos)
+        assertTrue(fila.pendentes().isEmpty())
+        assertTrue(fila.recusadas(true).isEmpty(), "a saída gravada não é recusa")
+    }
+
+    @Test fun `checkout recusado por fora_da_janela sem a saida gravada segue recusado como antes`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        comConferencia { false }.sincronizar()
+        assertEquals(listOf(TipoAcaoPendente.CHECKOUT to CodigoErroAPI.FORA_DA_JANELA), fila.recusadas().map { it.tipo to it.codigo })
+        assertTrue(fila.pendentes().isEmpty())
+    }
+
+    @Test fun `conferencia sem rede deixa o checkout na fila e para a passada, nunca o da como enviado`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); val depois = acao(TipoAcaoPendente.AVALIACAO)
+        fila.enfileirar(checkout); fila.enfileirar(depois)
+        falha = { if (it.tipo == TipoAcaoPendente.CHECKOUT) erro(CodigoErroAPI.FORA_DA_JANELA) else null }
+        comConferencia { throw erro(CodigoErroAPI.SEM_REDE) }.sincronizar()
+        assertEquals(listOf(checkout, depois), fila.pendentes())
+        assertTrue(fila.recusadas(true).isEmpty())
+        assertEquals(listOf(checkout), enviadas, "a passada para, como no envio sem rede")
+    }
+
+    @Test fun `conferencia que falha com erro da api que nao e sem rede mantem checkout pendente sem recusa`() = runTest {
+        for (codigo in listOf(CodigoErroAPI.DESCONHECIDO, CodigoErroAPI.RESPOSTA_INVALIDA, CodigoErroAPI.LIMITE_EXCEDIDO)) {
+            val checkout = acao(TipoAcaoPendente.CHECKOUT, turno = "turno-${turnosConferidos.size}")
+            fila.enfileirar(checkout)
+            falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+            comConferencia { throw erro(codigo) }.sincronizar()
+            assertTrue(fila.pendentes().any { it.id == checkout.id }, codigo.name)
+            assertTrue(fila.recusadas(true).none { it.id == checkout.id }, codigo.name)
+            fila.remover(checkout.id)
+        }
+    }
+
+    @Test fun `conferencia que lanca excecao que nao e erro da api mantem checkout pendente sem recusa`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT)
+        fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        comConferencia { throw IllegalStateException("corpo ilegivel") }.sincronizar()
+        assertEquals(listOf(checkout), fila.pendentes())
+        assertTrue(fila.recusadas(true).isEmpty())
+    }
+
+    @Test fun `conferencia com falha transitoria nao trava a proxima acao da fila na mesma passada`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT); val depois = acao(TipoAcaoPendente.AVALIACAO)
+        fila.enfileirar(checkout); fila.enfileirar(depois)
+        falha = { if (it.id == checkout.id) erro(CodigoErroAPI.FORA_DA_JANELA) else null }
+        comConferencia { throw erro(CodigoErroAPI.DESCONHECIDO) }.sincronizar()
+        assertEquals(listOf(checkout), fila.pendentes())
+        assertTrue(fila.recusadas(true).isEmpty())
+        assertEquals(listOf(checkout, depois), enviadas)
+    }
+
+    @Test fun `depois de falha transitoria na conferencia, nova passada com saida gravada resolve e remove`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT)
+        fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        var resposta: suspend (String) -> Boolean = { throw erro(CodigoErroAPI.DESCONHECIDO) }
+        val sinc = comConferencia { turno -> resposta(turno) }
+
+        sinc.sincronizar()
+        assertEquals(listOf(checkout), fila.pendentes())
+        assertTrue(fila.recusadas(true).isEmpty())
+
+        resposta = { true }
+        sinc.sincronizar()
+        assertTrue(fila.pendentes().isEmpty())
+        assertTrue(fila.recusadas(true).isEmpty())
+        assertEquals(listOf("turno-1", "turno-1"), turnosConferidos)
+    }
+
+    @Test fun `a conferencia so acontece no checkout recusado por fora_da_janela`() = runTest {
+        val casos = listOf(
+            acao(TipoAcaoPendente.CHECKOUT, turno = "t-futuro") to erro(CodigoErroAPI.REGISTRO_NO_FUTURO),
+            acao(TipoAcaoPendente.CHECKIN, turno = "t-checkin") to erro(CodigoErroAPI.FORA_DA_JANELA),
+            acao(TipoAcaoPendente.CHECKOUT, turno = "t-aceito") to null,
+        )
+        casos.forEach { fila.enfileirar(it.first) }
+        falha = { a -> casos.first { it.first.id == a.id }.second }
+        comConferencia { true }.sincronizar()
+        assertTrue(turnosConferidos.isEmpty(), "leitura extra só no checkout com fora_da_janela: $turnosConferidos")
+        assertEquals(listOf("t-futuro", "t-checkin"), fila.recusadas().map { it.turnoId })
+    }
+
+    @Test fun `sem a conferencia ligada o checkout com fora_da_janela segue recusado`() = runTest {
+        fila.enfileirar(acao(TipoAcaoPendente.CHECKOUT))
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        sincronizador().sincronizar()
+        assertEquals(listOf(CodigoErroAPI.FORA_DA_JANELA), fila.recusadas().map { it.codigo })
+    }
+
+    @Test fun `checkout sem turnoId com fora_da_janela segue recusado mesmo com conferencia ligada`() = runTest {
+        val checkoutSemTurno = AcaoPendente(TipoAcaoPendente.CHECKOUT, "conta-a", "2026-11-23T12:00:00Z")
+        fila.enfileirar(checkoutSemTurno)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        comConferencia { true }.sincronizar()
+        assertTrue(turnosConferidos.isEmpty())
+        assertTrue(fila.pendentes().isEmpty())
+        assertEquals(listOf(CodigoErroAPI.FORA_DA_JANELA), fila.recusadas().map { it.codigo })
+    }
+
+    @Test fun `cancellationException na conferencia propaga sem recusar nem engolir`() = runTest {
+        val checkout = acao(TipoAcaoPendente.CHECKOUT)
+        fila.enfileirar(checkout)
+        falha = { erro(CodigoErroAPI.FORA_DA_JANELA) }
+        try {
+            comConferencia { throw CancellationException("cancelado") }.sincronizar()
+            fail("esperava CancellationException propagar")
+        } catch (_: CancellationException) {
+            // esperado
+        }
+        assertEquals(listOf(checkout), fila.pendentes())
+        assertTrue(fila.recusadas(true).isEmpty())
     }
 }

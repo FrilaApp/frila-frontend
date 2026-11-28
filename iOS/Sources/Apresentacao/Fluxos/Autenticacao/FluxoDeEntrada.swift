@@ -25,6 +25,7 @@ public struct FluxoDeEntrada: View {
     @State private var recuperacaoVM: RecuperacaoSenhaViewModel?
     @State private var destinoAposDefinirSenha: DestinoCodigo?
     @State private var cadastroVM: CadastroViewModel?
+    @State private var esperaPadraoOTPSegundos: Int = ConfiguracaoApp.cooldownPadraoOTPSegundos
 
     public init(
         api: any ApiCliente,
@@ -62,7 +63,7 @@ public struct FluxoDeEntrada: View {
                 TelaEntrada(
                     viewModel: entradaVM,
                     aoAvancarParaCodigo: { email in
-                        codigoVM = CodigoViewModel(api: api, email: email)
+                        codigoVM = CodigoViewModel(api: api, email: email, esperaInicialSegundos: esperaPadraoOTPSegundos)
                         rotaAtual = .codigo(email: email)
                     },
                     aoEntrarComSenha: { email in
@@ -89,7 +90,7 @@ public struct FluxoDeEntrada: View {
                 } else {
                     EstadoCarregando()
                         .onAppear {
-                            codigoVM = CodigoViewModel(api: api, email: email)
+                            codigoVM = CodigoViewModel(api: api, email: email, esperaInicialSegundos: esperaPadraoOTPSegundos)
                         }
                 }
             case let .senha(email):
@@ -146,7 +147,12 @@ public struct FluxoDeEntrada: View {
                             rotaAtual = .senha(email: emailAtual)
                         },
                         aoAvancarParaCodigo: { emailAtual in
-                            codigoVM = CodigoViewModel(api: api, email: emailAtual, modo: .recuperacao)
+                            codigoVM = CodigoViewModel(
+                                api: api,
+                                email: emailAtual,
+                                modo: .recuperacao,
+                                esperaInicialSegundos: esperaPadraoOTPSegundos
+                            )
                             rotaAtual = .codigoDeRecuperacao(email: emailAtual)
                         }
                     )
@@ -180,7 +186,12 @@ public struct FluxoDeEntrada: View {
                 } else {
                     EstadoCarregando()
                         .onAppear {
-                            codigoVM = CodigoViewModel(api: api, email: email, modo: .recuperacao)
+                            codigoVM = CodigoViewModel(
+                                api: api,
+                                email: email,
+                                modo: .recuperacao,
+                                esperaInicialSegundos: esperaPadraoOTPSegundos
+                            )
                         }
                 }
             case let .definirSenhaAposRecuperacao(manterDispositivoAtual):
@@ -210,6 +221,11 @@ public struct FluxoDeEntrada: View {
                 }
             }
         }
+        .task {
+            if let configuracao = try? await api.configuracaoDoApp() {
+                esperaPadraoOTPSegundos = configuracao.reenviarOTPEmSegundos
+            }
+        }
     }
 
     private func encaminharDestino(_ destino: DestinoCodigo) {
@@ -219,8 +235,13 @@ public struct FluxoDeEntrada: View {
             rotaAtual = .cadastro(email: email)
         case let .destino(destinoFinal):
             aoConcluir(destinoFinal)
-        case let .desafioOTP(email, desafioID):
-            codigoVM = CodigoViewModel(api: api, email: email, modo: .loginDispositivo(desafioID: desafioID))
+        case let .desafioOTP(email, desafioID, reenviarEmSegundos):
+            codigoVM = CodigoViewModel(
+                api: api,
+                email: email,
+                modo: .loginDispositivo(desafioID: desafioID),
+                esperaInicialSegundos: reenviarEmSegundos
+            )
             rotaAtual = .desafioDispositivo(email: email, desafioID: desafioID)
         case let .definirSenha(proximo):
             destinoAposDefinirSenha = proximo

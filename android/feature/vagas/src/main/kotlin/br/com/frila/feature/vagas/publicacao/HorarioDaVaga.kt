@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.publicacao
 
+import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.dominio.regra.AvisoValorDiaria
 import br.com.frila.core.dominio.regra.ReferenciaValorDiaria
 import java.time.Duration
@@ -52,13 +53,8 @@ fun formatarDuracao(duracao: Duration): String {
     }
 }
 
-/** "R$ 1.260,00". Só o formato; o valor nunca passa por ponto flutuante. */
-fun formatarReais(centavos: Long): String {
-    val reais = centavos / 100
-    val resto = centavos % 100
-    val comMilhar = reais.toString().reversed().chunked(3).joinToString(".").reversed()
-    return "R$ $comMilhar,${resto.toString().padStart(2, '0')}"
-}
+/** "R$ 1.260,00", o mesmo texto de [Dinheiro.formatado]; o valor nunca passa por ponto flutuante. */
+fun formatarReais(centavos: Long): String = Dinheiro(centavos).formatado()
 
 /**
  * Lê o valor digitado em reais e devolve centavos: "140", "140,5", "140.50", "R$ 1.400,00".
