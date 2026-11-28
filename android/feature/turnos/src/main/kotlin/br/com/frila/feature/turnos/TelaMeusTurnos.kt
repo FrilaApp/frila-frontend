@@ -94,6 +94,8 @@ fun TelaMeusTurnos(
     relogio: () -> Instant = { Instant.now() },
     /** C0-9: denunciar a casa do turno (id do perfil público, id do turno), como o iOS. Nulo esconde o botão. */
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
+    /** I1PonzKJ: ids dos estabelecimentos que o profissional bloqueou nesta sessão; o cartão do turno deles diz isso, como o iOS. */
+    estabelecimentosBloqueados: Set<String> = emptySet(),
     /** Pedir ajuda com o turno (relato de ocorrência, RF12/RN15), como a folha de suporte do iOS. Nulo esconde o botão. */
     aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     /** L2-1: "Estou a caminho" no turno confirmado. Nulo esconde o botão (a fiação é o L2-8); a regra da janela é do [podeAvisarACaminho]. */
@@ -177,6 +179,7 @@ fun TelaMeusTurnos(
                         carregandoMaisHistorico = estado.carregandoMaisHistorico,
                         aoCarregarMaisHistorico = { viewModel.carregarMaisHistorico() },
                         aoDenunciarEstabelecimento = aoDenunciarEstabelecimento,
+                        estabelecimentosBloqueados = estabelecimentosBloqueados,
                         aoPedirSuporte = aoPedirSuporte,
                         aoAvisarACaminho = aoAvisarACaminho,
                         avisandoACaminho = estado.avisandoACaminho,
@@ -219,6 +222,7 @@ private fun ListaDeTurnos(
     carregandoMaisHistorico: Boolean = false,
     aoCarregarMaisHistorico: () -> Unit = {},
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)? = null,
+    estabelecimentosBloqueados: Set<String> = emptySet(),
     aoPedirSuporte: ((turnoId: String) -> Unit)? = null,
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)? = null,
     avisandoACaminho: String? = null,
@@ -269,6 +273,7 @@ private fun ListaDeTurnos(
                 aoExibirComprovante = aoExibirComprovante,
                 relogio = relogio,
                 aoDenunciarEstabelecimento = aoDenunciarEstabelecimento,
+                estabelecimentoBloqueado = turno.contraparteId in estabelecimentosBloqueados,
                 aoPedirSuporte = aoPedirSuporte,
                 aoAvisarACaminho = aoAvisarACaminho,
                 avisandoACaminho = avisandoACaminho,
@@ -330,6 +335,7 @@ private fun CartaoDoTurno(
     aoExibirComprovante: (ComprovanteCheckin) -> Unit,
     relogio: () -> Instant,
     aoDenunciarEstabelecimento: ((estabelecimentoId: String, turnoId: String) -> Unit)?,
+    estabelecimentoBloqueado: Boolean,
     aoPedirSuporte: ((turnoId: String) -> Unit)?,
     aoAvisarACaminho: ((turno: ItemTurno) -> Unit)?,
     avisandoACaminho: String?,
@@ -401,9 +407,18 @@ private fun CartaoDoTurno(
         val podeCancelar = contagem is EstadoContagemRegressiva.AguardandoJanela || contagem is EstadoContagemRegressiva.JanelaAberta
         val casaId = turno.contraparteId
         val podeDenunciar = aoDenunciarEstabelecimento != null && casaId != null
-        if (podeCancelar || podeDenunciar || aoPedirSuporte != null) {
+        if (podeCancelar || podeDenunciar || aoPedirSuporte != null || estabelecimentoBloqueado) {
             Spacer(modifier = Modifier.height(FrilaEspacamento.item))
             Column {
+                if (estabelecimentoBloqueado) {
+                    // iOS: "Você bloqueou este estabelecimento", logo acima das ações de segurança do turno.
+                    Text(
+                        text = TextosMeusTurnos.VOCE_BLOQUEOU_ESTABELECIMENTO,
+                        style = FrilaTipo.apoio,
+                        color = FrilaTema.cores.tintaSuave,
+                        modifier = Modifier.testTag("turno-estabelecimento-bloqueado"),
+                    )
+                }
                 if (podeCancelar) {
                     AcaoDiscreta(texto = "Cancelar turno", aoClicar = { aoCancelar(turno) })
                 }
@@ -820,4 +835,9 @@ private fun Erro(mensagem: String?, aoTentarNovamente: () -> Unit) {
         mensagem = null,
         aoTentarNovamente = aoTentarNovamente,
     )
+}
+
+object TextosMeusTurnos {
+    /** `TextosDaSeguranca.voceBloqueouEstabelecimento` do iOS. */
+    const val VOCE_BLOQUEOU_ESTABELECIMENTO = "Você bloqueou este estabelecimento"
 }

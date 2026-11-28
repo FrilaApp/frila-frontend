@@ -161,6 +161,42 @@ class TelaMeusTurnosTest {
         }
     }
 
+    private fun montarComBloqueados(bloqueados: Set<String>, comDenunciar: Boolean = true) {
+        val viewModel = criarViewModel("[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]")
+        runBlocking { viewModel.carregar().join() }
+        compose.setContent {
+            FrilaTheme {
+                TelaMeusTurnos(
+                    viewModel = viewModel,
+                    criarCheckinViewModel = { turno -> criarCheckin(turno.turnoId) },
+                    aoDenunciarEstabelecimento = if (comDenunciar) ({ _, _ -> }) else null,
+                    estabelecimentosBloqueados = bloqueados,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `I1PonzKJ - turno de estabelecimento bloqueado diz que o profissional o bloqueou`() {
+        montarComBloqueados(setOf("e1"))
+
+        compose.onNodeWithText(TextosMeusTurnos.VOCE_BLOQUEOU_ESTABELECIMENTO).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `I1PonzKJ - o aviso aparece mesmo sem a acao de denunciar`() {
+        montarComBloqueados(setOf("e1"), comDenunciar = false)
+
+        compose.onNodeWithText(TextosMeusTurnos.VOCE_BLOQUEOU_ESTABELECIMENTO).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `I1PonzKJ - sem bloqueio, ou com outra casa bloqueada, o turno nao diz isso`() {
+        montarComBloqueados(setOf("outra-casa"))
+
+        assertEquals(0, compose.onAllNodesWithText(TextosMeusTurnos.VOCE_BLOQUEOU_ESTABELECIMENTO).fetchSemanticsNodes().size)
+    }
+
     @Test
     fun `tela inicial exibe titulo e abas Agendados e Historico`() {
         val viewModel = criarViewModel("[]")
