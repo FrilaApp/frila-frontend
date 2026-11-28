@@ -146,6 +146,23 @@ class AcompanharChamadasViewModelTest {
     }
 
     @Test
+    fun `falha que nao e da API ao carregar tambem fica como falha da carga`() = runBlocking {
+        val vm = AcompanharChamadasViewModel(
+            vagaId = vaga,
+            listar = { _, _, _ -> error("resposta ilegivel") },
+            cancelarChamada = { error("nao cancela") },
+            publicarAPartirDaChamada = { _, _, _ -> error("nao publica") },
+            escopo = CoroutineScope(Dispatchers.Unconfined),
+        )
+
+        vm.carregar().join()
+
+        assertEquals(TextosChamadaCasa.ERRO, vm.estado.value.falhaAoCarregar)
+        assertNull(vm.estado.value.erro)
+        assertFalse(vm.estado.value.carregando)
+    }
+
+    @Test
     fun `cancelar com sucesso e a releitura falhando mostra o sucesso, guarda a lista e marca so a falha da carga`() = runBlocking {
         val rede = RedeDeTeste()
         var cancelada = false
