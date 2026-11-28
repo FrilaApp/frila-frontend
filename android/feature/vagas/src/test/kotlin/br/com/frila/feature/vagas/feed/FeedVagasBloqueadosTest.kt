@@ -39,9 +39,10 @@ class FeedVagasBloqueadosTest {
     private val vagaDaA = vagaJson("11111111-1111-1111-1111-111111111111", casaA, funcao = "garçom")
     private val vagaDaB = vagaJson("22222222-2222-2222-2222-222222222222", casaB, funcao = "cozinheiro")
 
-    private fun viewModel(bloqueios: BloqueiosDaSessao?): FeedVagasViewModel {
+    private fun viewModel(bloqueios: BloqueiosDaSessao?, falha: Boolean = false): FeedVagasViewModel {
         val engine = MockEngine {
-            respond("[$vagaDaA,$vagaDaB]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            if (falha) respond("{}", HttpStatusCode.InternalServerError, headersOf(HttpHeaders.ContentType, "application/json"))
+            else respond("[$vagaDaA,$vagaDaB]", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         return FeedVagasViewModel(
             servicoVagas = ServicoVagas(ClienteSupabase(baseUrl = "https://frila.supabase.co", apiKey = "chave-teste", engine = engine)),
@@ -125,6 +126,28 @@ class FeedVagasBloqueadosTest {
 
         assertEquals(listOf("22222222-2222-2222-2222-222222222222"), ids(vm))
         assertEquals(StatusFeed.SUCESSO, vm.estado.value.status)
+    }
+
+    @Test
+    fun `bloquear com o feed em erro nao troca o erro por vazio`() = runBlocking {
+        val sessao = BloqueiosDaSessao()
+        val vm = viewModel(sessao, falha = true)
+        vm.carregar().join()
+        assertEquals(StatusFeed.ERRO, vm.estado.value.status)
+
+        sessao.registrar(casaBloqueada)
+        delay(300)
+
+        assertEquals(StatusFeed.ERRO, vm.estado.value.status)
+    }
+
+    @Test
+    fun `o conjunto nao mexe no feed que ainda nao carregou`() = runBlocking {
+        val vm = viewModel(BloqueiosDaSessao().apply { registrar(casaBloqueada) })
+
+        delay(300)
+
+        assertEquals(StatusFeed.CARREGANDO, vm.estado.value.status)
     }
 
     @Test

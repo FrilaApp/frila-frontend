@@ -79,7 +79,7 @@ class AppNavegacaoMeusTurnosBloqueadoTest {
         }]
     """.trimIndent()
 
-    private fun montar(registrarOConjunto: Boolean = true) {
+    private fun montar(registrarOConjunto: Boolean = true, rota: String = Rotas.MEUS_TURNOS) {
         val servicoTurnos = ServicoTurnos(
             ClienteSupabase(
                 baseUrl = "https://frila.supabase.co", apiKey = "chave-teste",
@@ -128,7 +128,7 @@ class AppNavegacaoMeusTurnosBloqueadoTest {
             }
         }
         rule.waitForIdle()
-        rule.runOnUiThread { navController.navigate(Rotas.MEUS_TURNOS) }
+        rule.runOnUiThread { navController.navigate(rota) }
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Bar do Zé").fetchSemanticsNodes().isNotEmpty() }
     }
 
@@ -138,6 +138,14 @@ class AppNavegacaoMeusTurnosBloqueadoTest {
     fun `estabelecimento ja bloqueado na sessao, o turno diz que foi bloqueado`() {
         bloqueios.registrar(AlvoBloqueado(TipoDeAlvo.ESTABELECIMENTO, "e1"))
         montar()
+
+        rule.waitUntil(5_000) { avisoVisivel() }
+    }
+
+    @Test
+    fun `a rota do aviso de turno tambem diz que a casa foi bloqueada`() {
+        bloqueios.registrar(AlvoBloqueado(TipoDeAlvo.ESTABELECIMENTO, "e1"))
+        montar(rota = Rotas.turnoAviso("t1"))
 
         rule.waitUntil(5_000) { avisoVisivel() }
     }
