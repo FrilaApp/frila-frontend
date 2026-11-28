@@ -53,11 +53,15 @@ export const contratanteTurno = {
     aviso: "Passaram 15 minutos do início e não há check-in. Você pode esperar ou reabrir a vaga.",
     pergunta: "Reabrir a vaga?",
     regra: "Conta como falta para {nome}, e a vaga volta a ser oferecida a outros profissionais.",
+    // Vaga direta (origem chamada_direta): o servidor não a oferece de novo. Provisório, até o texto do Fabrício.
+    regra_direta:
+      "Conta como falta para {nome}. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos.",
     reabrir: "Reabrir vaga",
   },
   resultado: {
     confirmada: "Presença confirmada.",
     reaberta: "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida.",
+    reaberta_direta: "Vaga reaberta. A falta foi registrada, e a posição ficou aberta só para você chamar outra pessoa ou publicar para todos.",
     falta_sem_reabertura: "Falta registrada. Falta menos de 1 hora para o fim do turno, e a vaga não foi reaberta.",
     sem_codigo: "O check-in foi feito longe do local ou há mais de 15 min. Confirme a presença pelo botão abaixo.",
     aguardando_chegada: "O profissional ainda não registrou a chegada.",

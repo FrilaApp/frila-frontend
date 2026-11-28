@@ -38,6 +38,8 @@ export async function loader({ context, params, request }: Route.LoaderArgs) {
       id: turno.id,
       posicaoId: turno.posicao_id,
       funcao: turno.vaga.funcao,
+      // Ausente vale publicacao (contrato 0.2.55).
+      vagaDireta: turno.vaga.origem === "chamada_direta",
       profissional: turno.contraparte.nome,
       periodo: formatarPeriodo(turno.vaga.inicio_em, turno.vaga.fim_em),
       valor: formatarValor(turno.valor_acordado_centavos),
@@ -91,7 +93,11 @@ export async function action({ context, request }: Route.ActionArgs) {
         : ({ ok: false, motivo: "indisponivel" } as const);
   if (!feito.ok && feito.motivo === "sem_sessao") throw redirect("/entrar");
   if (!feito.ok) return { resultado: feito.motivo };
-  if ("reaberta" in feito) return { resultado: feito.reaberta ? ("reaberta" as const) : ("falta_sem_reabertura" as const) };
+  if ("reaberta" in feito) {
+    // A origem vem no próprio envio: o aviso não depende de a releitura dos turnos dar certo.
+    const reaberta = formulario.get("vaga_direta") === "sim" ? ("reaberta_direta" as const) : ("reaberta" as const);
+    return { resultado: feito.reaberta ? reaberta : ("falta_sem_reabertura" as const) };
+  }
   return { resultado: "confirmada" as const };
 }
 
@@ -182,9 +188,10 @@ export default function TurnoDaCasa({ loaderData, actionData }: Route.ComponentP
             <Form method="post" className="flex flex-col gap-3 rounded-cartao border border-borda p-4">
               <p>{t.atraso.aviso}</p>
               <h2 className="font-semibold">{t.atraso.pergunta}</h2>
-              <p id="regra-da-reabertura">{t.atraso.regra.replace("{nome}", turno.profissional)}</p>
+              <p id="regra-da-reabertura">{(turno.vagaDireta ? t.atraso.regra_direta : t.atraso.regra).replace("{nome}", turno.profissional)}</p>
               <input type="hidden" name="intencao" value="reabrir" />
               <input type="hidden" name="posicao_id" value={turno.posicaoId} />
+              {turno.vagaDireta ? <input type="hidden" name="vaga_direta" value="sim" /> : null}
               <button type="submit" disabled={enviando} aria-describedby="regra-da-reabertura" className={classeDoBotaoSecundario}>
                 {enviando ? t.turno.enviando : t.atraso.reabrir}
               </button>
