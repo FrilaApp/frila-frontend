@@ -33,7 +33,7 @@ data class EstadoContaSuspensa(
     val contestacaoJaExiste: Boolean = false,
     val contaReativada: Boolean = false,
 ) {
-    val relatoValido: Boolean get() = relato.trim().length >= MINIMO_DO_RELATO
+    val relatoValido: Boolean get() = caracteresDoRelato(relato) >= MINIMO_DO_RELATO
 
     /** Uma contestação por suspensão pelo app (0.2.36): com protocolo ou depois do `409`, não se oferece outra. */
     val podeContestar: Boolean get() = protocolo == null && !contestacaoJaExiste && !enviando && !contaReativada
@@ -117,7 +117,7 @@ class ContaSuspensaViewModel(
         val relato = atual.relato.trim()
         val recusaLocal = when {
             relato.isEmpty() -> TextosContaSuspensa.RELATO_OBRIGATORIO
-            relato.length < MINIMO_DO_RELATO -> TextosContaSuspensa.RELATO_MINIMO
+            caracteresDoRelato(relato) < MINIMO_DO_RELATO -> TextosContaSuspensa.RELATO_MINIMO
             else -> null
         }
         if (recusaLocal != null) {

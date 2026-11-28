@@ -24,7 +24,7 @@ data class EstadoContestarDespacho(
     val contestacaoJaAberta: Boolean = false,
     val mensagemErro: String? = null,
 ) {
-    val relatoValido: Boolean get() = relato.trim().length >= MINIMO_DO_RELATO
+    val relatoValido: Boolean get() = caracteresDoRelato(relato) >= MINIMO_DO_RELATO
 
     /** Enviado ou recusado por `409`, o app não oferece outro pedido (0.2.37). */
     val podeContestar: Boolean get() = protocolo == null && !contestacaoJaAberta && !enviando
@@ -56,7 +56,7 @@ class ContestarDespachoViewModel(
         val relato = atual.relato.trim()
         val recusaLocal = when {
             relato.isEmpty() -> TextosContestarDespacho.RELATO_OBRIGATORIO
-            relato.length < MINIMO_DO_RELATO -> TextosContestarDespacho.RELATO_MINIMO
+            caracteresDoRelato(relato) < MINIMO_DO_RELATO -> TextosContestarDespacho.RELATO_MINIMO
             else -> null
         }
         if (recusaLocal != null) {

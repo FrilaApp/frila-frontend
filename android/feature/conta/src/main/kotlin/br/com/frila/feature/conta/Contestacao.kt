@@ -14,6 +14,12 @@ val FUSO_DA_CONTA: ZoneId = ZoneId.of("America/Sao_Paulo")
 /** Mínimo do relato de uma contestação (`contestar_suspensao` e `pedir_revisao_despacho`). */
 const val MINIMO_DO_RELATO = 10
 
+/**
+ * Quantos caracteres tem o relato aparado, como o servidor os conta (`length` de `text` depois de `btrim`): caracteres, não unidades
+ * UTF-16. Um emoji vale 1 aqui e lá, e 2 em `String.length`.
+ */
+internal fun caracteresDoRelato(relato: String): Int = relato.trim().let { it.codePointCount(0, it.length) }
+
 private val FORMATO_DE_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.forLanguageTag("pt-BR"))
 
 /** O protocolo de uma contestação como a tela o mostra. O desfecho nunca vem ao app (RN07): a resposta vai por e-mail. */
