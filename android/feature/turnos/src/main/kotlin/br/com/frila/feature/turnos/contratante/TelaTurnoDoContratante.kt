@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import br.com.frila.core.designsystem.componentes.AcaoDiscreta
+import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
@@ -99,6 +100,11 @@ fun TelaTurnoDoContratante(
     aoAvaliarTurno: ((turnoId: String) -> Unit)? = null,
     /** O profissional deste turno está entre os bloqueados da sessão (I1PonzKJ): a tela o diz, junto das ações de risco. */
     profissionalBloqueado: Boolean = false,
+    /**
+     * 0P4RwnNi: "Denunciar" e "Bloquear" do profissional, como o iOS (`segurancaDoProfissional`). A tela só reserva o lugar, no fim das
+     * ações de risco; o app traz o conteúdo. Com ele, some o "Denunciar" avulso, e o rótulo de bloqueado é o dele.
+     */
+    acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
@@ -122,6 +128,7 @@ fun TelaTurnoDoContratante(
         cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
         depoisDaChegada = depoisDaChegada,
         profissionalBloqueado = profissionalBloqueado,
+        acoesDeSeguranca = acoesDeSeguranca,
     )
 }
 
@@ -140,13 +147,14 @@ fun ConteudoTurnoDoContratante(
     cartaoDoCodigo: (@Composable () -> Unit)? = null,
     depoisDaChegada: (@Composable () -> Unit)? = null,
     profissionalBloqueado: Boolean = false,
+    acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
 ) {
     // A folha de motivos substitui o corpo (como a tela de cancelar a vaga) em vez de abrir uma janela: assim a tela de baixo não fica
     // focável por baixo da folha, e o campo do detalhe vive na mesma composição.
     if (estado.pedindoCancelamento) {
         FolhaDeMotivosDoCancelamento(estado, acoes, modifier)
     } else {
-        CorpoDoTurnoDoContratante(estado, acoes, modifier, cartaoDoCodigo, depoisDaChegada, profissionalBloqueado)
+        CorpoDoTurnoDoContratante(estado, acoes, modifier, cartaoDoCodigo, depoisDaChegada, profissionalBloqueado, acoesDeSeguranca)
     }
 }
 
@@ -158,6 +166,7 @@ private fun CorpoDoTurnoDoContratante(
     cartaoDoCodigo: (@Composable () -> Unit)? = null,
     depoisDaChegada: (@Composable () -> Unit)? = null,
     profissionalBloqueado: Boolean = false,
+    acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
 ) {
     val contexto = estado.contexto
     val pendente = estado.presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && contexto.estadoDaPosicao != "cancelada"
@@ -291,8 +300,11 @@ private fun CorpoDoTurnoDoContratante(
             val denunciar = acoes.aoDenunciarProfissional
             val profissional = contexto.profissional
             val pedirSuporte = acoes.aoPedirSuporte
-            val dizBloqueado = profissionalBloqueado && profissional != null
-            if (reabrirVisivel || pedirSuporte != null || (denunciar != null && profissional != null) || dizBloqueado) {
+            // Com as ações de segurança, elas dizem "Denunciar", "Bloquear" e o rótulo de bloqueado: a tela não os repete.
+            val seguranca = acoesDeSeguranca?.takeIf { profissional != null }
+            val dizBloqueado = profissionalBloqueado && profissional != null && seguranca == null
+            val denunciaAvulsa = denunciar != null && profissional != null && seguranca == null
+            if (reabrirVisivel || pedirSuporte != null || denunciaAvulsa || dizBloqueado || seguranca != null) {
                 Spacer(Modifier.height(FrilaEspacamento.item))
                 if (dizBloqueado) {
                     // iOS: "Você bloqueou este profissional", logo acima das ações de segurança.
@@ -316,7 +328,7 @@ private fun CorpoDoTurnoDoContratante(
                         aoClicar = { pedirSuporte(contexto.turnoId) },
                     )
                 }
-                if (denunciar != null && profissional != null) {
+                if (seguranca == null && denunciar != null && profissional != null) {
                     AcaoDiscreta(
                         texto = TextosTurnoDoContratante.DENUNCIAR,
                         aoClicar = { denunciar(profissional.id, contexto.turnoId) },
@@ -325,6 +337,8 @@ private fun CorpoDoTurnoDoContratante(
                         },
                     )
                 }
+                // Por último, como o iOS (`segurancaDoProfissional` depois de "Ajuda com o turno").
+                if (seguranca != null && profissional != null) seguranca(profissional)
             }
         }
     }
