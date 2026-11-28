@@ -1,5 +1,6 @@
 import { Form, redirect, useNavigation } from "react-router";
 
+import { CampoDeSenha } from "../componentes/campo-de-senha";
 import { lerMinhaConta } from "../servidor/conta";
 import { apiDoUsuario, authDesteAmbiente, emailsDeDemonstracao } from "../servidor/deste-ambiente";
 import { exigirSessao } from "../servidor/guarda";
@@ -143,16 +144,18 @@ export default function DefinirSenha({ loaderData, actionData }: Route.Component
 
         <label className="flex flex-col gap-2 font-semibold" htmlFor="senha">
           {textos.definirSenha.rotuloDaSenha}
-          <input
+          <CampoDeSenha
             id="senha"
             name="senha"
-            type="password"
             autoComplete="new-password"
             required
             minLength={8}
-            aria-invalid={erro ? true : undefined}
-            aria-describedby={erro ? "erro" : "ajuda-senha"}
+            ariaInvalid={Boolean(erro)}
+            ariaDescribedBy={erro ? "erro" : "ajuda-senha"}
             className={classeDoCampo}
+            ocultarAoEnviar={enviando}
+            rotuloMostrar={textos.definirSenha.mostrarSenha}
+            rotuloOcultar={textos.definirSenha.ocultarSenha}
           />
           <span id="ajuda-senha" className="text-sm font-normal text-tinta-suave">
             {textos.definirSenha.ajudaDaSenha}
@@ -161,16 +164,18 @@ export default function DefinirSenha({ loaderData, actionData }: Route.Component
 
         <label className="flex flex-col gap-2 font-semibold" htmlFor="confirmacao">
           {textos.definirSenha.rotuloDaConfirmacao}
-          <input
+          <CampoDeSenha
             id="confirmacao"
             name="confirmacao"
-            type="password"
             autoComplete="new-password"
             required
             minLength={8}
-            aria-invalid={erro ? true : undefined}
-            aria-describedby={erro ? "erro" : undefined}
+            ariaInvalid={Boolean(erro)}
+            ariaDescribedBy={erro ? "erro" : undefined}
             className={classeDoCampo}
+            ocultarAoEnviar={enviando}
+            rotuloMostrar={textos.definirSenha.mostrarSenha}
+            rotuloOcultar={textos.definirSenha.ocultarSenha}
           />
         </label>
 
