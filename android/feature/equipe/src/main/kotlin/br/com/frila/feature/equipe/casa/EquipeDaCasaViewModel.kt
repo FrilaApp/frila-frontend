@@ -199,10 +199,10 @@ class EquipeDaCasaViewModel(
         }
     }
 
-    /** Abre a confirmação. Remover e transferir não valem para a linha de "você". */
+    /** Abre a confirmação. Remover e transferir não valem para a linha de "você" nem para quem tem um papel que o app não conhece (iOS `papelConhecido`). */
     fun pedirConfirmacao(acao: AcaoSobreMembro, membro: MembroDaCasa) {
         _estado.update {
-            if (!it.podeGerenciar || it.ocupado || membro.eVoce) it else it.copy(pendente = AcaoPendente(acao, membro.membroId, membro.nome), erroDaAcao = null)
+            if (!it.podeGerenciar || it.ocupado || membro.eVoce || membro.papel == null) it else it.copy(pendente = AcaoPendente(acao, membro.membroId, membro.nome), erroDaAcao = null)
         }
     }
 
