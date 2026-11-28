@@ -33,6 +33,8 @@ enum class ModoPreenchimentoVaga {
 object TextosVagaIndisponivel {
     const val ROTULO_VOLTAR = "Voltar"
     const val BOTAO_VOLTAR_PADRAO = "Ver outras vagas perto de você"
+    /** kNHS9OQ6: quem abriu a vaga pela aba Candidaturas volta para ela (o iOS: `TextosDaCandidaturaEmSelecao.verCandidaturas`). */
+    const val BOTAO_VER_MINHAS_CANDIDATURAS = "Ver minhas candidaturas"
 
     // Vaga preenchida
     const val PREENCHIDA_TITULO = "Vaga preenchida"

@@ -25,11 +25,20 @@ fun TelaAberturaDeVaga(
     viewModel: AberturaDeVagaViewModel,
     aoVoltarParaFeed: () -> Unit,
     modifier: Modifier = Modifier,
+    /** O texto do botão da vaga indisponível; `null` é o padrão ("Ver outras vagas perto de você"). */
+    rotuloDoVoltar: String? = null,
     vagaAberta: @Composable (VagaDto) -> Unit,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
-    ConteudoAberturaDeVaga(estado, aoTentarDeNovo = { viewModel.carregar() }, aoVoltarParaFeed = aoVoltarParaFeed, modifier = modifier, vagaAberta = vagaAberta)
+    ConteudoAberturaDeVaga(
+        estado,
+        aoTentarDeNovo = { viewModel.carregar() },
+        aoVoltarParaFeed = aoVoltarParaFeed,
+        modifier = modifier,
+        rotuloDoVoltar = rotuloDoVoltar,
+        vagaAberta = vagaAberta,
+    )
 }
 
 /** Os quatro momentos de abrir a vaga pelo id: carregando, falha com "Tentar de novo", vaga indisponível e a vaga aberta. */
@@ -39,6 +48,7 @@ fun ConteudoAberturaDeVaga(
     aoTentarDeNovo: () -> Unit,
     aoVoltarParaFeed: () -> Unit,
     modifier: Modifier = Modifier,
+    rotuloDoVoltar: String? = null,
     vagaAberta: @Composable (VagaDto) -> Unit,
 ) {
     when (estado) {
@@ -70,6 +80,7 @@ fun ConteudoAberturaDeVaga(
             vagaCancelada = estado.vagaCancelada,
             candidatura = estado.candidatura,
             candidaturaExpirada = estado.candidaturaExpirada,
+            rotuloBotaoVoltar = rotuloDoVoltar,
         )
         is EstadoAberturaDeVaga.Aberta -> vagaAberta(estado.vaga)
     }

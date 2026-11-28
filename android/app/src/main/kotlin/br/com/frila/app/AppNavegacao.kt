@@ -91,6 +91,7 @@ import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
 import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
 import br.com.frila.feature.vagas.detalhe.TelaFuncaoIncompativel
+import br.com.frila.feature.vagas.detalhe.TextosVagaIndisponivel
 import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante
@@ -934,13 +935,21 @@ fun AppNavegacao(
                     } else {
                         // L2-4: a vaga fora da lista (link, aviso, candidatura) é lida do servidor pelo id; 404 é "não encontrada".
                         val abertura: AberturaDeVagaViewModel = koinViewModel(parameters = { parametersOf(vagaId) })
+                        // kNHS9OQ6: quem veio da aba Candidaturas volta para ela, como o iOS (`FluxoDoProfissional.swift:248-256`); o resto
+                        // (link, aviso) segue para as vagas perto.
+                        val daAbaCandidaturas = navController.previousBackStackEntry?.destination?.route == Rotas.MINHAS_CANDIDATURAS
                         TelaAberturaDeVaga(
                             viewModel = abertura,
                             aoVoltarParaFeed = {
-                                navController.navigate(Rotas.FEED) {
-                                    popUpTo(Rotas.FEED) { inclusive = true }
+                                if (daAbaCandidaturas) {
+                                    navController.popBackStack()
+                                } else {
+                                    navController.navigate(Rotas.FEED) {
+                                        popUpTo(Rotas.FEED) { inclusive = true }
+                                    }
                                 }
                             },
+                            rotuloDoVoltar = TextosVagaIndisponivel.BOTAO_VER_MINHAS_CANDIDATURAS.takeIf { daAbaCandidaturas },
                         ) { detalhe ->
                             val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(detalhe.paraVagaAberta(), detalhe) })
                             TelaDetalheVaga(
