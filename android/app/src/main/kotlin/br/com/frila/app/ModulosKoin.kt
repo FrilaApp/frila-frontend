@@ -816,7 +816,12 @@ val moduloFeatures = module {
     viewModel { (vagaId: String) -> AberturaDeVagaViewModel(vagaId = vagaId, buscarDetalhe = get<ServicoVagas>()::detalheVaga) }
     viewModel {
         val vagas = get<ServicoVagas>()
-        MinhasCandidaturasViewModel(buscar = { vagas.minhasCandidaturas() })
+        val turnos = get<ServicoTurnos>()
+        // ARHvBJEK: `meus_turnos` reduzido a `turno id -> estado`, para a aceita de turno cancelado não dizer "Confirmada".
+        MinhasCandidaturasViewModel(
+            buscar = { vagas.minhasCandidaturas() },
+            buscarEstadosDosTurnos = { turnos.listarMeusTurnos().associate { it.id to it.estado } },
+        )
     }
     viewModel { (candidaturaId: String, aoRetirar: () -> Unit) ->
         val vagas = get<ServicoVagas>()

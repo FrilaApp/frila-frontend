@@ -10,6 +10,8 @@ import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +50,8 @@ data class ItemCandidatura(
     val pendente: Boolean,
     val textoDoEstado: String,
     val destino: DestinoDaCandidatura,
+    /** Aceita, mas o turno que nasceu dela foi cancelado (`meus_turnos`, cruzado por `turno_id`). */
+    val turnoCancelado: Boolean = false,
 )
 
 sealed interface ListaDeCandidaturas {
@@ -71,10 +75,15 @@ data class EstadoMinhasCandidaturas(
  * antiga). A aceita leva ao turno que nasceu dela; as outras, à vaga. Candidatura com estado que este app não conhece
  * fica fora da lista, como no iOS, em vez de derrubá-la. Falha de releitura não apaga o que já está na tela.
  *
- * [buscar] é `ServicoVagas.minhasCandidaturas()`. `escopo`: mesma razão do `MinhasVagasViewModel`.
+ * [buscar] é `ServicoVagas.minhasCandidaturas()`. [buscarEstadosDosTurnos] é `meus_turnos` reduzido a `turno id -> estado` (o
+ * `estado` é opcional no contrato: ausente vem `null`, e não se supõe nem `confirmada` nem `cancelada`). A candidatura aceita
+ * cujo turno (`turno_id`, não a vaga) está `cancelada` sai com [ItemCandidatura.turnoCancelado]. A leitura dos turnos corre em
+ * paralelo com a das candidaturas e a falha dela é silenciosa: a lista aparece como antes, e o que já se sabia dos turnos fica.
+ * `escopo`: mesma razão do `MinhasVagasViewModel`.
  */
 class MinhasCandidaturasViewModel(
     private val buscar: suspend () -> List<CandidaturaDto>,
+    private val buscarEstadosDosTurnos: (suspend () -> Map<String, String?>)? = null,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -84,6 +93,9 @@ class MinhasCandidaturasViewModel(
     val estado: StateFlow<EstadoMinhasCandidaturas> = _estado.asStateFlow()
 
     private var leitura: Job? = null
+
+    /** `turno id -> estado`, da última leitura de `meus_turnos` que deu certo. */
+    private var estadosDosTurnos: Map<String, String?> = emptyMap()
 
     /** Primeira leitura e "Tentar de novo". Sem efeito se já há uma leitura em voo. */
     fun carregar(): Job = iniciarLeitura()
@@ -104,7 +116,7 @@ class MinhasCandidaturasViewModel(
         }
         return escopoDeTrabalho.launch {
             try {
-                aplicar(buscar())
+                lerEAplicar()
             } catch (erro: CancellationException) {
                 throw erro
             } catch (_: Exception) {
@@ -120,13 +132,31 @@ class MinhasCandidaturasViewModel(
         }
         return escopoDeTrabalho.launch {
             try {
-                aplicar(buscar())
+                lerEAplicar()
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: Exception) {
                 falhar(erro)
             }
         }.also { leitura = it }
+    }
+
+    /** As candidaturas e os turnos em paralelo. Só a falha das candidaturas sobe; a dos turnos vira `null` e o mapa anterior fica. */
+    private suspend fun lerEAplicar() = coroutineScope {
+        val turnos = buscarEstadosDosTurnos?.let { lerTurnos ->
+            async {
+                try {
+                    lerTurnos()
+                } catch (erro: CancellationException) {
+                    throw erro
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        }
+        val candidaturas = buscar()
+        turnos?.await()?.let { estadosDosTurnos = it }
+        aplicar(candidaturas)
     }
 
     private fun aplicar(candidaturas: List<CandidaturaDto>) {
@@ -162,6 +192,7 @@ class MinhasCandidaturasViewModel(
         val texto = textoDoEstadoDaCandidatura(estado) ?: return null
         val aceita = estado == ESTADO_ACEITA
         val turno = turnoId
+        val turnoCancelado = aceita && turno != null && estadosDosTurnos[turno] == ESTADO_TURNO_CANCELADO
         return ItemCandidatura(
             id = id,
             vagaId = vaga.id,
@@ -171,12 +202,13 @@ class MinhasCandidaturasViewModel(
             fim = lerInstante(vaga.fimEm),
             valorCentavos = vaga.valorCentavos,
             pendente = estado == ESTADO_PENDENTE,
-            textoDoEstado = texto,
+            textoDoEstado = if (turnoCancelado) TextosCandidaturas.ESTADO_TURNO_CANCELADO else texto,
             destino = when {
                 aceita && turno != null -> DestinoDaCandidatura.Turno(turno)
                 aceita -> DestinoDaCandidatura.MeusTurnos
                 else -> DestinoDaCandidatura.Vaga(vaga.id)
             },
+            turnoCancelado = turnoCancelado,
         )
     }
 }
@@ -186,6 +218,9 @@ internal const val ESTADO_ACEITA = "aceita"
 internal const val ESTADO_RECUSADA = "recusada"
 internal const val ESTADO_RETIRADA = "retirada"
 internal const val ESTADO_EXPIRADA = "expirada"
+
+/** `Turno.estado` de `meus_turnos` para o turno cancelado (RN12). */
+internal const val ESTADO_TURNO_CANCELADO = "cancelada"
 
 /** O texto de cada estado do contrato; `null` para estado que este app ainda não conhece. */
 internal fun textoDoEstadoDaCandidatura(estado: String): String? = when (estado) {
