@@ -91,7 +91,13 @@ fun TelaAjudaPerfil(
 
             Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                 FrilaGrupoDeLinhas {
-                    linha { FrilaLinhaDeNavegacao(titulo = TextosAjudaPerfil.SUPORTE_TITULO, aoClicar = abrirEmail) }
+                    linha {
+                        FrilaLinhaDeNavegacao(
+                            titulo = TextosAjudaPerfil.SUPORTE_TITULO,
+                            aoClicar = abrirEmail,
+                            rotuloDaAcao = TextosAjudaPerfil.SUPORTE_DICA,
+                        )
+                    }
                 }
                 LinkFrila(
                     texto = enderecos.emailSuporte,
@@ -108,18 +114,21 @@ fun TelaAjudaPerfil(
                     FrilaLinhaDeNavegacao(
                         titulo = TextosAjudaPerfil.TERMOS_DE_USO,
                         aoClicar = { aoNavegarParaTermos?.invoke(enderecos.termosDeUso) },
+                        rotuloDaAcao = TextosAjudaPerfil.DICA_TERMOS,
                     )
                 }
                 linha {
                     FrilaLinhaDeNavegacao(
                         titulo = TextosAjudaPerfil.POLITICA_PRIVACIDADE,
                         aoClicar = { aoNavegarParaPrivacidade?.invoke(enderecos.politicaDePrivacidade) },
+                        rotuloDaAcao = TextosAjudaPerfil.DICA_PRIVACIDADE,
                     )
                 }
                 linha {
                     FrilaLinhaDeNavegacao(
                         titulo = TextosAjudaPerfil.LICENCAS_TERCEIROS,
                         aoClicar = { aoNavegarParaLicencas?.invoke() },
+                        rotuloDaAcao = TextosAjudaPerfil.DICA_LICENCAS,
                     )
                 }
             }
