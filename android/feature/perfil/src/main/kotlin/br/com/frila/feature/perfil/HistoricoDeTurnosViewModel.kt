@@ -105,7 +105,16 @@ class HistoricoDeTurnosViewModel(
     private val relogio: Clock = Clock.system(ZoneId.of("America/Sao_Paulo")),
     private val geradorPdf: (File, ResumoFinanceiroPerfil, List<TurnoDto>, String, Instant, String?) -> File =
         GeradorExtratoPdf::gerar,
+    /** Casa (rUFapFEL): o id do estabelecimento. `null` é o histórico do profissional. */
+    private val estabelecimentoId: String? = null,
 ) : ViewModel() {
+
+    /**
+     * O PDF local é o extrato de remunerações do profissional ("Profissional: ...", coluna "Estabelecimento"), então a casa exporta
+     * só CSV. O iOS gera os dois lados pelo `/exportar-turnos`; trocar a geração local por ele é outro item (#32).
+     */
+    val formatosDisponiveis: List<FormatoExportacao> =
+        if (estabelecimentoId != null) listOf(FormatoExportacao.CSV) else FormatoExportacao.entries
 
     companion object {
         const val PREFIXO_ARQUIVO = "frila-turnos-"
@@ -137,6 +146,7 @@ class HistoricoDeTurnosViewModel(
     }
 
     fun escolher(formato: FormatoExportacao) {
+        if (formato !in formatosDisponiveis) return
         _estado.update {
             it.copy(
                 formato = formato,
@@ -189,7 +199,8 @@ class HistoricoDeTurnosViewModel(
         viewModelScope.launch {
             _estado.update { it.copy(estado = EstadoHistorico.Carregando) }
             try {
-                val todosTurnos = servicoTurnos.listarMeusTurnos()
+                // Conta de contratante sem `estabelecimento_id` recebe lista vazia de `meus_turnos`: a casa lê os turnos dela pelo id.
+                val todosTurnos = estabelecimentoId?.let { servicoTurnos.listarMeusTurnosDaCasa(it) } ?: servicoTurnos.listarMeusTurnos()
                 val turnosDoPeriodo = todosTurnos.filter { turno ->
                     if (turno.estado != "cumprida" && turno.estado != "confirmada") return@filter false
                     val dataTurno = runCatching {
