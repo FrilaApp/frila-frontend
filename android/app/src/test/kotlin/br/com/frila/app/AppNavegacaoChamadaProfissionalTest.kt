@@ -13,6 +13,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ChamadaDetalheDto
+import br.com.frila.core.rede.BloqueioDto
+import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.EstabelecimentoDaContaDto
@@ -30,6 +32,7 @@ import br.com.frila.feature.perfil.EstadoPerfil
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.StatusPerfil
 import io.mockk.coEvery
+import br.com.frila.feature.suporte.BloqueioDeAlvoViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
@@ -104,6 +107,15 @@ class AppNavegacaoChamadaProfissionalTest {
                                 carregarPerfil = { perfil },
                                 listarEspecialidades = { emptyList() },
                                 definir = { error("não deveria salvar") },
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
+                        // GpINsbhj: a chamada recebida oferece Denunciar e Bloquear, e a rota pede o bloqueio avulso ao grafo.
+                        viewModel { (alvoTipo: TipoDeAlvo, alvoId: String) ->
+                            BloqueioDeAlvoViewModel(
+                                alvoTipo = alvoTipo,
+                                alvoId = alvoId,
+                                bloquear = { tipo, id -> BloqueioDto(tipo, id, "2026-11-10T12:00:00Z") },
                                 escopo = CoroutineScope(Dispatchers.Unconfined),
                             )
                         }
