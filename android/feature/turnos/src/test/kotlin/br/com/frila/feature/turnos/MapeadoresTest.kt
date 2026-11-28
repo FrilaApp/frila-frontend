@@ -255,7 +255,8 @@ class MapeadoresTest {
 
         assertEquals(java.time.Instant.parse("2026-11-01T21:00:00Z"), item.inicio)
         assertEquals(java.time.Instant.parse("2026-11-02T03:00:00Z"), item.fim)
-        assertEquals("01/11 18:00", item.dataHorarioFormatado)
+        // v1SJQkm7: o fim (00:00 do dia 2 em Brasília) passa da meia-noite e leva o dia.
+        assertEquals("01/11 18:00 – 02/11 00:00", item.dataHorarioFormatado)
     }
 
     /** C0-7: sem o ponto da vaga, o check-in não mede a distância e sempre vira manual. */
@@ -266,5 +267,41 @@ class MapeadoresTest {
 
         assertEquals(Coordenada(latitude = -15.7942, longitude = -47.8822), comPonto.paraItem().pontoDaVaga)
         assertNull(semPonto.paraItem().pontoDaVaga)
+    }
+
+    // ---- v1SJQkm7 (item 235): início e fim no fuso de São Paulo, com o dia do fim quando passa da meia-noite ----
+
+    private fun comHorario(inicioEm: String, fimEm: String): TurnoDto {
+        val base = criarTurnoDto()
+        return base.copy(vaga = base.vaga.copy(inicioEm = inicioEm, fimEm = fimEm))
+    }
+
+    @Test
+    fun `turno de 22h a 2h de Sao Paulo mostra os dois dias, com o aparelho em UTC`() {
+        val original = java.util.TimeZone.getDefault()
+        try {
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"))
+            // 22:00 do dia 20 em São Paulo é 01:00Z do dia 21; 02:00 do dia 21 em São Paulo é 05:00Z.
+            val item = comHorario("2026-11-21T01:00:00Z", "2026-11-21T05:00:00Z").paraItem()
+
+            assertEquals("20/11 22:00 – 21/11 02:00", item.dataHorarioFormatado)
+        } finally {
+            java.util.TimeZone.setDefault(original)
+        }
+    }
+
+    @Test
+    fun `turno que termina no mesmo dia nao repete o dia no fim`() {
+        val item = comHorario("2026-11-20T21:00:00Z", "2026-11-21T02:00:00Z").paraItem()
+
+        assertEquals("20/11 18:00 – 23:00", item.dataHorarioFormatado)
+    }
+
+    @Test
+    fun `sem fim legivel o cartao mostra so o inicio`() {
+        val item = comHorario("2026-11-20T21:00:00Z", "nao-e-data").paraItem()
+
+        assertNull(item.fim)
+        assertEquals("20/11 18:00", item.dataHorarioFormatado)
     }
 }
