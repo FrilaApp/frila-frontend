@@ -35,6 +35,15 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   const ehReenvio = String(formulario.get("reenvio") ?? "") === "1";
   const tentativaId = String(formulario.get("tentativa_id") ?? "").trim() || undefined;
   const comTentativa = <T extends Passo>(passo: T): T => (tentativaId ? { ...passo, tentativaId } : passo);
+  const passoCodigo = async (dados: Omit<Extract<Passo, { passo: "codigo" }>, "passo" | "email">): Promise<Passo> => {
+    const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
+    return comTentativa({
+      passo: "codigo",
+      email,
+      ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
+      ...dados,
+    });
+  };
 
   if (!FORMATO_DO_EMAIL.test(email) || email.length > 254) {
     return comTentativa({ passo: "email", email, erro: "email_invalido" });
@@ -50,19 +59,15 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
   if (intencao === "pedir") {
     const pedido = await auth.pedirCodigo(email, { criarUsuario: true });
     if (!pedido.ok) {
-      return comTentativa({ passo: ehReenvio ? "codigo" : "email", email, erro: pedido.motivo });
+      return ehReenvio
+        ? passoCodigo({ erro: pedido.motivo })
+        : comTentativa({ passo: "email", email, erro: pedido.motivo });
     }
-    const reenviarEmSegundos = await lerEsperaOtpDiretoDesteAmbiente();
-    return comTentativa({
-      passo: "codigo",
-      email,
-      ...(ehReenvio ? { reenviado: true } : {}),
-      ...(reenviarEmSegundos !== undefined ? { reenviarEmSegundos } : {}),
-    });
+    return passoCodigo(ehReenvio ? { reenviado: true } : {});
   }
 
   if (!/^\d{6}$/.test(codigo)) {
-    return comTentativa({ passo: "codigo", email, erro: "codigo_incompleto" });
+    return passoCodigo({ erro: "codigo_incompleto" });
   }
   const lembrarDispositivo = formulario.get("lembrar_dispositivo") === "sim";
   const entrada = await auth.confirmarDispositivoOtp({
@@ -73,7 +78,7 @@ export async function action({ request }: Route.ActionArgs): Promise<Passo> {
     visitante: visitanteDoPedido(request),
   });
   if (!entrada.ok) {
-    return comTentativa({ passo: "codigo", email, erro: entrada.motivo });
+    return passoCodigo({ erro: entrada.motivo });
   }
 
   const seguro = ehPedidoSeguro(request);
