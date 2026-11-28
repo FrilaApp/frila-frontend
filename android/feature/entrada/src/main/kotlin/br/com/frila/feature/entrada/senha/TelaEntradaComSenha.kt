@@ -190,13 +190,14 @@ fun TelaEntradaComSenha(
                     },
                 )
 
-                CampoDeTexto(
+                CampoDeSenhaComRevelacaoBreve(
                     valor = estado.senha,
                     aoMudar = viewModel::aoMudarSenha,
                     rotulo = "Senha",
                     erro = erroSenha,
                     habilitado = !estado.carregando,
-                    visualTransformation = PasswordVisualTransformation(),
+                    ocultarAoEnviar = estado.carregando,
+                    revelacaoBreve = false,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done,
