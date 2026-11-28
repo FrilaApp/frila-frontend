@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role as PapelDeAcessibilidade
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -41,6 +38,7 @@ import br.com.frila.core.designsystem.componentes.CampoDeTexto
 import br.com.frila.core.designsystem.componentes.EstadoCarregando
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
 import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.componentes.LinhaDeInterruptor
 import br.com.frila.core.designsystem.componentes.LinkFrila
 import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.componentes.RodapeAncorado
@@ -327,20 +325,4 @@ private fun Instant.coerceIn(minimo: Instant, maximo: Instant?): Instant = when 
     isBefore(minimo) -> minimo
     maximo != null && isAfter(maximo) -> maximo
     else -> this
-}
-
-@Composable
-private fun LinhaDeInterruptor(rotulo: String, ligado: Boolean, editavel: Boolean, aoMudar: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = FrilaMetricas.alvoMinimo)
-            .toggleable(value = ligado, enabled = editavel, role = PapelDeAcessibilidade.Switch, onValueChange = aoMudar)
-            .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.item),
-        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.compacto),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(rotulo, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta, modifier = Modifier.weight(1f))
-        Switch(checked = ligado, onCheckedChange = null, enabled = editavel)
-    }
 }

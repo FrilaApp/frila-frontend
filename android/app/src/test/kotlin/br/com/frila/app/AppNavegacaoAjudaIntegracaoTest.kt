@@ -37,6 +37,10 @@ import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.compose.KoinApplication
 import org.koin.dsl.module
+import androidx.test.core.app.ApplicationProvider
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -147,5 +151,85 @@ class AppNavegacaoAjudaIntegracaoTest {
         montar()
         rule.onNodeWithText(TextosAjudaPerfil.TERMOS_DE_USO).performScrollTo().performClick()
         rule.onAllNodesWithTag("aviso-abertura-externa").assertCountEquals(0)
+    }
+
+    // Cartão MXpMy3sw (item 258): os testes acima só conferem o caminho "sem aplicativo". Aqui, o pedido que de fato chega ao sistema: a ação, o
+    // endereço e a flag. Sem isto, tirar o `mailto:` ou trocar o endereço da privacidade passava em silêncio.
+    private val aplicativo get() = ApplicationProvider.getApplicationContext<Application>()
+
+    private fun esvaziarPedidos() {
+        while (shadowOf(aplicativo).nextStartedActivity != null) { /* só o que o toque pedir */ }
+    }
+
+    private fun pedidoAoSistema(): Intent {
+        rule.waitForIdle()
+        return requireNotNull(shadowOf(aplicativo).nextStartedActivity) { "o toque não pediu nada ao sistema" }
+    }
+
+    @Test
+    fun suporteAbreOEmailDeVerdadeComMailtoEOEnderecoOficial() {
+        montar()
+        esvaziarPedidos()
+
+        rule.onNodeWithText("Fale com o suporte").performClick()
+
+        val pedido = pedidoAoSistema()
+        assertEquals(Intent.ACTION_SENDTO, pedido.action)
+        assertEquals("mailto:" + EnderecosOficiais.padrao.emailSuporte, pedido.dataString)
+        assertEquals("mailto", pedido.data?.scheme)
+        assertEquals(EnderecosOficiais.padrao.emailSuporte, pedido.data?.schemeSpecificPart)
+        assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, pedido.flags and Intent.FLAG_ACTIVITY_NEW_TASK)
+        assertNull("um toque, um pedido", shadowOf(aplicativo).nextStartedActivity)
+    }
+
+    @Test
+    fun oEnderecoDeEmailDaAjudaAbreOMesmoPedido() {
+        montar()
+        esvaziarPedidos()
+
+        rule.onNodeWithText(EnderecosOficiais.padrao.emailSuporte).performClick()
+
+        val pedido = pedidoAoSistema()
+        assertEquals(Intent.ACTION_SENDTO, pedido.action)
+        assertEquals("mailto:" + EnderecosOficiais.padrao.emailSuporte, pedido.dataString)
+    }
+
+    @Test
+    fun termosAbremNoNavegadorComOEnderecoDosTermos() {
+        montar()
+        esvaziarPedidos()
+
+        rule.onNodeWithText(TextosAjudaPerfil.TERMOS_DE_USO).performScrollTo().performClick()
+
+        val pedido = pedidoAoSistema()
+        assertEquals(Intent.ACTION_VIEW, pedido.action)
+        assertEquals(EnderecosOficiais.padrao.termosDeUso, pedido.dataString)
+        assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, pedido.flags and Intent.FLAG_ACTIVITY_NEW_TASK)
+        assertNull("um toque, um pedido", shadowOf(aplicativo).nextStartedActivity)
+    }
+
+    @Test
+    fun privacidadeAbreNoNavegadorComOEnderecoDaPolitica() {
+        montar()
+        esvaziarPedidos()
+
+        rule.onNodeWithText(TextosAjudaPerfil.POLITICA_PRIVACIDADE).performScrollTo().performClick()
+
+        val pedido = pedidoAoSistema()
+        assertEquals(Intent.ACTION_VIEW, pedido.action)
+        assertEquals(EnderecosOficiais.padrao.politicaDePrivacidade, pedido.dataString)
+        assertNotEquals("não pode abrir os termos no lugar da política", EnderecosOficiais.padrao.termosDeUso, pedido.dataString)
+        assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, pedido.flags and Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    @Test
+    fun licencasNaoPedemNadaAoSistema() {
+        montar()
+        esvaziarPedidos()
+
+        rule.onNodeWithText(TextosAjudaPerfil.LICENCAS_TERCEIROS).performScrollTo().performClick()
+        rule.waitForIdle()
+
+        assertNull("as licenças abrem dentro do app", shadowOf(aplicativo).nextStartedActivity)
     }
 }

@@ -26,7 +26,7 @@ import br.com.frila.core.designsystem.componentes.CampoDeTexto
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
 import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
-import br.com.frila.core.designsystem.componentes.FrilaLinhaDeOpcao
+import br.com.frila.core.designsystem.componentes.LinhaDeInterruptor
 import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.componentes.TomAviso
@@ -165,11 +165,12 @@ internal fun FolhaDeChamadaDaBusca(
             )
             FrilaGrupoDeLinhas {
                 linha {
-                    FrilaLinhaDeOpcao(
-                        titulo = TextosChamadaCasa.CONFIRMAR_TOTAL,
-                        marcada = totalConfirmado,
-                        aoClicar = { totalConfirmado = !totalConfirmado },
-                        habilitada = !travada,
+                    // Interruptor (liga e desliga), como o `Toggle` do iOS e a `TelaChamadaDireta`; não é escolha única.
+                    LinhaDeInterruptor(
+                        rotulo = TextosChamadaCasa.CONFIRMAR_TOTAL,
+                        ligado = totalConfirmado,
+                        editavel = !travada,
+                        aoMudar = { totalConfirmado = it },
                         modifier = Modifier.testTag("folha-confirmar-total"),
                     )
                 }
