@@ -3,6 +3,8 @@ package br.com.frila.feature.perfil
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
+import br.com.frila.core.dominio.modelo.DataCivil
+import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.CriteriosDeNotificacaoDto
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.JanelaDeDisponibilidadeDto
@@ -92,7 +94,7 @@ class PorQueReceboVagasViewModel(
 
         internal fun ProtocoloDto.paraExibicao(): ProtocoloExibido {
             val num = ocorrenciaId.replace("-", "").take(8).uppercase()
-            val dataEnvio = formatarDataIso(criadaEm)
+            val dataEnvio = formatarDiaDeEnvio(criadaEm)
             val dataPrazo = formatarDataIso(prazoRespostaAte)
             return ProtocoloExibido(
                 numero = num,
@@ -100,6 +102,15 @@ class PorQueReceboVagasViewModel(
                 prazoRespostaAte = dataPrazo,
             )
         }
+
+        /**
+         * O dia do envio é o dia de Brasília do instante (como o iOS e a Contestação): um envio às 23:30 em SP chega como
+         * 02:30Z do dia seguinte, e cortar o texto nos 10 primeiros caracteres mostraria esse dia. Texto que não é um
+         * instante cai no corte antigo.
+         */
+        private fun formatarDiaDeEnvio(iso: String): String =
+            runCatching { instanteDoServidor(iso).atZone(DataCivil.FUSO_BRASILIA).format(FORMATO_DATA_BR) }
+                .getOrElse { formatarDataIso(iso) }
 
         private fun formatarDataIso(iso: String): String {
             return runCatching {
