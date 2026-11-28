@@ -387,4 +387,129 @@ class TelaCandidatosDaVagaTest {
 
         assertEquals(1, chamadas.voltou)
     }
+
+    // ---- hKEQmSop (item 185): o perfil rico no cartão, como o blocoPerfilRico do iOS ----
+
+    private val apresentacaoLonga = "Trabalho com eventos desde 2015, atendo casamentos, formaturas e festas corporativas. " +
+        "Gosto de organizar o salão antes de o público chegar e de cuidar do bar. ".repeat(6)
+
+    private val caio = CandidatoDto(
+        candidaturaId = "c3",
+        profissional = PerfilPublicoDto(
+            id = "p-c3", tipo = "profissional", nome = "Caio",
+            reputacao = ReputacaoDto(positivas = 4, total = 5, taxaComparecimento = 0.9, turnosConsiderados = 5, turnosRealizados = 5),
+            servicos = listOf(
+                br.com.frila.core.rede.ServicoNoPerfilDto(
+                    funcao = br.com.frila.core.rede.FuncaoDto("f1", "Garçom", "Salão"),
+                    unidade = "diaria", valorCentavos = 15_000, horasIncluidas = 8, inclui = "Avental e bandeja",
+                    especialidades = listOf(br.com.frila.core.rede.EspecialidadeDto("e1", "f1", "Casamentos"), br.com.frila.core.rede.EspecialidadeDto("e2", "f1", "Formaturas")),
+                ),
+            ),
+            apresentacao = apresentacaoLonga,
+            experienciaFaixa = "de_3_a_5_anos",
+            ondeTrabalhei = "Bar do Zé, Bistrô Ipê",
+            cursos = listOf("Bartender", "Primeiros socorros"),
+            idiomas = listOf("portugues", "ingles"),
+            regioes = listOf(br.com.frila.core.rede.RegiaoAdministrativaDto(1, "I", "Plano Piloto"), br.com.frila.core.rede.RegiaoAdministrativaDto(2, "II", "Gama")),
+            atendeTodoDf = false,
+        ),
+        criadaEm = "2026-11-10T12:00:00Z",
+    )
+
+    private val partesDoPerfilRico = listOf("servicos", "apresentacao", "experiencia", "cursos", "idiomas", "regioes")
+
+    @Test
+    fun `o cartao mostra servicos, apresentacao, experiencia, cursos, idiomas e regioes, nessa ordem`() {
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(caio))))
+
+        rule.onNodeWithText("R$\u00A0150,00 por diária de 8 h", substring = true, useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Avental e bandeja", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Casamentos, Formaturas", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("3 a 5 anos", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Bar do Zé, Bistrô Ipê", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Bartender • Primeiros socorros", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Português, Inglês", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Plano Piloto, Gama", useUnmergedTree = true).assertExists()
+
+        val topos = partesDoPerfilRico.map { parte -> rule.onNodeWithTag("$parte-do-candidato-c3", useUnmergedTree = true).getUnclippedBoundsInRoot().top }
+        assertEquals("a ordem do iOS: $partesDoPerfilRico", topos.sorted(), topos)
+    }
+
+    /** Com os gráficos nativos: no modo padrão do Robolectric o texto não tem largura e nunca quebra a linha. */
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `a apresentacao corta em 3 linhas, como o iOS`() {
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(caio))))
+
+        val resultados = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        rule.onNodeWithTag("apresentacao-do-candidato-c3", useUnmergedTree = true)
+            .fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action!!.invoke(resultados)
+        val layout = resultados.single()
+        assertEquals(3, layout.lineCount)
+        assertTrue("o texto longo tem de ser cortado", layout.hasVisualOverflow)
+    }
+
+    private fun linhasDe(no: androidx.compose.ui.test.SemanticsNodeInteraction): androidx.compose.ui.text.TextLayoutResult {
+        val resultados = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        no.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action!!.invoke(resultados)
+        return resultados.single()
+    }
+
+    /** Sharingan no #1244: o corte de "onde trabalhou" (2 linhas, como o iOS) também precisa de teste. */
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `onde trabalhou corta em 2 linhas, como o iOS`() {
+        val ondeLongo = "Bar do Zé, Bistrô Ipê, Restaurante Sabor do Cerrado, Buffet Alvorada, Hotel Nacional, " +
+            "Choperia do Lago, Pizzaria Cruzeiro, Espaço de Eventos Asa Sul, Casa de Festas Sudoeste"
+        val candidato = caio.copy(profissional = caio.profissional.copy(ondeTrabalhei = ondeLongo))
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(candidato))))
+
+        val layout = linhasDe(rule.onNodeWithText(ondeLongo, useUnmergedTree = true))
+        assertEquals(2, layout.lineCount)
+        assertTrue("o texto longo tem de ser cortado", layout.hasVisualOverflow)
+    }
+
+    /** Sharingan no #1244: o corte dos cursos (2 linhas, como o iOS) também precisa de teste. */
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `cursos cortam em 2 linhas, como o iOS`() {
+        val cursosLongos = listOf(
+            "Bartender clássico", "Primeiros socorros", "Higiene e manipulação de alimentos", "Atendimento ao cliente",
+            "Coquetelaria autoral", "Serviço de vinhos", "Cerimonial e etiqueta", "Brigada de incêndio",
+        )
+        val candidato = caio.copy(profissional = caio.profissional.copy(cursos = cursosLongos))
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(candidato))))
+
+        val layout = linhasDe(rule.onNodeWithTag("cursos-do-candidato-c3", useUnmergedTree = true))
+        assertEquals(2, layout.lineCount)
+        assertTrue("o texto longo tem de ser cortado", layout.hasVisualOverflow)
+    }
+
+    @Test
+    fun `atende todo o DF aparece no lugar das regioes`() {
+        val todoDf = caio.copy(profissional = caio.profissional.copy(atendeTodoDf = true))
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(todoDf))))
+
+        rule.onNodeWithText("Atender em todo o DF", useUnmergedTree = true).assertExists()
+        assertEquals(0, rule.onAllNodesWithText("Plano Piloto, Gama", useUnmergedTree = true).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `campo vazio nao ocupa espaco`() {
+        // A Ana não tem perfil rico; Caio tem serviço sem inclusos nem especialidades, e textos em branco.
+        val vazio = caio.copy(
+            candidaturaId = "c4",
+            profissional = caio.profissional.copy(
+                servicos = emptyList(), apresentacao = "  ", experienciaFaixa = null, ondeTrabalhei = "",
+                cursos = emptyList(), idiomas = emptyList(), regioes = emptyList(), atendeTodoDf = false,
+            ),
+        )
+        montar(estado(EstadoDosCandidatos.Carregados(listOf(ana, vazio))))
+
+        for (id in listOf("c1", "c4")) {
+            for (parte in partesDoPerfilRico) {
+                assertEquals("$parte em $id", 0, rule.onAllNodesWithTag("$parte-do-candidato-$id", useUnmergedTree = true).fetchSemanticsNodes().size)
+            }
+        }
+    }
 }
