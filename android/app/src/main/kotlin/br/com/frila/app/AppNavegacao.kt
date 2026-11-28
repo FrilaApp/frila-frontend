@@ -898,6 +898,7 @@ fun AppNavegacao(
                     val feedAnterior = navController.previousBackStackEntry?.takeIf { it.destination.route == Rotas.FEED }?.let {
                         koinViewModel<FeedVagasViewModel>(viewModelStoreOwner = it)
                     }
+                    val bloqueadosDaSessao = alvosBloqueadosDaSessao()
                     val estadoFeed = feedAnterior?.estado?.collectAsStateWithLifecycle()?.value
                     val vaga: VagaAbertaDto? = estadoFeed?.let { feedAnterior.encontrarVagaPorId(vagaId) }
 
@@ -942,6 +943,16 @@ fun AppNavegacao(
                                 }
                             },
                         ) { detalhe ->
+                            // I1PonzKJ: vaga de estabelecimento que o profissional bloqueou nesta sessão não abre (iOS: `naoEncontradaView`);
+                            // a leitura é estado, então bloquear com o detalhe aberto também o troca.
+                            if (bloqueadosDaSessao.bloqueia(detalhe.estabelecimento)) {
+                                TelaVagaIndisponivel(
+                                    motivo = MotivoIndisponibilidadeVaga.NAO_ENCONTRADA,
+                                    aoVoltarParaFeed = {
+                                        navController.navigate(Rotas.FEED) { popUpTo(Rotas.FEED) { inclusive = true } }
+                                    },
+                                )
+                            } else {
                             val viewModel: DetalheVagaViewModel = koinViewModel(parameters = { parametersOf(detalhe.paraVagaAberta(), detalhe) })
                             TelaDetalheVaga(
                                 viewModel = viewModel,
@@ -965,6 +976,7 @@ fun AppNavegacao(
                                     navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
                                 },
                             )
+                            }
                         }
                     }
                 }
@@ -1098,6 +1110,8 @@ fun AppNavegacao(
                     val turnoId = entrada.arguments?.getString("turnoId").orEmpty()
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     val estado by viewModel.estado.collectAsStateWithLifecycle()
+                    // I1PonzKJ: o turno de uma casa que o profissional bloqueou nesta sessão diz isso (estado: bloquear com a lista aberta também vale).
+                    val estabelecimentosBloqueados = alvosBloqueadosDaSessao().idsDeEstabelecimentos()
 
                     LaunchedEffect(turnoId) {
                         viewModel.carregar()
@@ -1131,6 +1145,7 @@ fun AppNavegacao(
                                         },
                                         aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                         aoDenunciarEstabelecimento = denunciarCasa,
+                                        estabelecimentosBloqueados = estabelecimentosBloqueados,
                                         aoPedirSuporte = pedirSuporte,
                                         aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                     )
@@ -1170,6 +1185,7 @@ fun AppNavegacao(
                                     },
                                     aoAbrirAvaliacao = { id -> navController.navigate(Rotas.avaliacao(id)) },
                                     aoDenunciarEstabelecimento = denunciarCasa,
+                                    estabelecimentosBloqueados = estabelecimentosBloqueados,
                                     aoPedirSuporte = pedirSuporte,
                                     aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                                 )
@@ -1186,6 +1202,8 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    // I1PonzKJ: o turno de uma casa que o profissional bloqueou nesta sessão diz isso (estado: bloquear com a lista aberta também vale).
+                    val estabelecimentosBloqueados = alvosBloqueadosDaSessao().idsDeEstabelecimentos()
                     getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
                         AtualizacaoAutomaticaDaLista(ListaAtualizavel.MEUS_TURNOS, atualizacao) { viewModel.atualizarSemPiscar().join() }
                     }
@@ -1202,6 +1220,7 @@ fun AppNavegacao(
                             },
                             aoAbrirAvaliacao = { turnoId -> navController.navigate(Rotas.avaliacao(turnoId)) },
                             aoDenunciarEstabelecimento = denunciarCasa,
+                            estabelecimentosBloqueados = estabelecimentosBloqueados,
                             aoPedirSuporte = pedirSuporte,
                             aoAvisarACaminho = { turno -> viewModel.avisarACaminho(turno) },
                             // Raiz com aba: abre sem título de página (a aba já diz onde a pessoa está).

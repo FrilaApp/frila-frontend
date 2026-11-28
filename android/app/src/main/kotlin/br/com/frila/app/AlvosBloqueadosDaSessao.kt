@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.dominio.modelo.AlvoBloqueado
 import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
+import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.PerfilPublicoDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.koin.compose.getKoin
@@ -25,3 +26,7 @@ internal fun alvosBloqueadosDaSessao(): Set<AlvoBloqueado> {
 
 /** Este perfil, como a tela o mostra (tipo e id do `PerfilPublico`), está no conjunto? */
 internal fun Set<AlvoBloqueado>.bloqueia(perfil: PerfilPublicoDto): Boolean = AlvoBloqueado(tipoDeAlvoDe(perfil), perfil.id) in this
+
+/** Ids dos estabelecimentos bloqueados: o que as telas do profissional comparam com a contraparte do turno. */
+internal fun Set<AlvoBloqueado>.idsDeEstabelecimentos(): Set<String> =
+    filter { it.tipo == TipoDeAlvo.ESTABELECIMENTO }.mapTo(mutableSetOf()) { it.id }
