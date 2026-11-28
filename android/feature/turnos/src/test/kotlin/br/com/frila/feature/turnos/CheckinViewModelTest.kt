@@ -565,4 +565,38 @@ class CheckinViewModelTest {
         assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status)
         assertEquals("Sem conexão. Verifique sua internet e tente de novo.", viewModel.estado.value.mensagemErro)
     }
+
+    // ---- 401, 403 e 404 no check-in (cartão rclJTMOK): o mesmo texto do iOS (MensagemDoErroAPI.texto) ----
+
+    private val recusasDeSessaoEAcesso = listOf(
+        Triple(HttpStatusCode.Unauthorized, "nao_autenticado", "Sua sessão expirou. Entre novamente para continuar."),
+        Triple(HttpStatusCode.Forbidden, "sem_permissao", "Sua conta não pode realizar esta ação."),
+        Triple(HttpStatusCode.NotFound, "nao_encontrado", "Não encontramos este turno."),
+    )
+
+    @Test
+    fun `401, 403 e 404 no check-in com localizacao dizem o motivo, e nao o tente de novo`() = runBlocking {
+        for ((status, codigo, mensagem) in recusasDeSessaoEAcesso) {
+            val servico = servicoComResposta(json = """{"code":"$codigo","message":"x"}""", status = status)
+            val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servico)
+
+            viewModel.fazerCheckin().join()
+
+            assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status, codigo)
+            assertEquals(mensagem, viewModel.estado.value.mensagemErro, codigo)
+        }
+    }
+
+    @Test
+    fun `401, 403 e 404 no check-in manual sem GPS dizem o mesmo motivo`() = runBlocking {
+        for ((status, codigo, mensagem) in recusasDeSessaoEAcesso) {
+            val servico = servicoComResposta(json = """{"code":"$codigo","message":"x"}""", status = status)
+            val viewModel = criarViewModel(provedorComPermissaoEGps(coordenadaProxima), servico)
+
+            viewModel.prosseguirCheckinManual().join()
+
+            assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status, codigo)
+            assertEquals(mensagem, viewModel.estado.value.mensagemErro, codigo)
+        }
+    }
 }

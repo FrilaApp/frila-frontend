@@ -162,7 +162,9 @@ class CheckoutViewModelTest {
             Triple(HttpStatusCode.UnprocessableEntity, "fora_da_janela", TextosCheckoutECodigo.CHECKOUT_FORA_DA_JANELA),
             Triple(HttpStatusCode.UnprocessableEntity, "registro_no_futuro", TextosCheckoutECodigo.CHECKOUT_HORARIO_ERRADO),
             Triple(HttpStatusCode.NotFound, "nao_encontrado", TextosCheckoutECodigo.CHECKOUT_NAO_ENCONTRADO),
-            Triple(HttpStatusCode.Forbidden, "sem_permissao", TextosCheckoutECodigo.CHECKOUT_ERRO_PADRAO),
+            // rclJTMOK: 401 e 403 com o texto do iOS (MensagemDoErroAPI.texto), não mais o "Tente de novo".
+            Triple(HttpStatusCode.Unauthorized, "nao_autenticado", "Sua sessão expirou. Entre novamente para continuar."),
+            Triple(HttpStatusCode.Forbidden, "sem_permissao", "Sua conta não pode realizar esta ação."),
         )
         for ((status, codigo, mensagem) in casos) {
             val vm = viewModel(Rede { status to """{"code":"$codigo","message":"x"}""" }, provedor())
