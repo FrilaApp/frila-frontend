@@ -62,6 +62,31 @@ class ExclusaoDeContaVooUnicoTest {
         assertEquals(1, concluiu)
     }
 
+    // O espelho do "excluindo" é eventual; quem decide é a trava, atômica. Uma tela cujo espelho ainda não propagou (o coletor não rodou)
+    // enxerga "parado", mas o toque dela não pode mandar o segundo pedido.
+    @Test
+    fun `tela cujo espelho ainda nao propagou nao manda o segundo pedido`() = runBlocking {
+        val emVoo = ExclusaoEmVoo()
+        val liberar = CompletableDeferred<Unit>()
+        var pedidos = 0
+        val primeira = tela(emVoo, { pedidos++; liberar.await(); sucesso })
+        primeira.alterarConfirmacao(true)
+        primeira.confirmarExclusao()
+        val atrasada = ExclusaoDeContaViewModel(
+            excluir = { pedidos++; sucesso },
+            escopo = CoroutineScope(kotlinx.coroutines.test.StandardTestDispatcher()), // o coletor do espelho nunca roda
+            escopoDoPedido = escopoDoPedido,
+            emVoo = emVoo,
+        )
+        atrasada.alterarConfirmacao(true)
+        assertTrue(atrasada.estado.value.podeExcluir, "o espelho atrasou: a tela ainda se enxerga parada")
+
+        atrasada.confirmarExclusao()
+
+        assertEquals(1, pedidos)
+        liberar.complete(Unit)
+    }
+
     @Test
     fun `a tela reaberta ja nasce excluindo, sem poder pedir de novo`() {
         val emVoo = ExclusaoEmVoo()
