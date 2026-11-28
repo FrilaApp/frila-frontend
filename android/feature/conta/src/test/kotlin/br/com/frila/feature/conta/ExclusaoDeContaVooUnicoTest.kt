@@ -83,8 +83,8 @@ class ExclusaoDeContaVooUnicoTest {
 
         atrasada.confirmarExclusao()
 
-        assertEquals(1, pedidos)
         liberar.complete(Unit)
+        assertEquals(1, pedidos)
     }
 
     @Test
