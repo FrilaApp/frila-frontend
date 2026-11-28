@@ -14,7 +14,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
 import br.com.frila.core.rede.ItemBloqueioDto
@@ -39,6 +42,7 @@ class TelaBloqueiosTest {
         var novamente = 0
         val desbloqueados = mutableListOf<String>()
         var voltou = 0
+        var atualizou = 0
     }
 
     private fun montar(tela: EstadoTelaBloqueios, chamadas: Chamadas = Chamadas()): Chamadas {
@@ -49,6 +53,7 @@ class TelaBloqueiosTest {
                     aoTentarNovamente = { chamadas.novamente++ },
                     aoDesbloquear = { chamadas.desbloqueados += it.nome },
                     aoVoltar = { chamadas.voltou++ },
+                    aoAtualizar = { chamadas.atualizou++ },
                 )
             }
         }
@@ -57,6 +62,63 @@ class TelaBloqueiosTest {
 
     private fun comItens(vararg itens: ItemBloqueioDto, ajuste: EstadoTelaBloqueios.() -> EstadoTelaBloqueios = { this }) =
         EstadoTelaBloqueios(estado = EstadoBloqueios.Conteudo(itens.toList())).ajuste()
+
+    // CLD9Yg3e (item 228): puxar para atualizar, em qualquer estado da tela, como o `.refreshable` do iOS.
+    @Test
+    fun `puxar a lista para baixo pede a atualizacao`() {
+        val c = montar(comItens(ana, bar))
+
+        rule.onRoot().performTouchInput { swipeDown(startY = height * 0.15f, endY = height * 0.95f, durationMillis = 800) }
+        rule.waitForIdle()
+
+        assertEquals(1, c.atualizou)
+    }
+
+    @Test
+    fun `na tela ligada ao ViewModel, puxar a lista le a lista de novo`() {
+        var leituras = 0
+        val vm = BloqueiosViewModel(
+            listar = { leituras++; listOf(ana, bar) },
+            desfazer = { _, _ -> error("o teste não desbloqueia") },
+            escopo = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+        )
+        rule.setContent { FrilaTheme { TelaBloqueios(viewModel = vm, aoVoltar = {}) } }
+        rule.waitUntil(5_000) { leituras == 1 }
+        rule.onNodeWithText(ana.nome).assertIsDisplayed()
+
+        rule.onRoot().performTouchInput { swipeDown(startY = height * 0.15f, endY = height * 0.95f, durationMillis = 800) }
+
+        rule.waitUntil(5_000) { leituras == 2 }
+        assertEquals(2, leituras)
+    }
+
+    @Test
+    fun `puxar a lista vazia tambem pede a atualizacao`() {
+        val c = montar(EstadoTelaBloqueios(estado = EstadoBloqueios.Vazio))
+
+        rule.onRoot().performTouchInput { swipeDown(startY = height * 0.15f, endY = height * 0.95f, durationMillis = 800) }
+        rule.waitForIdle()
+
+        assertEquals(1, c.atualizou)
+    }
+
+    @Test
+    fun `sem puxar, nenhuma atualizacao e pedida`() {
+        val c = montar(comItens(ana, bar))
+
+        rule.waitForIdle()
+
+        assertEquals(0, c.atualizou)
+    }
+
+    @Test
+    fun `com a lista sendo atualizada os botoes de desbloquear ficam desligados`() {
+        montar(comItens(ana, bar) { copy(atualizando = true) })
+
+        rule.onAllNodesWithText(TextosBloqueios.DESBLOQUEAR).assertCountEquals(2)
+        rule.onAllNodesWithText(TextosBloqueios.DESBLOQUEAR)[0].assertIsNotEnabled()
+        rule.onAllNodesWithText(TextosBloqueios.DESBLOQUEAR)[1].assertIsNotEnabled()
+    }
 
     @Test
     fun `cabecalho tem titulo como heading, explicacao e voltar com alvo minimo`() {

@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +57,7 @@ fun TelaBloqueios(
         aoDesbloquear = { viewModel.desbloquear(it) },
         aoVoltar = aoVoltar,
         modifier = modifier,
+        aoAtualizar = { viewModel.atualizar() },
     )
 }
 
@@ -66,6 +69,7 @@ fun TelaBloqueios(
  * Tela de leitura: sem laranja. O desbloqueio é um botão secundário na própria linha; enquanto um roda, os outros
  * ficam desligados e o rótulo vira "Desbloqueando…" no lugar.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConteudoBloqueios(
     tela: EstadoTelaBloqueios,
@@ -73,6 +77,8 @@ fun ConteudoBloqueios(
     aoDesbloquear: (ItemBloqueioDto) -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    /** CLD9Yg3e: puxar para atualizar, como o `.refreshable` do iOS. */
+    aoAtualizar: () -> Unit = {},
 ) {
     var chaveParaDesbloquear by rememberSaveable { mutableStateOf<String?>(null) }
     val itens = (tela.estado as? EstadoBloqueios.Conteudo)?.itens.orEmpty()
@@ -84,10 +90,16 @@ fun ConteudoBloqueios(
         containerColor = cores.fundo,
         topBar = { FrilaBarraDeTopo(aoVoltar = aoVoltar) },
     ) { preenchimento ->
-        LazyColumn(
+        // Puxar para atualizar (iOS `.refreshable`), em qualquer estado da tela. Com a lista na tela o ViewModel a mantém.
+        PullToRefreshBox(
+            isRefreshing = tela.atualizando,
+            onRefresh = aoAtualizar,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(preenchimento),
+        ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = FrilaEspacamento.item,
                 bottom = FrilaEspacamento.grupo,
@@ -134,7 +146,7 @@ fun ConteudoBloqueios(
                                 LinhaDoBloqueio(
                                     item = item,
                                     desbloqueando = tela.desbloqueando == chave,
-                                    bloqueado = tela.desbloqueando != null,
+                                    bloqueado = tela.desbloqueando != null || tela.atualizando,
                                     aoDesbloquear = { chaveParaDesbloquear = chave },
                                 )
                             }
@@ -142,6 +154,7 @@ fun ConteudoBloqueios(
                     }
                 }
             }
+        }
         }
     }
 
