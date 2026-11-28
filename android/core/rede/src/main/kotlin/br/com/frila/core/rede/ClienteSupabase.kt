@@ -96,6 +96,11 @@ class ClienteSupabase(
     private val json: Json = jsonFrila,
     /** L1-7d: avisado a cada resposta de erro da API (ver [RegistroDeErroDaApi]); nulo (padrão) não avisa ninguém. */
     private val registroDeErros: RegistroDeErroDaApi? = null,
+    /**
+     * #793: chamado depois que o Auth recusou o refresh e a sessão saiu do armazenamento, para o app completar a limpeza que o
+     * Sair faz (cache de imagens, corrotinas da sessão, cliente novo). Não é chamado se outra conta já tinha entrado.
+     */
+    private val aoRecusarSessao: () -> Unit = {},
 ) : Closeable {
     private val _fechado = AtomicBoolean(false)
     val estaFechado: Boolean get() = _fechado.get()
@@ -249,7 +254,9 @@ class ClienteSupabase(
             if (!resposta.status.isSuccess()) {
                 // Só o Auth recusando o token encerra a sessão. 5xx, 429 e afins são falha
                 // passageira: a sessão fica e a próxima chamada tenta renovar de novo.
-                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO) armazenamento.limparSeRefreshTokenIgual(sessaoAtual.refreshToken)
+                if (resposta.status.value in STATUS_DE_TOKEN_RECUSADO && armazenamento.limparSeRefreshTokenIgual(sessaoAtual.refreshToken)) {
+                    aoRecusarSessao()
+                }
                 return null
             }
             val renovada = resposta.body<SessaoDto>()

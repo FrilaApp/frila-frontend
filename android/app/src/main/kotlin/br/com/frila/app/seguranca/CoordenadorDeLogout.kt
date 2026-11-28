@@ -155,6 +155,12 @@ class CoordenadorDeLogout(
         return completarLimpezaDoLogout()
     }
 
+    /**
+     * #793: o Auth recusou o refresh e o cliente já tirou a sessão do armazenamento. Completa a limpeza do Sair (cache de imagens,
+     * corrotinas da sessão, cliente novo). Sem `remover_dispositivo`: o token de acesso que o pediria já foi recusado.
+     */
+    fun encerrarAposRecusa(): ResultadoLimpezaLogout = completarLimpezaDoLogout()
+
     /** Passos 2 a 4 do [deslogar], depois que a sessão já saiu do armazenamento. */
     private fun completarLimpezaDoLogout(): ResultadoLimpezaLogout {
         // 2. Cache de imagens limpo: expurga arquivos de imagem/temporários
