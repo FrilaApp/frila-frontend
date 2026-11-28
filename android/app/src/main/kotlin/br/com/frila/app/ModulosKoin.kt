@@ -840,7 +840,11 @@ val moduloFeatures = module {
         )
     }
     /** L2-4: a vaga aberta pelo id (`detalhe_vaga`); as candidaturas da conta e a retirada de uma (`aoRetirar` avisa a lista). */
-    viewModel { (vagaId: String) -> AberturaDeVagaViewModel(vagaId = vagaId, buscarDetalhe = get<ServicoVagas>()::detalheVaga) }
+    viewModel { (vagaId: String) ->
+        val vagas = get<ServicoVagas>()
+        // xdvUylw7: com a vaga indisponível, a candidatura recusada ou expirada da conta muda o texto (avisos de recusa e de seleção).
+        AberturaDeVagaViewModel(vagaId = vagaId, buscarDetalhe = vagas::detalheVaga, buscarMinhasCandidaturas = { vagas.minhasCandidaturas() })
+    }
     viewModel {
         val vagas = get<ServicoVagas>()
         MinhasCandidaturasViewModel(buscar = { vagas.minhasCandidaturas() })

@@ -1,6 +1,7 @@
 package br.com.frila.feature.vagas.detalhe
 
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
@@ -90,6 +91,39 @@ class TelaAberturaDeVagaTest {
         rule.onNodeWithText(TextosVagaIndisponivel.BOTAO_VOLTAR_PADRAO).performClick()
 
         assertEquals(1, toques.voltou)
+    }
+
+    // ---- xdvUylw7 (item 271) ----
+
+    @Test
+    fun `candidatura recusada diz que o estabelecimento escolheu outra pessoa, nao vaga preenchida`() {
+        montar(
+            EstadoAberturaDeVaga.Indisponivel(
+                MotivoIndisponibilidadeVaga.PREENCHIDA, ModoPreenchimentoVaga.SELECAO,
+                candidatura = br.com.frila.core.dominio.modelo.EstadoCandidatura.RECUSADA,
+            ),
+        )
+
+        rule.onNodeWithText(TextosVagaIndisponivel.RECUSADA_TITULO).assertExists()
+        rule.onAllNodesWithText(TextosVagaIndisponivel.PREENCHIDA_TITULO).assertCountEquals(0)
+    }
+
+    @Test
+    fun `candidatura expirada diz que a selecao foi encerrada`() {
+        montar(
+            EstadoAberturaDeVaga.Indisponivel(MotivoIndisponibilidadeVaga.ENCERRADA, ModoPreenchimentoVaga.SELECAO, candidaturaExpirada = true),
+        )
+        rule.onNodeWithText(TextosVagaIndisponivel.EXPIRADA_TITULO).assertExists()
+    }
+
+    @Test
+    fun `candidatura expirada com a vaga cancelada diz que a casa cancelou`() {
+        montar(
+            EstadoAberturaDeVaga.Indisponivel(
+                MotivoIndisponibilidadeVaga.ENCERRADA, ModoPreenchimentoVaga.SELECAO, vagaCancelada = true, candidaturaExpirada = true,
+            ),
+        )
+        rule.onNodeWithText(TextosVagaIndisponivel.CANCELADA_TITULO).assertExists()
     }
 
     @Test
