@@ -2,6 +2,7 @@ package br.com.frila.feature.suporte
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.rede.BloqueioDto
@@ -31,12 +32,14 @@ class BloqueioDeAlvoViewModel(
     private val alvoTipo: TipoDeAlvo,
     private val alvoId: String,
     private val bloquear: suspend (alvoTipo: String, alvoId: String) -> BloqueioDto,
+    /** O que a sessão já bloqueou (I1PonzKJ): a tela abre sabendo se este alvo já foi bloqueado. `null` ignora. */
+    private val bloqueios: BloqueiosDaSessao? = null,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
-    private val _estado = MutableStateFlow(EstadoBloqueioDeAlvo())
+    private val _estado = MutableStateFlow(EstadoBloqueioDeAlvo(bloqueado = bloqueios?.contem(alvoTipo, alvoId) == true))
     val estado: StateFlow<EstadoBloqueioDeAlvo> = _estado.asStateFlow()
 
     fun abrirDialogo() {
