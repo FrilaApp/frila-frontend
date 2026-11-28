@@ -38,6 +38,8 @@ data class ItemTurno(
     val checkoutEm: Instant? = null,
     /** L2-1 (US14): quando o profissional avisou "Estou a caminho" (`Turno.a_caminho_em`); `null` enquanto não avisou. */
     val aCaminhoEm: Instant? = null,
+    /** Cil1zc0C (contrato 0.2.106): quando a posição foi confirmada (`Turno.confirmado_em`); `null` em servidor anterior. */
+    val confirmadoEm: Instant? = null,
     /** A vaga do turno (`Turno.vaga.id`): é por ela que se lê o responsável do local (`detalhe_vaga`). */
     val vagaId: String = "",
     /** Quem recebe o profissional no local (`Vaga.responsavel_local`, lido do `detalhe_vaga`); `null` até a leitura, ou sem ela. */

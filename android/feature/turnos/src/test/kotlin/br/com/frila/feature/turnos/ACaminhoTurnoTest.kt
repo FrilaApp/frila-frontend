@@ -29,7 +29,13 @@ class ACaminhoTurnoTest {
     private val inicio = Instant.parse("2026-11-01T21:00:00Z")
     private val json = headersOf(HttpHeaders.ContentType, "application/json")
 
-    private fun turnoJson(id: String = "t1", estado: String = "confirmada", aCaminhoEm: String? = null, checkinEm: String? = null) = """
+    private fun turnoJson(
+        id: String = "t1",
+        estado: String = "confirmada",
+        aCaminhoEm: String? = null,
+        checkinEm: String? = null,
+        confirmadoEm: String? = AUSENTE,
+    ) = """
         {
           "id": "$id", "posicao_id": "posicao-$id",
           "vaga": {"id": "vaga-$id", "funcao": "garçom", "local": "CLS 405 Bloco C", "regiao_administrativa": "Plano Piloto",
@@ -41,7 +47,9 @@ class ACaminhoTurnoTest {
           "checkin_tipo": null, "checkin_distancia_m": null, "checkin_confirmado_em": null,
           "checkout_em": null, "checkout_distancia_m": null,
           "verificacao": "pendente", "valor_acordado_centavos": 16000, "pode_avaliar": false,
-          "estado": "$estado", "avaliacao": null, "cancelamento": null
+          "estado": "$estado", "avaliacao": null, "cancelamento": null${
+            if (confirmadoEm === AUSENTE) "" else ", \"confirmado_em\": ${confirmadoEm?.let { "\"$it\"" } ?: "null"}"
+        }
         }
     """.trimIndent()
 
@@ -70,10 +78,11 @@ class ACaminhoTurnoTest {
         { respond("""{"code":"$codigo","message":"x","details":${detalhes?.let { "\"$it\"" } ?: "null"}}""", status, json) }
     }
 
-    private fun item(estado: String = "confirmada", aCaminhoEm: Instant? = null, comCheckin: Boolean = false) =
+    private fun item(estado: String = "confirmada", aCaminhoEm: Instant? = null, comCheckin: Boolean = false, confirmadoEm: Instant? = null) =
         ItemTurno(
             turnoId = "t1", posicaoId = "p1", inicio = inicio, funcaoNome = "garçom", estabelecimentoNome = "Bar do Zé",
             dataHorarioFormatado = "01/11 18:00", valorFormatado = "R$ 160,00", estado = estado, aCaminhoEm = aCaminhoEm,
+            confirmadoEm = confirmadoEm,
             comprovante = if (comCheckin) br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin.gerar(
                 "t1", inicio, br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin.GEOLOCALIZADO,
             ) else null,
@@ -88,6 +97,34 @@ class ACaminhoTurnoTest {
         assertTrue(podeAvisarACaminho(item(), inicio))
         assertTrue(podeAvisarACaminho(item(), inicio.plusSeconds(15 * 60)))
         assertFalse(podeAvisarACaminho(item(), inicio.plusSeconds(15 * 60 + 1)))
+    }
+
+    // ---- Cil1zc0C (contrato 0.2.106): o fim da janela é greatest(inicio_em, confirmado_em) + 15 min ----
+
+    @Test
+    fun `substituto confirmado depois do inicio pode avisar ate 15 minutos depois da confirmacao, com a borda dentro`() {
+        val confirmadoEm = inicio.plusSeconds(40 * 60)
+        val turno = item(confirmadoEm = confirmadoEm)
+
+        assertTrue(podeAvisarACaminho(turno, inicio.plusSeconds(15 * 60 + 1)))
+        assertTrue(podeAvisarACaminho(turno, confirmadoEm.plusSeconds(15 * 60)))
+        assertFalse(podeAvisarACaminho(turno, confirmadoEm.plusSeconds(15 * 60 + 1)))
+    }
+
+    @Test
+    fun `confirmado antes do inicio, a janela continua fechando 15 minutos depois do inicio`() {
+        val turno = item(confirmadoEm = inicio.minusSeconds(3600))
+
+        assertTrue(podeAvisarACaminho(turno, inicio.plusSeconds(15 * 60)))
+        assertFalse(podeAvisarACaminho(turno, inicio.plusSeconds(15 * 60 + 1)))
+    }
+
+    @Test
+    fun `a confirmacao tardia nao muda a abertura, que segue 3 horas antes do inicio`() {
+        val turno = item(confirmadoEm = inicio.plusSeconds(40 * 60))
+
+        assertFalse(podeAvisarACaminho(turno, inicio.minusSeconds(3 * 3600 + 1)))
+        assertTrue(podeAvisarACaminho(turno, inicio.minusSeconds(3 * 3600)))
     }
 
     @Test
@@ -108,6 +145,22 @@ class ACaminhoTurnoTest {
         vm.carregar().join()
 
         assertEquals(Instant.parse("2026-11-01T20:10:00Z"), vm.estado.value.agendados.single().aCaminhoEm)
+    }
+
+    @Test
+    fun `carregar leva o confirmado_em do servidor, e ausente ou nulo vira nulo`() = runBlocking {
+        val casos = listOf(
+            "2026-11-01T21:40:00Z" to Instant.parse("2026-11-01T21:40:00Z"),
+            null to null,
+            AUSENTE to null,
+        )
+        for ((noJson, esperado) in casos) {
+            val vm = viewModelCom(inicio, turno = turnoJson(confirmadoEm = noJson)) { respostaOk()() }
+
+            vm.carregar().join()
+
+            assertEquals(esperado, vm.estado.value.agendados.single().confirmadoEm, "confirmado_em=$noJson")
+        }
     }
 
     // ---- o envio ----
@@ -236,5 +289,10 @@ class ACaminhoTurnoTest {
 
         assertNull(vm.estado.value.erroACaminho)
         assertNotNull(vm.estado.value.agendados.single().aCaminhoEm)
+    }
+
+    private companion object {
+        /** Marca o campo fora do JSON (servidor anterior à 0.2.106), diferente de `null`. */
+        val AUSENTE: String? = String(charArrayOf('-'))
     }
 }

@@ -269,6 +269,8 @@ data class TurnoDto(
     @SerialName("estado") val estado: String? = null,
     @SerialName("avaliacao") val avaliacao: AvaliacaoDto? = null,
     @SerialName("cancelamento") val cancelamento: CancelamentoDoTurnoDto? = null,
+    /** Contrato 0.2.106: quando a posição foi confirmada. Opcional para servidores anteriores; ausente vale o mesmo que nulo. */
+    @SerialName("confirmado_em") val confirmadoEm: String? = null,
 )
 
 /**

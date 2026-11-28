@@ -3,7 +3,10 @@ package br.com.frila.feature.turnos
 import java.time.Duration
 import java.time.Instant
 
-/** US14, RF12: o aviso vale de 3 horas antes do início até 15 minutos depois (o servidor confere, `422 a_caminho_fora_da_janela`). */
+/**
+ * US14, RF12: o aviso vale de 3 horas antes do início até 15 minutos depois de greatest(início, confirmação) (contrato 0.2.106; o
+ * servidor confere, `422 a_caminho_fora_da_janela`). Sem `confirmado_em` (servidor anterior), o fim é 15 minutos depois do início.
+ */
 private val ANTECEDENCIA_DO_A_CAMINHO: Duration = Duration.ofHours(3)
 private val TOLERANCIA_DO_A_CAMINHO: Duration = Duration.ofMinutes(15)
 
@@ -15,7 +18,9 @@ fun podeAvisarACaminho(turno: ItemTurno, agora: Instant): Boolean {
     if (turno.estado != "confirmada") return false
     if (turno.aCaminhoEm != null) return false
     if (turno.comprovante != null) return false
-    return !agora.isBefore(turno.inicio.minus(ANTECEDENCIA_DO_A_CAMINHO)) && !agora.isAfter(turno.inicio.plus(TOLERANCIA_DO_A_CAMINHO))
+    // Cil1zc0C: o substituto confirmado depois do início ganha os mesmos 15 minutos a partir da confirmação; a abertura não muda.
+    val baseDoFim = turno.confirmadoEm?.let { maxOf(turno.inicio, it) } ?: turno.inicio
+    return !agora.isBefore(turno.inicio.minus(ANTECEDENCIA_DO_A_CAMINHO)) && !agora.isAfter(baseDoFim.plus(TOLERANCIA_DO_A_CAMINHO))
 }
 
 /** Textos do "Estou a caminho" (paridade com `TextosDoProfissional.Turnos` do iOS). */
