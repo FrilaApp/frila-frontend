@@ -25,7 +25,7 @@ class FolhaDeChamadaDaBuscaTest {
         recado: String = "",
         funcao: String? = "f1",
         casa: MeuEstabelecimentoDto? = this.casa,
-    ) = validarFolhaDaBusca(funcao, casa, valor, total, inicio, fim, responsavel, recado, agora)
+    ) = validarFolhaDaBusca(funcao, casa, valor, total, lerDataEHora(inicio)!!, lerDataEHora(fim)!!, responsavel, recado, agora)
 
     private fun falta(r: ResultadoDaFolha) = (r as ResultadoDaFolha.Falta).motivo
 
@@ -50,8 +50,7 @@ class FolhaDeChamadaDaBuscaTest {
         assertEquals(TextosChamadaCasa.FALTA_VALOR, falta(validar(valor = "0")))
         assertEquals(TextosChamadaCasa.FALTA_CONFIRMAR_TOTAL, falta(validar(total = false)))
         assertEquals(TextosChamadaCasa.FALTA_RESPONSAVEL, falta(validar(responsavel = "  ")))
-        assertEquals(TextosChamadaCasa.BUSCA_DATA_INVALIDA, falta(validar(inicio = "amanhã")))
-        assertEquals(TextosChamadaCasa.BUSCA_DATA_INVALIDA, falta(validar(fim = "31/02/2026 10:00")))
+        // Item 261: início e término vêm dos seletores (instantes); a data digitada inválida só existe no filtro da busca (`lerDataEHora`).
         assertEquals(TextosChamadaCasa.FALTA_ANTECEDENCIA, falta(validar(inicio = "16/11/2026 13:00", fim = "16/11/2026 17:00")))
         assertEquals(TextosChamadaCasa.FALTA_DURACAO, falta(validar(fim = "17/11/2026 13:00")))
         assertEquals(TextosChamadaCasa.FALTA_DURACAO, falta(validar(fim = "18/11/2026 12:00")))

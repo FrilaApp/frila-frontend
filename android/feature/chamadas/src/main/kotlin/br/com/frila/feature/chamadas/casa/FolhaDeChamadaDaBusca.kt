@@ -48,28 +48,25 @@ internal sealed interface ResultadoDaFolha {
 /**
  * Valida os campos da folha com as mesmas regras de [EstadoChamadaDireta] (valor, total confirmado, responsável,
  * início a 2 h ou mais, turno de 2 a 16 h, recado até 300 caracteres) e monta o [TrabalhoDaChamada] de todos os
- * selecionados. O início e o término vêm como o texto "dd/mm/aaaa hh:mm" no fuso do DF.
+ * selecionados. O início e o término vêm dos seletores de data e hora (instantes), sem texto digitado.
  */
 internal fun validarFolhaDaBusca(
     funcaoId: String?,
     casa: MeuEstabelecimentoDto?,
     valorTexto: String,
     totalConfirmado: Boolean,
-    inicioTexto: String,
-    fimTexto: String,
+    inicio: Instant,
+    fim: Instant,
     responsavel: String,
     recado: String,
     agora: Instant,
 ): ResultadoDaFolha {
     if (funcaoId == null || casa == null) return ResultadoDaFolha.Falta(TextosChamadaCasa.BUSCA_SEM_CASA)
     val valor = ValorEmReais.centavos(valorTexto) ?: 0L
-    val inicio = lerDataEHora(inicioTexto)
-    val fim = lerDataEHora(fimTexto)
     return when {
         valor <= 0 -> ResultadoDaFolha.Falta(TextosChamadaCasa.FALTA_VALOR)
         !totalConfirmado -> ResultadoDaFolha.Falta(TextosChamadaCasa.FALTA_CONFIRMAR_TOTAL)
         responsavel.isBlank() -> ResultadoDaFolha.Falta(TextosChamadaCasa.FALTA_RESPONSAVEL)
-        inicio == null || fim == null -> ResultadoDaFolha.Falta(TextosChamadaCasa.BUSCA_DATA_INVALIDA)
         Duration.between(agora, inicio) < EstadoChamadaDireta.ANTECEDENCIA_MINIMA ->
             ResultadoDaFolha.Falta(TextosChamadaCasa.FALTA_ANTECEDENCIA)
         Duration.between(inicio, fim) !in EstadoChamadaDireta.DURACAO_MINIMA..EstadoChamadaDireta.DURACAO_MAXIMA ->
@@ -115,22 +112,25 @@ internal fun FolhaDeChamadaDaBusca(
     val termino = horarioDoFiltro?.fim ?: comeco.plus(Duration.ofHours(4))
     var valor by rememberSaveable { mutableStateOf("") }
     var totalConfirmado by rememberSaveable { mutableStateOf(false) }
-    var inicioTexto by rememberSaveable { mutableStateOf(dataEHora(comeco)) }
-    var fimTexto by rememberSaveable { mutableStateOf(dataEHora(termino)) }
+    // Instantes em milissegundos: o `rememberSaveable` guarda `Long`, e o horário é o de Brasília na tela (`CampoDeHorario`).
+    var inicioMs by rememberSaveable { mutableStateOf(comeco.toEpochMilli()) }
+    var fimMs by rememberSaveable { mutableStateOf(termino.toEpochMilli()) }
+    val inicio = Instant.ofEpochMilli(inicioMs)
+    val fim = Instant.ofEpochMilli(fimMs)
     var responsavel by rememberSaveable { mutableStateOf(estado.casa?.nome.orEmpty()) }
     var recado by rememberSaveable { mutableStateOf("") }
     // Só serve para refazer a conta na hora do toque (o relógio andou desde a última composição).
     var toques by rememberSaveable { mutableStateOf(0) }
     val travada = estado.enviando || estado.resultadosDaChamada.isNotEmpty()
     // O que falta, o tempo todo, como o iOS (`oQueFalta`): a mensagem acompanha o que a pessoa preenche e o botão só liga com tudo certo.
-    val situacao = remember(estado.filtroDaBusca, estado.casa, valor, totalConfirmado, inicioTexto, fimTexto, responsavel, recado, toques) {
+    val situacao = remember(estado.filtroDaBusca, estado.casa, valor, totalConfirmado, inicioMs, fimMs, responsavel, recado, toques) {
         validarFolhaDaBusca(
             funcaoId = estado.filtroDaBusca?.funcaoId,
             casa = estado.casa,
             valorTexto = valor,
             totalConfirmado = totalConfirmado,
-            inicioTexto = inicioTexto,
-            fimTexto = fimTexto,
+            inicio = inicio,
+            fim = fim,
             responsavel = responsavel,
             recado = recado,
             agora = relogio(),
@@ -175,18 +175,23 @@ internal fun FolhaDeChamadaDaBusca(
                     )
                 }
             }
-            CampoDeTexto(
-                valor = inicioTexto,
-                aoMudar = { inicioTexto = it },
-                rotulo = TextosChamadaCasa.BUSCA_INICIO,
-                habilitado = !travada,
+            // Seletores de data e de hora do sistema, como o iOS; a faixa fica livre (o que falta avisa na hora, em vez de impedir).
+            CampoDeHorario(
+                rotulo = TextosChamadaCasa.INICIO,
+                valor = inicio,
+                editavel = !travada,
+                minimo = { Instant.EPOCH },
+                maximo = null,
+                aoEscolher = { inicioMs = it.toEpochMilli() },
                 modifier = Modifier.testTag("folha-inicio"),
             )
-            CampoDeTexto(
-                valor = fimTexto,
-                aoMudar = { fimTexto = it },
-                rotulo = TextosChamadaCasa.BUSCA_TERMINO,
-                habilitado = !travada,
+            CampoDeHorario(
+                rotulo = TextosChamadaCasa.TERMINO,
+                valor = fim,
+                editavel = !travada,
+                minimo = { Instant.EPOCH },
+                maximo = null,
+                aoEscolher = { fimMs = it.toEpochMilli() },
                 modifier = Modifier.testTag("folha-fim"),
             )
             CampoDeTexto(
@@ -223,8 +228,8 @@ internal fun FolhaDeChamadaDaBusca(
                             casa = estado.casa,
                             valorTexto = valor,
                             totalConfirmado = totalConfirmado,
-                            inicioTexto = inicioTexto,
-                            fimTexto = fimTexto,
+                            inicio = inicio,
+                            fim = fim,
                             responsavel = responsavel,
                             recado = recado,
                             agora = relogio(),

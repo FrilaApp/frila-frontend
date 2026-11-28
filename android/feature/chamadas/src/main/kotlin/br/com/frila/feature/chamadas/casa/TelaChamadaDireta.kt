@@ -279,15 +279,19 @@ private fun SeletorDeFuncao(tela: EstadoChamadaDireta, aoEscolher: (String) -> U
     )
 }
 
-/** Data e hora pelos seletores do sistema, no horário de Brasília; o ViewModel segura a faixa de 2 h a 16 h. */
+/**
+ * Data e hora pelos seletores do sistema, no horário de Brasília; o ViewModel segura a faixa de 2 h a 16 h. Compartilhado com a folha da
+ * busca (que deixa a faixa livre, como o iOS: `minimo` bem no passado e `maximo` nulo).
+ */
 @Composable
-private fun CampoDeHorario(
+internal fun CampoDeHorario(
     rotulo: String,
     valor: Instant,
     editavel: Boolean,
     minimo: () -> Instant,
     maximo: (() -> Instant)?,
     aoEscolher: (Instant) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val contexto = LocalContext.current
     val atual = ZonedDateTime.ofInstant(valor, FusoDoFrila)
@@ -296,7 +300,7 @@ private fun CampoDeHorario(
         BotaoSecundario(
             texto = dataEHora(valor),
             habilitado = editavel,
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "$rotulo: ${dataEHora(valor)}" },
+            modifier = modifier.fillMaxWidth().semantics { contentDescription = "$rotulo: ${dataEHora(valor)}" },
             aoClicar = {
                 DatePickerDialog(
                     contexto,
