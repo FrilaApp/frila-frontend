@@ -23,7 +23,8 @@ object TextosEquipe {
     const val REMOVIDO = "Removido da equipe."
     const val SAIU = "Você saiu da equipe de confiança."
     const val TENTAR_NOVAMENTE = "Tentar novamente"
-    const val SEM_AVALIACOES = "Sem avaliações ainda"
+    /** T2gtyjq8: o texto do contrato e do iOS (`SeloReputacao.descricao`), repetido de `TextosChamadaCasa` (outro módulo). */
+    const val SEM_HISTORICO = "Sem histórico"
 
     const val SEM_TURNO_CUMPRIDO =
         "Só dá para incluir quem já cumpriu um turno com presença verificada nesta casa."
@@ -48,5 +49,5 @@ object TextosEquipe {
     fun rotuloDenunciar(nome: String): String = "$DENUNCIAR $nome"
 
     fun reputacao(positivas: Int, total: Int): String =
-        if (total <= 0) SEM_AVALIACOES else "$positivas de $total avaliações positivas"
+        if (total <= 0) SEM_HISTORICO else "$positivas de $total chamariam de novo"
 }
