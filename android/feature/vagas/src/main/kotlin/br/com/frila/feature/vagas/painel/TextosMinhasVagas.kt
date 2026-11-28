@@ -24,6 +24,7 @@ object TextosMinhasVagas {
     const val PRESENCA_CONFIRMADA = "Presença confirmada."
     const val SITUACAO_MUDOU = "A situação deste turno mudou. Atualizamos a tela."
     const val ERRO_PRESENCA_NAO_ENCONTRADO = "Não encontramos este turno."
+    const val ERRO_PRESENCA_VAGA_ENCERRADA = "Esta vaga não está mais disponível."
     const val ERRO_PRESENCA_SEM_PERMISSAO = "Você não tem permissão para confirmar a presença neste turno."
     const val ERRO_PRESENCA_SEM_REDE = "Sem conexão. A confirmação não foi enviada. Tente de novo quando a internet voltar."
     const val ERRO_PRESENCA_GENERICO = "Não foi possível confirmar a presença. Tente novamente."

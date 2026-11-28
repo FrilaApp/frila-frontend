@@ -14,6 +14,8 @@ import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -94,6 +96,7 @@ enum class AvisoDaPresenca(val mensagem: String, val erro: Boolean) {
     CONFIRMADA(TextosMinhasVagas.PRESENCA_CONFIRMADA, false),
     SITUACAO_MUDOU(TextosMinhasVagas.SITUACAO_MUDOU, true),
     NAO_ENCONTRADO(TextosMinhasVagas.ERRO_PRESENCA_NAO_ENCONTRADO, true),
+    VAGA_ENCERRADA(TextosMinhasVagas.ERRO_PRESENCA_VAGA_ENCERRADA, true),
     SEM_PERMISSAO(TextosMinhasVagas.ERRO_PRESENCA_SEM_PERMISSAO, true),
     SESSAO_EXPIRADA(TextosMinhasVagas.ERRO_SESSAO, true),
     SEM_REDE(TextosMinhasVagas.ERRO_PRESENCA_SEM_REDE, true),
@@ -202,6 +205,8 @@ class MinhasVagasViewModel(
             // Quem chama devolve Result, mas um lançamento escapa; sem isto a tela ficaria em "Carregando".
             Result.failure(erro)
         }
+        // Uma leitura cancelada (a confirmação pede outra) não aplica o painel velho, mesmo que o `buscarPainel` não tenha parado.
+        currentCoroutineContext().ensureActive()
         resultado
             .onSuccess { painel -> aplicar(painel, agora) }
             .onFailure { erro -> if (!silencioso) falhar(erro) }
@@ -260,9 +265,14 @@ class MinhasVagasViewModel(
      */
     fun confirmarPresenca(turnoId: String): Job {
         val confirmar = confirmarCheckin
-        val atual = _estado.value
-        if (confirmar == null || !atual.podeConfirmar(turnoId) || turnoId in atual.confirmando) return escopoDeTrabalho.launch { }
-        _estado.update { it.copy(confirmando = it.confirmando + turnoId, avisoDaPresenca = null) }
+        if (confirmar == null) return escopoDeTrabalho.launch { }
+        // A guarda e a marca "em voo" na mesma troca de estado: dois toques seguidos não passam os dois (como `candidatar`).
+        var aceita = false
+        _estado.update {
+            aceita = it.podeConfirmar(turnoId) && turnoId !in it.confirmando
+            if (aceita) it.copy(confirmando = it.confirmando + turnoId, avisoDaPresenca = null) else it
+        }
+        if (!aceita) return escopoDeTrabalho.launch { }
         return escopoDeTrabalho.launch {
             val resultado = try {
                 confirmar(turnoId)
@@ -293,6 +303,7 @@ class MinhasVagasViewModel(
                             avisoDaPresenca = when {
                                 situacaoMudou -> AvisoDaPresenca.SITUACAO_MUDOU
                                 codigo == CodigoErroAPI.NAO_ENCONTRADO -> AvisoDaPresenca.NAO_ENCONTRADO
+                                codigo == CodigoErroAPI.VAGA_ENCERRADA -> AvisoDaPresenca.VAGA_ENCERRADA
                                 codigo == CodigoErroAPI.SEM_PERMISSAO -> AvisoDaPresenca.SEM_PERMISSAO
                                 codigo == CodigoErroAPI.NAO_AUTENTICADO -> AvisoDaPresenca.SESSAO_EXPIRADA
                                 codigo == CodigoErroAPI.SEM_REDE -> AvisoDaPresenca.SEM_REDE
