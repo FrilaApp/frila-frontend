@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -144,6 +145,7 @@ import br.com.frila.feature.suporte.TelaDenuncia
 import br.com.frila.feature.turnos.AvaliacaoViewModel
 import br.com.frila.feature.turnos.MeusTurnosViewModel
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
+import br.com.frila.feature.turnos.QuemRecebeDasVagas
 import br.com.frila.feature.turnos.StatusMeusTurnos
 import br.com.frila.feature.turnos.TelaAvaliacao
 import br.com.frila.feature.turnos.TelaMeusTurnos
@@ -425,6 +427,8 @@ fun AppNavegacao(
     servicoMembros: ServicoMembros? = getKoin().getOrNull(),
     /** Lê o painel para a rota do turno do contratante. Nulo (grafo sem o serviço) mostra a falha da rota. */
     servicoVagas: ServicoVagas? = getKoin().getOrNull(),
+    /** Quem recebe o profissional no local (`responsavel_local`), lido do detalhe da vaga, para o turno confirmado. Nulo: fica o nome da casa. */
+    quemRecebeDasVagas: QuemRecebeDasVagas? = getKoin().getOrNull(),
     /**
      * Decide a tela inicial pelo papel da conta, depois do código e a cada abertura com sessão. Nulo (grafo
      * sem o serviço) mantém o caminho antigo: cadastro depois do código e feed na abertura.
@@ -987,9 +991,15 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val vagaId = entrada.arguments?.getString("vagaId").orEmpty()
                     val vaga = vagaDaPilha(navController, entrada, vagaId)
+                    // Quem recebe no local (`responsavel_local`), pelo cache do detalhe da vaga (o contato da candidatura é descontinuado).
+                    // Falhou ou veio em branco: a tela mostra o nome da casa, como o iOS.
+                    val quemRecebe by produceState(initialValue = quemRecebeDasVagas?.noCache(vagaId)?.valor, vagaId, quemRecebeDasVagas) {
+                        quemRecebeDasVagas?.de(vagaId)?.let { value = it.valor }
+                    }
                     if (vaga != null) {
                         TelaTurnoConfirmado(
                             vaga = vaga,
+                            quemRecebe = quemRecebe,
                             aoVerMeusTurnos = {
                                 navController.navigate(Rotas.MEUS_TURNOS) {
                                     popUpTo(Rotas.FEED) { saveState = true }
