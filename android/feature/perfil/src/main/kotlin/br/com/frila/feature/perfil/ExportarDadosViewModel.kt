@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import java.io.File
-import java.util.UUID
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,7 @@ data class EstadoExportarDados(
 class ExportarDadosViewModel(
     private val exportarMeusDados: suspend () -> ByteArray,
     private val dispatcherIo: CoroutineDispatcher = Dispatchers.IO,
+    private val agora: () -> Instant = Instant::now,
 ) : ViewModel() {
     private val _estado = MutableStateFlow(EstadoExportarDados())
     val estado = _estado.asStateFlow()
@@ -39,7 +42,7 @@ class ExportarDadosViewModel(
                     val pasta = File(diretorioCache, "meus-dados").apply { mkdirs() }
                     pasta.listFiles()?.filter { it.name.startsWith("frila-meus-dados-") && it.extension == "json" }
                         ?.forEach { it.delete() }
-                    arquivo = File(pasta, "frila-meus-dados-${UUID.randomUUID()}.json")
+                    arquivo = File(pasta, nomeDoArquivo(agora()))
                     requireNotNull(arquivo).writeBytes(dados)
                 }
                 _estado.value = EstadoExportarDados(arquivo = arquivo)
@@ -64,4 +67,10 @@ class ExportarDadosViewModel(
         _estado.value.arquivo?.delete()
         _estado.value = EstadoExportarDados(erro = CodigoErroAPI.DESCONHECIDO)
     }
+}
+
+/** `frila-meus-dados-2026-11-27.json`: a data é a de São Paulo, não a do aparelho (iOS `gravarArquivoTemporario`). */
+internal fun nomeDoArquivo(instante: Instant): String {
+    val dia = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.of("America/Sao_Paulo")).format(instante)
+    return "frila-meus-dados-$dia.json"
 }
