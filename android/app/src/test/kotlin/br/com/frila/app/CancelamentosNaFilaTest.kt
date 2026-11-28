@@ -126,10 +126,10 @@ class CancelamentosNaFilaTest {
             assertEquals(listOf(acao), FilaDeAcoes(File(raiz, "${c.tipo}.json")).pendentes())
             val antes = c.pedidos
             tela.motivo("Outro detalhe")
-            assertTrue(tela.erro()!!.contains("quando a conexão voltar"))
+            assertEquals("Sem conexão. O cancelamento será enviado quando a internet voltar.", tela.erro())
             assertNull(tela.confirmar())
             val reaberta = c.tela()
-            assertTrue(reaberta.naFila()); assertTrue(reaberta.erro()!!.contains("quando a conexão voltar"))
+            assertTrue(reaberta.naFila()); assertEquals("Sem conexão. O cancelamento será enviado quando a internet voltar.", reaberta.erro())
             assertNull(reaberta.confirmar()); assertEquals(antes, c.pedidos)
             assertEquals(listOf(Triple(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE,
                 if (casa) "vaga" else null, if (casa) null else "turno")), c.eventos)

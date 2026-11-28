@@ -1,10 +1,11 @@
 package br.com.frila.feature.vagas.painel
 
 import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
+import br.com.frila.core.dominio.modelo.TextosDoCancelamento
 
 /** Textos de cancelar a vaga inteira (paridade com `TextosDoCancelamento` do iOS, lado do contratante). */
 object TextosCancelarVaga {
-    const val NA_FILA = "O cancelamento será enviado quando a conexão voltar."
+    const val NA_FILA = TextosDoCancelamento.NA_FILA_SEM_CONEXAO
     const val RECUSADA = "O cancelamento não foi aceito. Atualize a tela e tente de novo."
     const val TITULO = "Cancelar vaga"
     const val CANCELAR_VAGA_DE = "Cancelar a vaga de %s"

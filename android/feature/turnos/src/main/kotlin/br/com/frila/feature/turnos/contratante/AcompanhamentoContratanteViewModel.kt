@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import br.com.frila.core.dominio.modelo.ResultadoCancelamento
+import br.com.frila.core.dominio.modelo.TextosDoCancelamento
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.FilaDeAcoes
@@ -296,7 +297,7 @@ class AcompanhamentoContratanteViewModel(
             _estado.update {
                 enviado = it.cancelamentoNaFila && !pendente && !recusada
                 when {
-                    pendente -> it.copy(cancelamentoNaFila = true, avisoDoCancelamento = "O cancelamento será enviado quando a conexão voltar.")
+                    pendente -> it.copy(cancelamentoNaFila = true, avisoDoCancelamento = TextosDoCancelamento.NA_FILA_SEM_CONEXAO)
                     recusada -> it.copy(cancelamentoNaFila = false, cancelamentoRecusado = true,
                         avisoDoCancelamento = "O cancelamento não foi aceito. Atualize a tela e tente de novo.")
                     enviado -> it.copy(cancelamentoNaFila = false, contexto = it.contexto.copy(estadoDaPosicao = "cancelada"),
@@ -370,7 +371,7 @@ class AcompanhamentoContratanteViewModel(
                                 registrarEvento(EventoDeTelemetria.ACAO_ENFILEIRADA_OFFLINE, null, atual.contexto.turnoId)
                             }
                             _estado.update { it.copy(cancelando = false, cancelamentoNaFila = true,
-                                avisoDoCancelamento = "O cancelamento será enviado quando a conexão voltar.") }
+                                avisoDoCancelamento = TextosDoCancelamento.NA_FILA_SEM_CONEXAO) }
                         }
                         return@launch
                     } catch (_: IOException) { /* Sem gravação durável, não anunciar que entrou na fila. */ }

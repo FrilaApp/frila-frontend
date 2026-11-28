@@ -43,7 +43,7 @@ class TelaTurnoDoContratanteTest {
 
     @Test fun `cancelar posicao tem alvo minimo chama pedido e mostra aviso sem abrir dialogo`() {
         var pedidos = 0
-        val aviso = "O cancelamento será enviado quando a conexão voltar."
+        val aviso = "Sem conexão. O cancelamento será enviado quando a internet voltar."
         val inicial = estado().let { it.copy(
             contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
             cancelamentoDisponivel = true, agora = { Instant.EPOCH }, avisoDoCancelamento = aviso,
