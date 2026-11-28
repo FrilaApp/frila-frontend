@@ -149,6 +149,42 @@ class ProcessadorDePushTest {
         assertTrue(resultado.silenciada)
     }
 
+    // ---- Item 254: o aviso neutralizado (RN15) sai no canal Geral e respeita a preferência dele (RF06) ----
+
+    private val pushDeOutraConta = mapOf(
+        "vinculo_id" to "vinculo-da-conta-anterior",
+        "tipo" to "vaga_urgente",
+        "titulo" to "Vaga confidencial",
+        "corpo" to "endereço sigiloso",
+    )
+
+    @Test
+    fun `aviso neutralizado com o canal Geral desligado sai silenciado`() {
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        preferencias.definirAtivado(GerenciadorDeCanais.CANAL_SISTEMA, false)
+
+        val comOutraSessao = processadorComSessao(sessaoCom(vinculoId = "vinculo-da-conta-atual"), preferencias).processar(pushDeOutraConta)
+        val semSessao = processadorComSessao(null, preferencias).processar(pushDeOutraConta)
+
+        for (resultado in listOf(comOutraSessao, semSessao)) {
+            assertTrue(resultado.neutralizada)
+            assertEquals(GerenciadorDeCanais.CANAL_SISTEMA, resultado.canal)
+            assertTrue(resultado.silenciada, "o canal Geral está desligado")
+        }
+    }
+
+    @Test
+    fun `aviso neutralizado obedece ao canal Geral, nao ao canal do tipo original`() {
+        // O tipo original (vaga_urgente) é do canal de urgência; o aviso neutralizado sai no Geral, e é a preferência dele que vale.
+        val preferencias = GerenciadorPreferenciasNotificacaoEmMemoria()
+        preferencias.definirAtivado(GerenciadorDeCanais.CANAL_URGENCIA, false)
+
+        val resultado = processadorComSessao(sessaoCom(vinculoId = "vinculo-da-conta-atual"), preferencias).processar(pushDeOutraConta)
+
+        assertTrue(resultado.neutralizada)
+        assertFalse(resultado.silenciada, "o Geral segue ligado: o aviso neutralizado aparece")
+    }
+
     @Test
     fun `canal ativado pelo usuario nao marca a notificacao como silenciada`() {
         val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
