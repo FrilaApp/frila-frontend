@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -54,6 +55,7 @@ class KoinGrafoExclusaoDeContaTest : KoinTest {
     private val json = headersOf(HttpHeaders.ContentType, "application/json")
     private val pedidoChegou = CompletableDeferred<Unit>()
     private val liberarOServidor = CompletableDeferred<Unit>()
+    private val pedidosDeExclusao = java.util.concurrent.atomic.AtomicInteger(0)
 
     @BeforeEach
     fun antes() {
@@ -63,6 +65,7 @@ class KoinGrafoExclusaoDeContaTest : KoinTest {
             apiKey = "chave-teste",
             engine = MockEngine { request ->
                 if (request.url.encodedPath.endsWith("excluir-conta")) {
+                    pedidosDeExclusao.incrementAndGet()
                     pedidoChegou.complete(Unit)
                     liberarOServidor.await()
                     respond(
@@ -145,5 +148,24 @@ class KoinGrafoExclusaoDeContaTest : KoinTest {
 
         esperar("o fim do pedido") { vm.estado.value.resultado != null }
         assertNotNull(vm.estado.value.resultado)
+    }
+
+    // Wx0DhfEh (item 222): a tela reaberta com o pedido no ar é outro ViewModel do grafo; o pedido continua um só.
+    @Test
+    fun `a tela reaberta com o pedido no ar nao manda um segundo pedido`() = runBlocking {
+        val primeira = pedirAExclusao()
+        withTimeout(5_000) { pedidoChegou.await() }
+        primeira.viewModelScope.cancel() // a tela saiu da pilha e voltou: o ViewModel novo
+        val segunda = get<ExclusaoDeContaViewModel>()
+        esperar("a tela nova nascer excluindo") { segunda.estado.value.excluindo }
+
+        segunda.alterarConfirmacao(true)
+        segunda.confirmarExclusao()
+        delay(200)
+
+        assertEquals(1, pedidosDeExclusao.get())
+        liberarOServidor.complete(Unit)
+        esperar("o fim do pedido") { primeira.estado.value.resultado != null }
+        assertEquals(1, pedidosDeExclusao.get())
     }
 }

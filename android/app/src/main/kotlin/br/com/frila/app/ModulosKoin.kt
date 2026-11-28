@@ -71,6 +71,7 @@ import br.com.frila.core.seguranca.LeitorDeAmbienteNulo
 import br.com.frila.feature.conta.ContaSuspensaViewModel
 import br.com.frila.feature.conta.ContestarDespachoViewModel
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
+import br.com.frila.feature.conta.ExclusaoEmVoo
 import br.com.frila.feature.entrada.cadastro.CadastroViewModel
 import br.com.frila.feature.entrada.codigo.CodigoViewModel
 import br.com.frila.feature.entrada.codigo.ModoCodigo
@@ -209,6 +210,8 @@ val moduloSeguranca = module {
     single(named(ESCOPO_DA_SESSAO)) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     /** F4owLsLH: sobrevive à tela (o iOS usa uma `Task` não estruturada) e ao logout, que cancela só o [ESCOPO_DA_SESSAO]. */
     single(named(ESCOPO_DA_EXCLUSAO)) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    /** Wx0DhfEh: o pedido de exclusão em voo, um só para todas as telas (a tela reaberta não manda o segundo). */
+    single { ExclusaoEmVoo() }
     /** Cartão 101: coordenador central de logout com limpeza segura de dados. */
     single {
         CoordenadorDeLogout(
@@ -515,6 +518,7 @@ val moduloFeatures = module {
             // Só lê, para a tela listar os turnos futuros que a exclusão cancela: do profissional, ou das casas do contratante.
             consultarTurnos = { consultarTurnosDaConta(servicoConta, servicoTurnos, servicoMembros, servicoVagas) },
             escopoDoPedido = get(named(ESCOPO_DA_EXCLUSAO)),
+            emVoo = get(),
         )
     }
     viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
