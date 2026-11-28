@@ -1,5 +1,6 @@
 package br.com.frila.core.designsystem.componentes
 
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -103,5 +104,30 @@ class EstadoErroSemanticaTest {
         montar(mensagem = null, aoTentarNovamente = {})
 
         compose.onNodeWithText("Tentar novamente").assertIsDisplayed()
+    }
+
+    // Item 240: o erro é anunciado ao TalkBack ao aparecer, como o `AnunciarAoAparecer(tom: .erro)` do iOS (prioridade alta). No Android é uma
+    // região viva assertiva (`ComponentesDeTurno`: `comoErro` já usa `Assertive`); o informativo, como `AvisoFrila`, é `Polite`.
+    private fun regiaoViva(modo: LiveRegionMode) = SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, modo)
+
+    @Test
+    fun `o erro e uma regiao viva assertiva, para o TalkBack anunciar ao aparecer`() {
+        montar(mensagem = mensagem)
+
+        compose.onNode(regiaoViva(LiveRegionMode.Assertive)).assertExists()
+    }
+
+    @Test
+    fun `a regiao viva e o proprio no do erro, o que carrega o texto anunciado`() {
+        montar(mensagem = null)
+
+        compose.onNode(erro(titulo) and regiaoViva(LiveRegionMode.Assertive)).assertExists()
+    }
+
+    @Test
+    fun `so ha uma regiao viva, para o erro nao ser anunciado em dobro`() {
+        montar(mensagem = mensagem, aoTentarNovamente = {})
+
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)).assertCountEquals(1)
     }
 }

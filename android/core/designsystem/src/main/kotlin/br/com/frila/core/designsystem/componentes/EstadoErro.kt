@@ -8,8 +8,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
@@ -41,7 +43,11 @@ fun EstadoErro(
                 top = FrilaEspacamento.respiro,
                 bottom = FrilaEspacamento.grupo,
             )
-            .semantics { error(descricaoErro) },
+            // Anunciado ao TalkBack ao aparecer, como o `AnunciarAoAparecer(tom: .erro)` do iOS: região viva assertiva (item 240).
+            .semantics {
+                error(descricaoErro)
+                liveRegion = LiveRegionMode.Assertive
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item, Alignment.CenterVertically),
     ) {
