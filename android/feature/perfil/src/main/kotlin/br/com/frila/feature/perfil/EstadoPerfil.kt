@@ -57,6 +57,10 @@ data class EstadoPerfil(
     val conta: UsuarioDto? = null,
     val perfil: PerfilProfissionalDto? = null,
     val mensagemErro: String? = null,
+    /** "Sair de todos os dispositivos" em voo (iOS: `revogandoDispositivos`): trava a ação e o segundo toque. */
+    val revogandoDispositivos: Boolean = false,
+    /** A falha do pedido, mostrada junto da ação com o perfil carregado ou não (iOS: `erroAoRevogar`). Não é o `mensagemErro` do carregamento. */
+    val erroAoRevogar: String? = null,
     val resumoFinanceiro: ResumoFinanceiroPerfil? = null,
     /** RF16/RNF10: turnos usados para montar o extrato em PDF (mesma lista de [resumoFinanceiro]). */
     val turnosExtrato: List<TurnoDto> = emptyList(),

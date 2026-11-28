@@ -22,6 +22,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -217,19 +218,37 @@ class PerfilViewModel(
         armazenamentoDeSessao.limparSessao()
     }
 
-    /** Contrato 0.2.112: revoga todos os dispositivos confiáveis no servidor e encerra a sessão local. */
-    fun aoDeslogarTodos(aoConcluir: () -> Unit): Job = escopoDeTrabalho.launch {
-        try {
-            revogarDispositivos?.invoke()
-            armazenamentoDeSessao.limparSessao()
-            aoConcluir()
-        } catch (cancelado: CancellationException) {
-            throw cancelado
-        } catch (_: ErroDaApi) {
-            _estado.update { it.copy(mensagemErro = "Não foi possível desconectar todos os dispositivos. Tente de novo.") }
-        } catch (_: Exception) {
-            _estado.update { it.copy(mensagemErro = "Não foi possível desconectar todos os dispositivos. Tente de novo.") }
+    /**
+     * Contrato 0.2.112: revoga todos os dispositivos confiáveis no servidor e encerra a sessão local. Um pedido por vez, como o iOS
+     * (`revogandoDispositivos`): o toque com outro em voo não revoga de novo. A falha fica em [EstadoPerfil.erroAoRevogar], que a
+     * tela mostra junto da ação com o perfil carregado (o `mensagemErro` só aparece no estado de erro do carregamento). A sessão só
+     * sai depois do revoke; falhando, ela segue intacta e a ação volta a poder ser tentada. O prazo da requisição limita o voo.
+     */
+    fun aoDeslogarTodos(aoConcluir: () -> Unit): Job {
+        val jaEmVoo = _estado.getAndUpdate { it.copy(revogandoDispositivos = true, erroAoRevogar = null) }.revogandoDispositivos
+        if (jaEmVoo) return escopoDeTrabalho.launch { }
+        return escopoDeTrabalho.launch {
+            try {
+                revogarDispositivos?.invoke()
+                armazenamentoDeSessao.limparSessao()
+                aoConcluir()
+            } catch (cancelado: CancellationException) {
+                throw cancelado
+            } catch (erro: Exception) {
+                _estado.update { it.copy(erroAoRevogar = mensagemDeErroAoRevogar(erro)) }
+            } finally {
+                _estado.update { it.copy(revogandoDispositivos = false) }
+            }
         }
+    }
+
+    /** O texto do iOS (`MensagemDoErroAPI`) para os códigos que o pedido pode devolver; o resto cai no genérico dele. */
+    private fun mensagemDeErroAoRevogar(erro: Exception): String = when ((erro as? ErroDaApi)?.codigo) {
+        CodigoErroAPI.SEM_REDE -> "Sem conexão. Tente novamente quando a internet voltar."
+        CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre novamente para continuar."
+        CodigoErroAPI.SEM_PERMISSAO, CodigoErroAPI.PERFIL_INCOMPATIVEL -> "Sua conta não pode realizar esta ação."
+        CodigoErroAPI.LIMITE_EXCEDIDO -> "Você fez muitas tentativas. Aguarde antes de tentar novamente."
+        else -> "Não foi possível concluir esta ação. Tente novamente."
     }
 
     /** RF02: Inicia a edição da biografia profissional copiando o texto atual para o rascunho. */
