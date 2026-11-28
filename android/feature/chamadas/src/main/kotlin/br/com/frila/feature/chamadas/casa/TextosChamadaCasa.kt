@@ -173,6 +173,8 @@ object TextosChamadaCasa {
     const val BUSCA_SEM_CASA = "Não foi possível carregar os dados da casa para chamar."
     const val BUSCA_FOLHA_TITULO = "Chamar profissionais"
     const val BUSCA_FOLHA_ENVIAR = "Enviar chamadas"
+    /** Igual a `TextosBuscaDeProfissionais.folhaExplicacao` do iOS. */
+    const val BUSCA_FOLHA_EXPLICACAO = "O mesmo valor total e o mesmo horário vão para cada profissional selecionado."
     const val BUSCA_RESULTADO_ENVIADA = "Chamada enviada"
     const val BUSCA_RESULTADO_NAO_ENVIADA = "Não enviada. Tente de novo."
     const val BUSCA_ENVIO_PENDENTE = "Há um envio pendente. Toque em Chamar e depois em Tentar de novo antes de buscar ou trocar a seleção."
