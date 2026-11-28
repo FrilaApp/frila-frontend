@@ -126,6 +126,7 @@ import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.PreparadorDeJpegDoAparelho
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.suporte.BloqueioDeAlvoViewModel
 import br.com.frila.feature.suporte.BloqueiosViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
@@ -510,6 +511,10 @@ val moduloFeatures = module {
             chamadaId = chamadaId,
             fotoId = fotoId,
         )
+    }
+    // GpINsbhj: o bloqueio avulso de quem chamou (chamada recebida) e, no item 187, do perfil público visto pela casa.
+    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String) ->
+        BloqueioDeAlvoViewModel(alvoTipo = alvoTipo, alvoId = alvoId, bloquear = get<ServicoConfianca>()::bloquear)
     }
     viewModel { (estabelecimentoId: String) ->
         val confianca = get<ServicoConfianca>()

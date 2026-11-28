@@ -141,6 +141,33 @@ class RepublicarVagaViewModelTest {
         }
     }
 
+    /**
+     * Ffsaarr1: `republicar_vaga` tem as recusas de `publicar_vaga` (contrato, `openapi.yaml:4148`), e `422 campo_obrigatorio` está
+     * entre elas. É recusa definitiva: o horário fica livre para mudar, e a próxima tentativa é outra, com chave nova e o horário novo.
+     */
+    @Test
+    fun `422 campo_obrigatorio solta o horario e a proxima tentativa leva chave nova`() {
+        var tentativas = 0
+        val vm = viewModel(republicar = {
+            if (tentativas++ == 0) throw erro(CodigoErroAPI.CAMPO_OBRIGATORIO, "inicio_em") else VagaPublicadaDto("nova", listOf("p1"))
+        })
+
+        vm.republicar()
+        val recusado = vm.estado.value
+
+        assertEquals(TextosRepublicarVaga.HORARIO_INVALIDO, recusado.mensagemErro)
+        assertFalse(recusado.camposBloqueados, "o horário tem de ficar livre depois da recusa")
+        assertTrue(recusado.podeMudarHorario)
+
+        val novoInicio = Instant.parse("2026-11-12T21:00:00Z")
+        vm.mudarInicio(novoInicio)
+        vm.republicar()
+
+        assertEquals(listOf("chave-1", "chave-2"), pedidos.map { it.chave }, "a próxima tentativa leva chave nova")
+        assertEquals(novoInicio, pedidos[1].inicio, "e o horário novo")
+        assertEquals("nova", vm.estado.value.vagaPublicadaId)
+    }
+
     @Test
     fun `selecao sem antecedencia e horario invalido do servidor marcam os campos`() {
         val selecao = viewModel(republicar = { throw erro(CodigoErroAPI.SELECAO_SEM_ANTECEDENCIA) }).apply { republicar() }.estado.value

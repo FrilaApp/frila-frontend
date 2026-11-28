@@ -2,7 +2,6 @@ package br.com.frila.app
 
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.feature.vagas.feed.FeedVagasViewModel
 import io.ktor.client.engine.mock.MockEngine
@@ -52,7 +51,7 @@ class FeedSemLocalizacaoTest : KoinTest {
     @BeforeEach
     fun antes() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        val cliente = ClienteSupabase(
+        val cliente = clienteSupabaseDeTeste(
             baseUrl = "https://frila.supabase.co",
             apiKey = "chave-teste",
             engine = MockEngine { request ->
@@ -72,6 +71,7 @@ class FeedSemLocalizacaoTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }

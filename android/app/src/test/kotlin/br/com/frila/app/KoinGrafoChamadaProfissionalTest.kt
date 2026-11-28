@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.feature.chamadas.profissional.ChamadaRecebidaViewModel
 import br.com.frila.feature.chamadas.profissional.EditarServicosViewModel
@@ -43,7 +42,7 @@ class KoinGrafoChamadaProfissionalTest : KoinTest {
     private val json = headersOf(HttpHeaders.ContentType, "application/json")
     private val caminhos = mutableListOf<String>()
 
-    private fun clienteQueResponde(corpo: String) = ClienteSupabase(
+    private fun clienteQueResponde(corpo: String) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -59,6 +58,7 @@ class KoinGrafoChamadaProfissionalTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }

@@ -85,4 +85,21 @@ class EncerramentoDoClienteDeTesteTest {
         assertTrue(r.chamadorRetomou, "o chamador deveria retomar antes de o Main ser reposto")
         assertEquals(emptyList<Throwable>(), r.vazadas)
     }
+
+    @Test
+    fun `encerrarOsClientesDoTeste fecha e espera cada cliente da fabrica e esvazia o registro`() {
+        val a = clienteSupabaseDeTeste("https://frila.supabase.co", "chave-teste")
+        val b = clienteSupabaseDeTeste("https://frila.supabase.co", "chave-teste")
+        val trabalhoA = a.http.coroutineContext[kotlinx.coroutines.Job]!!
+        val trabalhoB = b.http.coroutineContext[kotlinx.coroutines.Job]!!
+        assertTrue(trabalhoA.isActive && trabalhoB.isActive)
+
+        encerrarOsClientesDoTeste()
+
+        assertTrue(trabalhoA.isCompleted, "o primeiro cliente deveria estar fechado e terminado")
+        assertTrue(trabalhoB.isCompleted, "o segundo cliente deveria estar fechado e terminado")
+        val c = clienteSupabaseDeTeste("https://frila.supabase.co", "chave-teste")
+        encerrarOsClientesDoTeste()
+        assertTrue(c.http.coroutineContext[kotlinx.coroutines.Job]!!.isCompleted, "o registro foi esvaziado e o novo cliente tambem fecha")
+    }
 }
