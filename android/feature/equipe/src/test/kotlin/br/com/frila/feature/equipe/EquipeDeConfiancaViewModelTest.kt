@@ -140,6 +140,41 @@ class EquipeDeConfiancaViewModelTest {
         assertEquals(EstadoEquipe.Erro(TextosEquipe.CONTA_SUSPENSA), vm.estado.value.estado)
     }
 
+    // ---- Item 232: o 404 e o conta_suspensa da Equipe de confiança ----
+
+    @Test
+    fun `404 ao carregar diz que o perfil nao esta mais disponivel, nao o erro generico`() = runBlocking {
+        val vm = viewModelCom(Rede { recusa(HttpStatusCode.NotFound, "nao_encontrado") })
+
+        vm.carregar().join()
+
+        assertEquals(EstadoEquipe.Erro(TextosEquipe.INDISPONIVEL), vm.estado.value.estado)
+    }
+
+    @Test
+    fun `403 com o codigo conta_suspensa ao carregar mostra o texto da suspensao`() = runBlocking {
+        // O contrato manda a suspensão de dois jeitos: `sem_permissao` com `details`, ou o próprio código `conta_suspensa`.
+        val vm = viewModelCom(Rede { recusa(HttpStatusCode.Forbidden, "conta_suspensa") })
+
+        vm.carregar().join()
+
+        assertEquals(EstadoEquipe.Erro(TextosEquipe.CONTA_SUSPENSA), vm.estado.value.estado)
+    }
+
+    @Test
+    fun `sairDaEquipe com o codigo conta_suspensa mostra a suspensao, e o 404 cai no erro de sempre`() = runBlocking {
+        val suspensa = viewModelCom(Rede { recusa(HttpStatusCode.Forbidden, "conta_suspensa") })
+        suspensa.sairDaEquipe(casa).join()
+        assertEquals(TextosEquipe.CONTA_SUSPENSA, suspensa.estado.value.mensagemErro)
+        assertFalse(suspensa.estado.value.saiu)
+
+        val inexistente = viewModelCom(Rede { recusa(HttpStatusCode.NotFound, "nao_encontrado") })
+        inexistente.sairDaEquipe(casa).join()
+        assertEquals(TextosEquipe.ERRO, inexistente.estado.value.mensagemErro)
+        assertFalse(inexistente.estado.value.saiu)
+        assertFalse(inexistente.estado.value.saindo)
+    }
+
     @Test
     fun `duas cargas ao mesmo tempo viram um unico pedido`() = runBlocking {
         val liberar = CompletableDeferred<Unit>()
