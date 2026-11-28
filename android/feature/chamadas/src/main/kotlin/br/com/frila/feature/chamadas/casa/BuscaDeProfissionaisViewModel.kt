@@ -210,8 +210,9 @@ class BuscaDeProfissionaisViewModel(
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
     /** O envio pendente que a visita anterior desta casa deixou (nulo sem [guarda] ou sem pendência), e a geração em que esta visita nasceu. */
-    private val restaurado: BuscaGuardada? = guarda?.obter(estabelecimentoId)
-    private val geracaoDaVisita: Int = guarda?.geracao() ?: 0
+    private val visitaGuardada: Pair<BuscaGuardada?, Int>? = guarda?.abrir(estabelecimentoId)
+    private val restaurado: BuscaGuardada? = visitaGuardada?.first
+    private val geracaoDaVisita: Int = visitaGuardada?.second ?: 0
 
     private val _estado = MutableStateFlow(restaurado?.estado ?: EstadoBusca())
     val estado: StateFlow<EstadoBusca> = _estado.asStateFlow()
@@ -265,7 +266,7 @@ class BuscaDeProfissionaisViewModel(
             it == ResultadoDaChamadaDaBusca.PedeConfirmacaoDeRecorrencia || it is ResultadoDaChamadaDaBusca.PedeConfirmacaoDosTermos
         }
         if (!tela.enviando && !tela.temEnvioPendente && !aguardandoConfirmacao) {
-            guarda.remover(estabelecimentoId)
+            guarda.remover(estabelecimentoId, geracaoDaVisita)
             return
         }
         guarda.guardar(

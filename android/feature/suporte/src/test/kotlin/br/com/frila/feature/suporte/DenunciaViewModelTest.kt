@@ -56,6 +56,7 @@ class DenunciaViewModelTest {
         fabrica: Fabrica = Fabrica(),
         turnoId: String? = null,
         chamadaId: String? = null,
+        fotoId: String? = null,
         bloquear: suspend (String, String) -> BloqueioDto = { _, _ -> bloqueio },
         denunciar: suspend (DenunciarDto) -> ProtocoloDto = { protocolo },
     ) = DenunciaViewModel(
@@ -65,6 +66,7 @@ class DenunciaViewModelTest {
         bloquear = bloquear,
         turnoId = turnoId,
         chamadaId = chamadaId,
+        fotoId = fotoId,
         gerarChave = { "chave-${++fabrica.contador}" },
         escopo = CoroutineScope(Dispatchers.Unconfined),
     )
@@ -142,6 +144,74 @@ class DenunciaViewModelTest {
         vm.enviarDenuncia().join()
 
         assertEquals(listOf("chave-1", "chave-1", "chave-2", "chave-2"), fabrica.corpos.map { it.chave })
+    }
+
+    @Test
+    fun `com foto e a opcao ligada, midia_id e o foto_id do perfil`() = runBlocking {
+        val fabrica = Fabrica()
+        val vm = viewModel(fabrica, fotoId = "foto-1")
+        assertTrue(vm.podeDenunciarFoto)
+        vm.editarRelato(relatoOk)
+        vm.marcarSobreAFoto(true)
+
+        vm.enviarDenuncia().join()
+
+        assertEquals("foto-1", fabrica.corpos.single().midiaId)
+    }
+
+    @Test
+    fun `com foto e a opcao desligada, a denuncia e sobre o perfil, sem midia_id`() = runBlocking {
+        val fabrica = Fabrica()
+        val vm = viewModel(fabrica, fotoId = "foto-1")
+        vm.editarRelato(relatoOk)
+
+        vm.enviarDenuncia().join()
+
+        assertFalse(vm.estado.value.sobreAFoto)
+        assertNull(fabrica.corpos.single().midiaId)
+    }
+
+    @Test
+    fun `sem foto no perfil nao ha o que denunciar e a opcao nao liga`() = runBlocking {
+        val fabrica = Fabrica()
+        val vm = viewModel(fabrica, fotoId = null)
+        vm.editarRelato(relatoOk)
+        vm.marcarSobreAFoto(true)
+
+        vm.enviarDenuncia().join()
+
+        assertFalse(vm.podeDenunciarFoto)
+        assertFalse(vm.estado.value.sobreAFoto)
+        assertNull(fabrica.corpos.single().midiaId)
+    }
+
+    @Test
+    fun `ligar a foto depois de uma falha muda o corpo e gera outra chave, repetir igual mantem`() = runBlocking {
+        val fabrica = Fabrica()
+        var falhar = true
+        val vm = viewModel(fabrica, fotoId = "foto-1", denunciar = { if (falhar) throw erro(CodigoErroAPI.SEM_REDE) else protocolo })
+        vm.editarRelato(relatoOk)
+        vm.enviarDenuncia().join()
+        vm.enviarDenuncia().join()
+        vm.marcarSobreAFoto(true)
+        falhar = false
+        vm.enviarDenuncia().join()
+
+        assertEquals(listOf("chave-1", "chave-1", "chave-2"), fabrica.corpos.map { it.chave })
+        assertEquals(listOf(null, null, "foto-1"), fabrica.corpos.map { it.midiaId })
+    }
+
+    @Test
+    fun `a opcao da foto nao muda com o envio em voo nem depois do protocolo`() = runBlocking {
+        val fabrica = Fabrica()
+        val vm = viewModel(fabrica, fotoId = "foto-1")
+        vm.editarRelato(relatoOk)
+        vm.enviarDenuncia().join()
+
+        vm.marcarSobreAFoto(true)
+
+        assertNotNull(vm.estado.value.protocolo)
+        assertFalse(vm.estado.value.sobreAFoto)
     }
 
     @Test

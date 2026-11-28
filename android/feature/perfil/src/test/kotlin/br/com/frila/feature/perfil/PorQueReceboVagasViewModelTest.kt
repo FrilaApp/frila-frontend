@@ -115,7 +115,18 @@ class PorQueReceboVagasViewModelTest {
         vm.carregar().join()
         assertTrue(vm.estado.value is EstadoPorQueReceboVagas.Erro)
         val erro = vm.estado.value as EstadoPorQueReceboVagas.Erro
-        assertEquals("Falha interna", erro.mensagem)
+        // Como o iOS (`.erro` sem mensagem): o `details` e a mensagem da recusa nunca vão para a tela.
+        assertEquals(null, erro.mensagem)
+    }
+
+    @Test
+    fun `403 com details conta_suspensa vira erro sem mensagem`() = runBlocking {
+        val vm = PorQueReceboVagasViewModel(
+            carregarCriterios = { throw ErroDaApi(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", "conta_suspensa", "permission denied") },
+            escopo = this,
+        )
+        vm.carregar().join()
+        assertEquals(EstadoPorQueReceboVagas.Erro(), vm.estado.value)
     }
 
     @Test

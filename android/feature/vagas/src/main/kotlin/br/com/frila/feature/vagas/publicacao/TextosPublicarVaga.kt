@@ -48,11 +48,22 @@ object TextosPublicarVaga {
     const val MATERIAL = "Precisa levar material"
     const val RESPONSAVEL = "Quem recebe o profissional no local"
     const val MAIS_OPCOES = "Mais opções"
-    const val MAIS_OPCOES_AJUDA = "Traje, rateio dos 10% e observações"
+    const val MAIS_OPCOES_AJUDA = "Traje, rateio dos 10%, observações e aviso se a vaga seguir vazia"
     /** O estado que o leitor de tela anuncia na linha "Mais opções" (iOS `maisOpcoesAberto`/`maisOpcoesFechado`, `PublicarVaga.swift:47-48`). */
     const val MAIS_OPCOES_ABERTO = "Aberto"
     const val MAIS_OPCOES_FECHADO = "Fechado"
     const val TRAJE = "Traje"
+    const val ALERTA = "Avisar se a vaga seguir vazia"
+    const val ALERTA_2_HORAS = "2 horas antes"
+    const val ALERTA_3_HORAS = "3 horas antes"
+    const val ALERTA_6_HORAS = "6 horas antes"
+
+    /** O rótulo de cada antecedência do aviso (mesmos textos do iOS, `TextosPublicarVaga.alerta*Horas`). */
+    fun alertaAntecedencia(minutos: Int): String = when (minutos) {
+        120 -> ALERTA_2_HORAS
+        360 -> ALERTA_6_HORAS
+        else -> ALERTA_3_HORAS
+    }
     const val RATEIO = "Participa do rateio dos 10%"
     const val OBSERVACOES = "Observações"
     const val OBSERVACOES_AJUDA = "Diga como chegar: a entrada, a portaria ou um ponto de referência."
@@ -65,6 +76,9 @@ object TextosPublicarVaga {
 
     const val CAMPO_OBRIGATORIO = "Preencha este campo."
     const val CAMPO_INVALIDO = "Confira o valor informado."
+
+    /** `422 campo_invalido` em `observacoes`: o filtro de contato (diretriz 1.2). Paridade com `TextosPublicarVaga.erroAntiContato` do iOS. */
+    const val ERRO_ANTI_CONTATO = "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila."
     const val FUNCAO_CAMPO = "Escolha uma função."
     const val LOCAL_CAMPO = "Informe o endereço."
     const val VALOR_CAMPO = "Informe um valor maior que zero."

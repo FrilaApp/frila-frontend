@@ -400,6 +400,50 @@ class PublicarVagaViewModelTest {
         assertEquals(TextosPublicarVaga.CAMPO_INVALIDO, ponto.errosDeCampo[CampoPublicacao.ESTABELECIMENTO])
     }
 
+    // ---- mc9fVV5W: observações com contato (filtro da diretriz 1.2) ----
+
+    private val textoAntiContato = "Tire telefone, e-mail, link ou Pix das observações. Combine tudo pelo Frila."
+
+    @Test
+    fun `422 campo_invalido em observacoes mostra o texto anti-contato no campo e libera a edicao`() {
+        val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "observacoes").estado.value
+
+        assertEquals(textoAntiContato, estado.errosDeCampo[CampoPublicacao.OBSERVACOES])
+        assertEquals(setOf(CampoPublicacao.OBSERVACOES), estado.errosDeCampo.keys)
+        assertEquals(ErroGlobalPublicacao.ANTI_CONTATO, estado.erro)
+        assertEquals(textoAntiContato, estado.erro?.mensagem)
+        assertNull(estado.pendente)
+        assertTrue(estado.podeEditar)
+    }
+
+    @Test
+    fun `422 campo_invalido em outro campo, inclusive os outros do filtro, segue com o texto generico`() {
+        for (campo in listOf("local", "responsavel_local", "traje", "valor_centavos")) {
+            val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", campo).estado.value
+
+            assertEquals(TextosPublicarVaga.CAMPO_INVALIDO, estado.errosDeCampo.values.single(), campo)
+            assertTrue(CampoPublicacao.OBSERVACOES !in estado.errosDeCampo, campo)
+            assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, estado.erro, campo)
+        }
+    }
+
+    @Test
+    fun `422 campo_obrigatorio em observacoes nao vira o texto anti-contato`() {
+        val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_obrigatorio", "observacoes").estado.value
+
+        assertEquals(TextosPublicarVaga.CAMPO_OBRIGATORIO, estado.errosDeCampo[CampoPublicacao.OBSERVACOES])
+        assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, estado.erro)
+    }
+
+    @Test
+    fun `editar as observacoes depois da recusa limpa o erro do campo`() {
+        val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "observacoes")
+
+        vm.editarObservacoes("Entrada pela portaria lateral")
+
+        assertTrue(CampoPublicacao.OBSERVACOES !in vm.estado.value.errosDeCampo)
+    }
+
     @Test
     fun `422 campo_invalido sem campo conhecido mostra so o erro global`() {
         val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "campo_invalido", "campo_novo").estado.value
@@ -655,5 +699,89 @@ class PublicarVagaViewModelTest {
             assertTrue(rede.publicacoes.isEmpty())
             assertEquals(TextosPublicarVaga.VALOR_CAMPO, vm.estado.value.errosDeCampo[CampoPublicacao.VALOR])
         }
+    }
+
+    // ---- X0YONSwz: 422 funcao_incompativel marca o campo Função ----
+
+    @Test
+    fun `422 funcao_incompativel marca so o campo Funcao, com o texto de valor invalido, e libera a edicao`() {
+        for (detalhes in listOf(null, "funcao_id")) {
+            val estado = recusaDe(HttpStatusCode.UnprocessableEntity, "funcao_incompativel", detalhes).estado.value
+
+            assertEquals(mapOf(CampoPublicacao.FUNCAO to TextosPublicarVaga.CAMPO_INVALIDO), estado.errosDeCampo, "details=$detalhes")
+            assertEquals(ErroGlobalPublicacao.CONFIRA_CAMPOS, estado.erro, "details=$detalhes")
+            assertNull(estado.pendente, "details=$detalhes")
+            assertTrue(estado.podeEditar, "details=$detalhes")
+        }
+    }
+
+    @Test
+    fun `escolher outra funcao depois do 422 funcao_incompativel limpa o erro do campo`() {
+        val vm = recusaDe(HttpStatusCode.UnprocessableEntity, "funcao_incompativel", null)
+        assertTrue(CampoPublicacao.FUNCAO in vm.estado.value.errosDeCampo)
+
+        vm.escolherFuncao("f2")
+
+        assertTrue(CampoPublicacao.FUNCAO !in vm.estado.value.errosDeCampo)
+    }
+
+    // ---- Quando avisar se a vaga seguir vazia: 2, 3 ou 6 horas (cartão 0Nm8bS1q) ----
+
+    @Test
+    fun `escolher 2, 3 ou 6 horas poe alerta_antecedencia_min de 120, 180 ou 360 no corpo`() = runBlocking {
+        for ((minutos, esperado) in listOf(120 to "120", 180 to "180", 360 to "360")) {
+            val rede = redeOk()
+            val vm = viewModelCom(rede)
+            vm.preencher()
+
+            vm.escolherAlertaAntecedencia(minutos)
+            vm.publicar().join()
+
+            assertEquals(esperado, rede.publicacoes.single().corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content, "$minutos")
+        }
+    }
+
+    @Test
+    fun `sem escolher o aviso fica em 3 horas, o padrao do contrato`() = runBlocking {
+        val rede = redeOk()
+        val vm = viewModelCom(rede)
+        vm.preencher()
+
+        vm.publicar().join()
+
+        assertEquals(180, vm.estado.value.alertaAntecedenciaMin)
+        assertEquals("180", rede.publicacoes.single().corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `so 2, 3 e 6 horas valem, outro valor e ignorado`() = runBlocking {
+        val vm = viewModelCom(redeOk())
+        vm.escolherAlertaAntecedencia(360)
+
+        for (invalido in listOf(0, -60, 1, 90, 121, 240, 361, 1440)) {
+            vm.escolherAlertaAntecedencia(invalido)
+            assertEquals(360, vm.estado.value.alertaAntecedenciaMin, "$invalido")
+        }
+    }
+
+    @Test
+    fun `com a publicacao pendente a escolha do aviso nao muda o que ja foi enviado`() = runBlocking {
+        var tentativa = 0
+        val rede = Rede(
+            publicar = { if (++tentativa == 1) throw io.ktor.client.network.sockets.ConnectTimeoutException("sem rede") else respond(publicadaJson, HttpStatusCode.OK, json) },
+            funcoes = { respond(funcoesJson, HttpStatusCode.OK, json) },
+        )
+        val vm = viewModelCom(rede)
+        vm.preencher()
+        vm.escolherAlertaAntecedencia(360)
+        vm.publicar().join()
+        assertEquals(1, rede.publicacoes.size)
+
+        vm.escolherAlertaAntecedencia(120) // a tela trava os campos com a publicação pendente: nada muda
+        vm.publicar().join()
+
+        assertEquals(2, rede.publicacoes.size)
+        assertEquals(rede.publicacoes[0].corpo, rede.publicacoes[1].corpo)
+        assertEquals("360", rede.publicacoes[1].corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content)
     }
 }

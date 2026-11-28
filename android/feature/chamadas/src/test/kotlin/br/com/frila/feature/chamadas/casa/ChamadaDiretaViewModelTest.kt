@@ -201,6 +201,24 @@ class ChamadaDiretaViewModelTest {
         assertTrue(vm.estado.value.podeEnviar)
     }
 
+    /** X9RlOfUX: a faixa é fechada (`duracao in DURACAO_MINIMA..DURACAO_MAXIMA`): exatamente 2 h e exatamente 16 h liberam o envio. */
+    @Test
+    fun `duracao de exatamente 2 e 16 horas libera o envio, e a chamada sai`() = runBlocking {
+        for (horas in listOf(2L, 16L)) {
+            val rede = rede()
+            val vm = viewModelCom(rede).preenchida()
+            vm.definirFim(vm.estado.value.inicio.plus(Duration.ofHours(horas)))
+            // Mudar o término pode mudar o total: a casa confirma de novo o que vai pagar.
+            vm.confirmarTotal(true)
+
+            assertEquals(Duration.ofHours(horas), vm.estado.value.duracao, "$horas h")
+            assertEquals(null, vm.estado.value.oQueFalta, "$horas h")
+            assertTrue(vm.estado.value.podeEnviar, "$horas h")
+            vm.enviar().join()
+            assertEquals(1, rede.doNome("chamar_profissional").size, "$horas h")
+        }
+    }
+
     @Test
     fun `duracao fora de 2 a 16 horas bloqueia o envio`() = runBlocking {
         val vm = viewModelCom(rede()).preenchida()
@@ -441,5 +459,34 @@ class ChamadaDiretaViewModelTest {
 
             assertEquals(centavos, vm.corpoEnviado(rede)["valor_centavos"]!!.jsonPrimitive.content)
         }
+    }
+
+    @Test
+    fun `transporte e material ligados vao no corpo como inclui_transporte e exige_material_proprio`() = runBlocking {
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+        vm.definirTransporte(true)
+        vm.definirMaterialProprio(true)
+
+        vm.enviar().join()
+
+        val corpo = vm.corpoEnviado(rede)
+        assertTrue(corpo["inclui_transporte"]!!.jsonPrimitive.boolean)
+        assertTrue(corpo["exige_material_proprio"]!!.jsonPrimitive.boolean)
+        assertFalse(corpo["inclui_refeicao"]!!.jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun `so o transporte ligado nao vira material proprio no corpo`() = runBlocking {
+        // Com os dois ligados, trocar um campo pelo outro daria o mesmo corpo; com um só, a troca aparece.
+        val rede = rede()
+        val vm = viewModelCom(rede).preenchida()
+        vm.definirTransporte(true)
+
+        vm.enviar().join()
+
+        val corpo = vm.corpoEnviado(rede)
+        assertTrue(corpo["inclui_transporte"]!!.jsonPrimitive.boolean)
+        assertFalse(corpo["exige_material_proprio"]!!.jsonPrimitive.boolean)
     }
 }

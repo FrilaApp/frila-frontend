@@ -98,7 +98,9 @@ fun TelaFeedVagas(
                 when (estado.status) {
                     StatusFeed.CARREGANDO -> item(key = "carregando") { SkeletonFeedVagas() }
                     StatusFeed.ERRO -> item(key = "erro") {
-                        if (estado.semPontoBase && aoDefinirPontoBase != null) {
+                        if (estado.perfilIncompativel) {
+                            PerfilIncompativelFeed()
+                        } else if (estado.semPontoBase && aoDefinirPontoBase != null) {
                             SemPontoBaseFeed(aoDefinirPontoBase = aoDefinirPontoBase)
                         } else {
                             ErroFeed(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
@@ -401,6 +403,16 @@ private fun SemPontoBaseFeed(aoDefinirPontoBase: () -> Unit) {
         mensagem = "Sem ele, não dá para medir a distância até as vagas nem avisar você das que ficam perto.",
         textoAcao = "Definir ponto base",
         aoClicarAcao = aoDefinirPontoBase,
+    )
+}
+
+/** Conta de contratante: a lista não é dela e "tentar de novo" falharia sempre, então só o aviso, sem botão (como o iOS). */
+@Composable
+private fun PerfilIncompativelFeed() {
+    AvisoFrila(
+        tom = TomAviso.ALERTA,
+        mensagem = TEXTO_PERFIL_INCOMPATIVEL,
+        modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo),
     )
 }
 

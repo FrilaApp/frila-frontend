@@ -19,8 +19,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Detalhe de uma vaga e candidatura (RF08/RF09/RN10/RN19/RN21). `vaga` chega inteira da tela de
- * feed, que já tem o DTO carregado — não refaz a chamada de rede só para mostrar o detalhe. Aberta
- * pelo id, quem a leu foi o `AberturaDeVagaViewModel`, e o `detalhe` traz o que a lista não tem.
+ * feed, que já tem o DTO carregado: a tela mostra isso na hora e, como o iOS, uma única leitura de `detalhe_vaga` por abertura
+ * (feita pela pessoa; a lista não lê nada a mais) completa o que a lista não traz (responsável, observações, traje, rateio), sem piscar.
+ * Se a leitura falhar, fica o que veio do feed, sem erro de tela. Aberta pelo id, quem a leu foi o `AberturaDeVagaViewModel`, e o
+ * `detalhe` já vem pronto: não há segunda leitura.
  *
  * `escopo`: ver nota em `br.com.frila.feature.entrada.entrada.EntradaViewModel`.
  */
@@ -38,20 +40,55 @@ class DetalheVagaViewModel(
     private val _estado = MutableStateFlow(EstadoDetalheVaga(vaga = vaga, detalhe = detalhe))
     val estado: StateFlow<EstadoDetalheVaga> = _estado.asStateFlow()
 
-    init { registrarEvento(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null) }
+    init {
+        registrarEvento(EventoDeTelemetria.VAGA_DETALHE_ABERTO, vaga.id, null)
+        if (detalhe == null) completarComODetalhe(vaga.id)
+    }
 
-    fun candidatar(): Job {
-        _estado.update {
-            it.copy(
-                statusCandidatura = StatusCandidatura.ENVIANDO,
-                mensagem = null,
-                navegarParaConfirmada = false,
-                ehConflitoHorario = false,
-                ehVagaPreenchida = false,
-                ehVagaEncerrada = false,
-                ehContaSuspensa = false,
-            )
+    /** Uma leitura, ao abrir pelo feed. Falhar (rede, 404, conta suspensa...) não é erro da tela: ela segue com o que a lista trouxe. */
+    private fun completarComODetalhe(vagaId: String) {
+        escopoDeTrabalho.launch {
+            try {
+                val lido = servicoVagas.detalheVaga(vagaId)
+                val aberta = lido.estado == AberturaDeVagaViewModel.ESTADO_PUBLICADA && lido.posicoesAbertas > 0
+                _estado.update { if (it.detalhe == null) it.copy(detalhe = lido, indisponivel = !aberta) else it }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (erro: ErroDaApi) {
+                // `404`: a vaga não existe mais para esta pessoa (iOS `.naoEncontrada`). Qualquer outra falha (rede, 5xx...) fica silenciosa.
+                if (erro.codigo == CodigoErroAPI.NAO_ENCONTRADO) _estado.update { it.copy(indisponivel = true) }
+            } catch (_: Exception) {
+                // Fica o que veio do feed.
+            }
         }
+    }
+
+    /**
+     * Uma candidatura por vez: a trava é do estado e atômica (como `ValidacaoDoCodigoViewModel.validar`), não só do botão, que só se
+     * desliga depois de a tela redesenhar. O segundo toque com a primeira em voo não manda outra requisição, não repete o evento
+     * `CANDIDATURA_ENVIADA` e não deixa o 409 `posicao_ja_preenchida` de um segundo pedido trocar a confirmada por erro. Depois de uma
+     * falha o toque seguinte candidata de novo.
+     */
+    fun candidatar(): Job {
+        var iniciou = false
+        _estado.update {
+            iniciou = it.statusCandidatura != StatusCandidatura.ENVIANDO
+            if (!iniciou) {
+                it
+            } else {
+                it.copy(
+                    statusCandidatura = StatusCandidatura.ENVIANDO,
+                    mensagem = null,
+                    navegarParaConfirmada = false,
+                    ehConflitoHorario = false,
+                    ehVagaPreenchida = false,
+                    ehVagaEncerrada = false,
+                    ehContaSuspensa = false,
+                    ehFuncaoIncompativel = false,
+                )
+            }
+        }
+        if (!iniciou) return escopoDeTrabalho.launch { }
 
         return escopoDeTrabalho.launch {
             try {
@@ -77,6 +114,7 @@ class DetalheVagaViewModel(
                 val ehSuspensa = erro.codigo == CodigoErroAPI.CONTA_SUSPENSA ||
                     (erro.codigo == CodigoErroAPI.SEM_PERMISSAO && erro.detalhes == "conta_suspensa") ||
                     (erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "perfil_suspenso")
+                val ehFuncaoIncompativel = erro.codigo == CodigoErroAPI.INELEGIVEL && erro.detalhes == "funcao_incompativel"
                 _estado.update {
                     it.copy(
                         statusCandidatura = StatusCandidatura.ERRO,
@@ -85,6 +123,7 @@ class DetalheVagaViewModel(
                         ehVagaPreenchida = ehPreenchida,
                         ehVagaEncerrada = ehEncerrada,
                         ehContaSuspensa = ehSuspensa,
+                        ehFuncaoIncompativel = ehFuncaoIncompativel,
                     )
                 }
             } catch (erro: CancellationException) {
@@ -99,7 +138,7 @@ class DetalheVagaViewModel(
     }
 
     /**
-     * Os 5 eventos de navegação do detalhe disparam uma única vez por resultado de candidatura.
+     * Os 6 eventos de navegação do detalhe disparam uma única vez por resultado de candidatura.
      * Cada consumo lê e limpa o evento de forma atômica no `_estado`, preservando status, contato e mensagem
      * (em especial `statusCandidatura == StatusCandidatura.CONFIRMADA`, que mantém o cartão e o botão desabilitado).
      * Sem isto, o `LaunchedEffect` da tela reentra na recomposição, na volta do destino (`popBackStack`) ou
@@ -119,6 +158,9 @@ class DetalheVagaViewModel(
 
     fun consumirNavegacaoParaContaSuspensa(): Boolean =
         consumirEvento({ it.ehContaSuspensa }) { it.copy(ehContaSuspensa = false) }
+
+    fun consumirNavegacaoParaFuncaoIncompativel(): Boolean =
+        consumirEvento({ it.ehFuncaoIncompativel }) { it.copy(ehFuncaoIncompativel = false) }
 
     private inline fun consumirEvento(
         presente: (EstadoDetalheVaga) -> Boolean,

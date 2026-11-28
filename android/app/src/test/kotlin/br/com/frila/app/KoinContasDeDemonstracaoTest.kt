@@ -1,7 +1,6 @@
 package br.com.frila.app
 
 import br.com.frila.core.notificacoes.RegistradorDeDispositivo
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
@@ -39,6 +38,7 @@ class KoinContasDeDemonstracaoTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
@@ -48,7 +48,7 @@ class KoinContasDeDemonstracaoTest : KoinTest {
         // Só vale no debug; o release tem o teste dele em KoinDemonstracaoSoDebugTest.
         assumeTrue(BuildConfig.DEBUG, "só vale no build debug")
         val pedidos = mutableListOf<String>()
-        val cliente = ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = MockEngine { request ->
+        val cliente = clienteSupabaseDeTeste("https://frila.supabase.co", "chave-teste", engine = MockEngine { request ->
             pedidos += request.url.encodedPath
             respond(
                 """{"access_token":"token-teste","refresh_token":"refresh-teste","token_type":"bearer","expires_in":3600}""",

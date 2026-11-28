@@ -1,5 +1,6 @@
 package br.com.frila.feature.chamadas.casa
 
+import br.com.frila.core.dominio.modelo.Dinheiro
 import br.com.frila.core.rede.ServicoNoPerfilDto
 import java.time.Instant
 import java.time.LocalDateTime
@@ -28,11 +29,8 @@ internal fun lerDataEHora(texto: String): Instant? = try {
 }
 internal fun hora(instante: Instant): String = FormatoHora.format(instante)
 
-/** "R$ 1.500,00": reais com ponto de milhar e sempre 2 casas, sem depender do `Locale` do aparelho. */
-internal fun dinheiro(centavos: Long): String {
-    val reais = (centavos / 100).toString().reversed().chunked(3).joinToString(".").reversed()
-    return "R$ $reais,${(centavos % 100).toString().padStart(2, '0')}"
-}
+/** "R$ 1.500,00", o mesmo texto de [Dinheiro.formatado] (pt-BR fixo, sem depender do `Locale` do aparelho). */
+internal fun dinheiro(centavos: Long): String = Dinheiro(centavos).formatado()
 
 /** O resumo do serviço no perfil: "R$ 150,00 por diária de 8 h", "R$ 40,00 • Hora" ou "A combinar". */
 internal fun resumoDoServico(servico: ServicoNoPerfilDto): String? {

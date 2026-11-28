@@ -53,6 +53,8 @@ data class NotificacaoParaExibir(
     /** O `tipo` do payload: é ele que o `:app` usa no toque para escolher a tela. */
     val tipo: String? = null,
     val posicaoId: String? = null,
+    /** O push trouxe o `vinculo_id` e ele é o da sessão ativa. Sem ele (todo push o leva, pelo contrato) as listas não são sinalizadas. */
+    val vinculoConfirmado: Boolean = false,
 )
 
 /**
@@ -106,6 +108,7 @@ class ProcessadorDePush(
             posicaoId = dados.posicaoId,
             neutralizada = false,
             silenciada = !preferenciasNotificacao.estaAtivado(canal),
+            vinculoConfirmado = dados.vinculoId != null,
         )
     }
 

@@ -35,6 +35,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -55,7 +57,7 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
     private val turnoId = "44444444-4444-4444-4444-444444444444"
     private val idDaMidia = "33333333-3333-3333-3333-333333333333"
 
-    private fun cliente() = ClienteSupabase(
+    private fun cliente() = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -78,6 +80,16 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
                     HttpStatusCode.OK,
                     json,
                 )
+                request.url.encodedPath.endsWith("/minhas_midias") -> respond(
+                    """[{"id":"$idDaMidia","tipo":"foto_perfil","estado":"recusada","motivo_recusa":"foto_inadequada","pode_pedir_nova_analise":true,"enviada_em":"2026-11-20T10:00:00Z"}]""",
+                    HttpStatusCode.OK,
+                    json,
+                )
+                request.url.encodedPath.endsWith("/pedir_nova_analise_midia") -> respond(
+                    """{"id":"$idDaMidia","tipo":"foto_perfil","estado":"em_analise","pode_pedir_nova_analise":false}""",
+                    HttpStatusCode.OK,
+                    json,
+                )
                 request.method == HttpMethod.Put -> respond("", HttpStatusCode.OK)
                 else -> respond("""{"code":"x","message":"x"}""", HttpStatusCode.BadRequest, json)
             }
@@ -91,6 +103,7 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
@@ -199,5 +212,20 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
         vm.carregar()
         val pedido = pedidos.single { it.second == "/rest/v1/rpc/gerar_codigo_checkin" }
         assertTrue(pedido.third!!.contains(turnoId))
+    }
+
+    @Test
+    fun `o grafo liga minhas_midias e pedir_nova_analise_midia na foto de perfil`() = runBlocking {
+        iniciar()
+        val vm = get<FotoDePerfilViewModel>()
+
+        vm.carregar().join()
+        assertEquals("recusada", vm.situacao.value.midia?.estado)
+        vm.pedirNovaAnalise().join()
+
+        assertEquals("em_analise", vm.situacao.value.midia?.estado)
+        val rpcs = pedidos.map { it.second }
+        assertEquals(listOf("/rest/v1/rpc/minhas_midias", "/rest/v1/rpc/pedir_nova_analise_midia"), rpcs.filter { it.endsWith("minhas_midias") || it.endsWith("pedir_nova_analise_midia") })
+        assertEquals(idDaMidia, ClienteSupabase.jsonFrila.parseToJsonElement(pedidos.last { it.second.endsWith("/pedir_nova_analise_midia") }.third!!).jsonObject["midia_id"]!!.jsonPrimitive.content)
     }
 }

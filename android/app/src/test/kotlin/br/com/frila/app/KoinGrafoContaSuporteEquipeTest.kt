@@ -2,13 +2,16 @@ package br.com.frila.app
 
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.ServicoConfianca
+import br.com.frila.core.rede.ServicoConta
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.core.rede.ServicoPerfil
+import br.com.frila.core.rede.ServicoTurnos
+import br.com.frila.core.rede.ServicoVagas
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.Sessao
 import br.com.frila.feature.conta.ExclusaoDeContaViewModel
+import br.com.frila.feature.conta.TurnosFuturosDaExclusao
 import br.com.frila.feature.equipe.EquipeDeConfiancaViewModel
 import br.com.frila.feature.equipe.EstadoEquipe
 import br.com.frila.feature.suporte.DenunciaViewModel
@@ -62,7 +65,7 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
         val pedidos = mutableListOf<Pedido>()
     }
 
-    private fun clienteCom(rede: Rede) = ClienteSupabase(
+    private fun clienteCom(rede: Rede) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -78,6 +81,9 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
                 listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoDeTeste, moduloFeatures) +
                     module {
                         single { ServicoPerfil(clienteCom(rede)) }
+                        single { ServicoTurnos(clienteCom(rede)) }
+                        single { ServicoConta(clienteCom(rede)) }
+                        single { ServicoVagas(clienteCom(rede)) }
                         single { ServicoConfianca(clienteCom(rede)) }
                         single { ServicoMembros(clienteCom(rede)) }
                     },
@@ -92,6 +98,7 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
@@ -105,8 +112,11 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
         assertNotNull(get<ServicoConfianca>())
         assertNotNull(get<ServicoMembros>())
         assertNotNull(get<ExclusaoDeContaViewModel>())
-        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null) })
-        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1") })
+        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null, null) })
+        assertNotNull(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1", null) })
+        // A rota passa o `foto_id` do perfil como 5º parâmetro: só com ele a denúncia oferece a foto.
+        assertTrue(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null, "foto-1") }.podeDenunciarFoto)
+        assertFalse(get<DenunciaViewModel> { parametersOf(TipoDeAlvo.PROFISSIONAL, "p1", null, null, null) }.podeDenunciarFoto)
         assertNotNull(get<EquipeDeConfiancaViewModel> { parametersOf(casa) })
     }
 
@@ -159,7 +169,7 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
             }
         }
         iniciar(rede)
-        val viewModel = get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1") }
+        val viewModel = get<DenunciaViewModel> { parametersOf(TipoDeAlvo.ESTABELECIMENTO, "e1", "turno-1", "chamada-1", null) }
         viewModel.editarRelato("Relato com mais de dez caracteres.")
 
         viewModel.enviarDenuncia().join()
@@ -207,4 +217,110 @@ class KoinGrafoContaSuporteEquipeTest : KoinTest {
         assertEquals(EstadoEquipe.Vazio, viewModel.estado.value.estado)
         assertTrue(viewModel.estado.value.saiu)
     }
+
+    // 9NpQTfGG: o grafo liga a leitura dos turnos (meus_turnos) à tela de exclusão; ler não exclui, e a falha não bloqueia.
+
+    private fun turnoJson(id: String, inicio: String, fim: String) = """
+        {"id":"$id","posicao_id":"pos-$id",
+         "vaga":{"id":"vaga-$id","funcao":"garçom","local":"CLS 405","regiao_administrativa":"Plano Piloto",
+                 "inicio_em":"$inicio","fim_em":"$fim","valor_centavos":16000},
+         "contraparte":{"id":"e-$id","tipo":"estabelecimento","nome":"Bar do Zé",
+                        "reputacao":{"positivas":1,"total":1,"turnos_considerados":1,"turnos_realizados":1}},
+         "verificacao":"pendente","valor_acordado_centavos":16000,"pode_avaliar":false,"estado":"confirmada"}
+    """.trimIndent()
+
+    private fun usuarioJson(perfil: String) =
+        """{"id":"u1","perfil":"$perfil","nome":"Fulana","telefone":"+5561999990000","email":"f@t.test","nascimento":"1990-01-01","estado":"ativa"}"""
+
+    @Test
+    fun `o grafo le meus_turnos e lista so os futuros, sem excluir nada`() = runBlocking {
+        val rede = Rede { request ->
+            if (request.url.encodedPath.endsWith("/minha_conta")) {
+                respond(usuarioJson("profissional"), HttpStatusCode.OK, json)
+            } else if (request.url.encodedPath.endsWith("/meus_turnos")) {
+                respond(
+                    "[${turnoJson("passado", "2001-01-01T20:00:00Z", "2001-01-02T02:00:00Z")}," +
+                        "${turnoJson("futuro-1", "2099-01-01T20:00:00Z", "2099-01-02T02:00:00Z")}," +
+                        "${turnoJson("futuro-2", "2099-03-01T20:00:00Z", "2099-03-02T02:00:00Z")}]",
+                    HttpStatusCode.OK,
+                    json,
+                )
+            } else {
+                respond("{}", HttpStatusCode.OK, json)
+            }
+        }
+        iniciar(rede)
+        val viewModel = get<ExclusaoDeContaViewModel>()
+
+        viewModel.carregarTurnos().join()
+
+        val lista = viewModel.estado.value.turnosFuturos as TurnosFuturosDaExclusao.Lista
+        assertEquals(listOf("futuro-1", "futuro-2"), lista.turnos.map { it.id })
+        assertTrue(rede.pedidos.any { it.caminho == "/rest/v1/rpc/meus_turnos" })
+        assertTrue(rede.pedidos.none { it.caminho.endsWith("/excluir-conta") }, "ler a lista nunca exclui")
+    }
+
+    @Test
+    fun `no grafo, a lista indisponivel nao impede a exclusao`() = runBlocking {
+        val rede = Rede { request ->
+            if (request.url.encodedPath.endsWith("/minha_conta")) {
+                respond(usuarioJson("profissional"), HttpStatusCode.OK, json)
+            } else if (request.url.encodedPath.endsWith("/meus_turnos")) {
+                respond("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError, json)
+            } else {
+                respond(
+                    """{"perfil_removido_em":"2026-11-10T12:00:00Z","dados_apagados_ate":"2026-11-25","turnos_cancelados":0}""",
+                    HttpStatusCode.Accepted,
+                    json,
+                )
+            }
+        }
+        iniciar(rede)
+        val sessao = get<ArmazenamentoDeSessao>()
+        sessao.salvarSessao(Sessao("a", "r", "bearer", 3600))
+        val viewModel = get<ExclusaoDeContaViewModel>()
+
+        viewModel.carregarTurnos().join()
+        assertEquals(TurnosFuturosDaExclusao.Indisponivel, viewModel.estado.value.turnosFuturos)
+        viewModel.alterarConfirmacao(true)
+        viewModel.confirmarExclusao().join()
+
+        assertTrue(rede.pedidos.any { it.caminho == "/functions/v1/excluir-conta" })
+        assertFalse(sessao.estaAutenticado())
+    }
+
+    @Test
+    fun `no grafo, o contratante tem a lista das casas, limitada, e ler nao exclui nada`() = runBlocking {
+        val painel = """
+            {"estabelecimento_id":"casa-1","checkins_pendentes":[],
+             "vagas":[{"vaga":{"id":"v1","funcao":"bartender","local":"SCLN 406","regiao_administrativa":"Plano Piloto",
+                               "inicio_em":"2099-01-01T20:00:00Z","fim_em":"2099-01-02T02:00:00Z","valor_centavos":16000},
+                       "modo":"selecao","estado":"publicada","oculta":false,"alerta_vaga_vazia":false,"candidatos_pendentes":0,
+                       "posicoes":[{"id":"p1","estado":"confirmada","em_atraso":false,"turno_id":"turno-1",
+                                    "profissional":{"id":"pr1","tipo":"profissional","nome":"Ana",
+                                      "reputacao":{"positivas":0,"total":0,"turnos_considerados":0,"turnos_realizados":0}}}]}]}
+        """.trimIndent()
+        val rede = Rede { request ->
+            val caminho = request.url.encodedPath
+            when {
+                caminho.endsWith("/minha_conta") -> respond(usuarioJson("contratante"), HttpStatusCode.OK, json)
+                caminho.endsWith("/meus_estabelecimentos") ->
+                    respond("""[{"id":"casa-1","nome":"Bar 1","papel":"administrador"}]""", HttpStatusCode.OK, json)
+                caminho.endsWith("/painel_estabelecimento") -> respond(painel, HttpStatusCode.OK, json)
+                else -> respond("{}", HttpStatusCode.OK, json)
+            }
+        }
+        iniciar(rede)
+        val viewModel = get<ExclusaoDeContaViewModel>()
+
+        viewModel.carregarTurnos().join()
+
+        val lista = viewModel.estado.value.turnosFuturos as TurnosFuturosDaExclusao.Lista
+        assertEquals(listOf("turno-1"), lista.turnos.map { it.id })
+        assertEquals("Ana", lista.turnos.single().contraparte)
+        assertTrue(lista.limitada)
+        assertTrue(rede.pedidos.none { it.caminho.endsWith("/meus_turnos") }, "contratante não lê meus_turnos")
+        assertTrue(rede.pedidos.none { it.caminho.endsWith("/excluir-conta") }, "ler a lista nunca exclui")
+    }
 }
+

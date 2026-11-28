@@ -58,6 +58,7 @@ class AppNavegacaoDenunciaEquipeTest {
         nome = "Ana Souza",
         funcoes = listOf("garçom"),
         reputacao = ReputacaoDto(positivas = 7, total = 8, turnosConsiderados = 8, turnosRealizados = 8),
+        fotoId = "foto-ana",
     )
 
     private fun montar(inicio: String) {
@@ -116,6 +117,8 @@ class AppNavegacaoDenunciaEquipeTest {
             assertEquals("prof-ana", argumentos?.getString("alvoId"))
             assertNull(argumentos?.getString("turnoId"))
             assertNull(argumentos?.getString("chamadaId"))
+            // A foto que a equipe mostrou é a que a denúncia pode apontar (`midia_id`).
+            assertEquals("foto-ana", argumentos?.getString("fotoId"))
         }
     }
 }

@@ -6,11 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import br.com.frila.core.designsystem.componentes.TextosConfirmarSaida
 import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.MonitorDeConectividadeFalso
 import br.com.frila.core.rede.PainelDto
@@ -86,6 +88,9 @@ class EntradaPorPapelTest {
 
     /** Quando não nulo, a abertura decide este destino em vez de perguntar ao servidor (a conta mudou do outro lado). */
     @Volatile private var destinoForcado: DestinoDaConta? = null
+
+    /** As vagas com que a tela de acompanhar chamadas foi aberta. */
+    private val vagasDasChamadas = CopyOnWriteArrayList<String>()
 
     /** As vagas com que a tela de candidatos foi aberta. */
     private val vagasDosCandidatos = CopyOnWriteArrayList<String>()
@@ -176,6 +181,16 @@ class EntradaPorPapelTest {
                             CodigoViewModel(email, ServicoAutenticacao(cliente), sessao, CoroutineScope(Dispatchers.Default))
                         }
                         viewModel { CadastroViewModel() }
+                        viewModel { (vagaId: String) ->
+                            vagasDasChamadas += vagaId
+                            br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel(
+                                vagaId = vagaId,
+                                listar = { _, _, _ -> br.com.frila.core.rede.PaginaDeChamadasDto(itens = emptyList(), proximoCursor = null) },
+                                cancelarChamada = { error("o teste de navegação não cancela") },
+                                publicarAPartirDaChamada = { _, _, _ -> error("o teste de navegação não publica") },
+                                escopo = CoroutineScope(Dispatchers.Unconfined),
+                            )
+                        }
                         viewModel {
                             mockk<br.com.frila.feature.turnos.AvaliacaoViewModel>(relaxed = true) {
                                 every { estado } returns MutableStateFlow(br.com.frila.feature.turnos.EstadoAvaliacao())
@@ -445,6 +460,27 @@ class EntradaPorPapelTest {
     }
 
     @Test
+    fun `XViq5sFe - com o app aberto, a chamada recusada leva a casa as chamadas da vaga`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true)
+        aguardar(8_000) { rotaAtual() == Rotas.MINHAS_VAGAS }
+
+        avisoDoToque.value = AvisoDoToque("chamada_recusada", vagaId = vagaDoAviso)
+
+        assertTrue("a chamada recusada não abriu as chamadas da vaga (rota: ${rotaAtual()})", aguardar { rotaAtual() == RotasChamadaCasa.ACOMPANHAR })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+        assertEquals(listOf(vagaDoAviso), vagasDasChamadas.toList())
+    }
+
+    @Test
+    fun `XViq5sFe - a casa que abre o app pela chamada aceita com turno cai no turno da casa`() {
+        montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = AvisoDoToque("chamada_aceita", vagaId = vagaDoAviso, turnoId = turnoDoAviso))
+
+        assertTrue("a chamada aceita não abriu o turno da casa (rota: ${rotaAtual()})", aguardar(8_000) { rotaAtual() == Rotas.TURNO_DO_CONTRATANTE_AVISO })
+        assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
+        assertTrue("sem o turno é que se abrem as chamadas", vagasDasChamadas.isEmpty())
+    }
+
+    @Test
     fun `vJLRFebB - casa que abre o app pelo aviso de vaga vazia cai nos candidatos da vaga, com Minhas vagas embaixo`() {
         montar(Papel.CONTRATANTE, comSessaoGuardada = true, aviso = AvisoDoToque("vaga_vazia", vagaId = vagaDoAviso, posicaoId = "50000000-0000-0000-0000-000000000001"))
 
@@ -641,6 +677,7 @@ class EntradaPorPapelTest {
         assertEquals(Rotas.MINHAS_VAGAS, rotaAbaixo())
 
         rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+        rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
         rule.waitForIdle()
         assertEquals(Rotas.ENTRADA, rotaAtual())
         rule.onNodeWithText(TextosDasAbas.CONTA).assertDoesNotExist()

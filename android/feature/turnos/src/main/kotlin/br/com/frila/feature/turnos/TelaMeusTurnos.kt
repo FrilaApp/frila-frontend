@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import br.com.frila.core.designsystem.componentes.AcaoDiscreta
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
+import br.com.frila.core.designsystem.componentes.BotaoVerNoMapa
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.ChipFrila
 import br.com.frila.core.designsystem.componentes.EstadoErro
@@ -59,6 +60,7 @@ import br.com.frila.core.designsystem.componentes.FrilaSkeleton
 import br.com.frila.core.designsystem.componentes.IndicadorCarregando
 import br.com.frila.core.designsystem.componentes.LinkFrila
 import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.linkDoMapa
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.designsystem.tema.FrilaTema
@@ -163,7 +165,7 @@ fun TelaMeusTurnos(
                 when (estado.status) {
                     StatusMeusTurnos.CARREGANDO -> SkeletonMeusTurnos()
                     StatusMeusTurnos.ERRO -> Erro(mensagem = estado.mensagemErro, aoTentarNovamente = viewModel::tentarNovamente)
-                    StatusMeusTurnos.VAZIO -> Vazio()
+                    StatusMeusTurnos.VAZIO -> Vazio(historico = estado.abaSelecionada == AbaDeTurnos.HISTORICO)
                     StatusMeusTurnos.SUCESSO -> ListaDeTurnos(
                         itens = estado.itensDaAbaAtual,
                         criarCheckinViewModel = criarCheckinViewModel,
@@ -225,7 +227,7 @@ private fun ListaDeTurnos(
     esperar: suspend (milissegundos: Long) -> Unit = { delay(it) },
 ) {
     if (itens.isEmpty()) {
-        Vazio()
+        Vazio(historico = abaHistorico)
         return
     }
 
@@ -350,6 +352,12 @@ private fun CartaoDoTurno(
         estadoCheckin?.status == StatusCheckin.MANUAL_PENDENTE
 
     CartaoDeStatusDoTurno(turno = turno, selo = seloDoTurno(turno, comprovante)) {
+        // O ponto só vem no turno confirmado ou verificado (contrato, `VagaResumo.ponto`): é ele que libera o atalho.
+        val ponto = turno.pontoDaVaga
+        val local = turno.local
+        if (ponto != null && !local.isNullOrBlank()) {
+            BotaoVerNoMapa(link = linkDoMapa(local, ponto.latitude, ponto.longitude))
+        }
         if (confirmado && aoAvisarACaminho != null) {
             SecaoACaminho(
                 turno = turno,
@@ -792,9 +800,17 @@ private fun SkeletonMeusTurnos(quantidade: Int = 3) {
     }
 }
 
+/**
+ * Estado vazio da aba. Agendados usa o texto do iOS (`TextosDoProfissional.vazioTitulo` e `vazioMensagem`); o iOS não tem a aba
+ * Histórico, então o texto dela é próprio, no mesmo tom: diz o que aparece ali (turnos `cumprida` e `cancelada`).
+ */
 @Composable
-private fun Vazio() {
-    EstadoVazio(titulo = "Você ainda não tem turnos nesta aba.")
+private fun Vazio(historico: Boolean) {
+    if (historico) {
+        EstadoVazio(titulo = "Nenhum turno no histórico", mensagem = "Turnos concluídos e cancelados aparecerão aqui.")
+    } else {
+        EstadoVazio(titulo = "Nenhum turno confirmado", mensagem = "Quando você tiver turnos confirmados, eles aparecerão aqui.")
+    }
 }
 
 @Composable

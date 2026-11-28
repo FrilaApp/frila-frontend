@@ -16,8 +16,10 @@ import br.com.frila.app.seguranca.ArmazenamentoDeSessaoKeystore
 import br.com.frila.app.seguranca.ArmazenamentoOAuthPendenteKeystore
 import br.com.frila.app.seguranca.CoordenadorDeLogout
 import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.PapelMembro
+import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
@@ -124,6 +126,7 @@ import br.com.frila.feature.perfil.FotoDePerfilViewModel
 import br.com.frila.feature.perfil.PerfilViewModel
 import br.com.frila.feature.perfil.PreparadorDeJpegDoAparelho
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
+import br.com.frila.feature.suporte.BloqueioDeAlvoViewModel
 import br.com.frila.feature.suporte.BloqueiosViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
 import br.com.frila.feature.turnos.AvaliacaoViewModel
@@ -132,6 +135,7 @@ import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.CheckinViewModel
 import br.com.frila.feature.turnos.MedidorDeDistancia
 import br.com.frila.feature.turnos.MeusTurnosViewModel
+import br.com.frila.feature.turnos.QuemRecebeDasVagas
 import br.com.frila.feature.turnos.OcorrenciaTurnoViewModel
 import br.com.frila.feature.turnos.ValidacaoDoCodigoViewModel
 import br.com.frila.feature.turnos.contratante.CodigoDaCasaViewModel
@@ -167,9 +171,19 @@ val moduloSeguranca = module {
                 // Cada guarda se esvazia sozinha: uma falha numa não deixa a outra com o que é da conta que saiu.
                 runCatching { getOrNull<GuardaDaEscala>()?.limpar() }
                 runCatching { getOrNull<GuardaDaBusca>()?.limpar() }
+                // O responsável do local de cada vaga agendada (QpgRwPFM) é lido da conta que estava na sessão.
+                runCatching { getOrNull<QuemRecebeDasVagas>()?.limpar() }
+                // Quem a pessoa bloqueou nesta sessão (I1PonzKJ) é da conta que saiu: a próxima começa sem nenhum.
+                runCatching { getOrNull<BloqueiosDaSessao>()?.limpar() }
             },
         )
     }
+    /**
+     * Quem a pessoa bloqueou nesta sessão: só em memória, sem hidratar de `listar_bloqueios` (paridade com o iOS). Os escritores abaixo
+     * (denúncia, bloqueio avulso, desbloqueio) só o mexem depois de o servidor confirmar; logout, troca de conta e expiração o esvaziam
+     * por `limparGuardas`.
+     */
+    single { BloqueiosDaSessao() }
     single<ArmazenamentoDeSessao> {
         val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
@@ -247,6 +261,7 @@ val moduloRede = module {
     single {
         // Debug compilado sem o par DEV: o app sobe, mas diz no log por que não alcança o servidor (sem valores).
         configuracaoSupabase.problema?.let { Log.w("FRILA_CONFIG", "Supabase sem configuração que sirva: $it") }
+        val koin = getKoin()
         GestorClienteKtor {
             ClienteSupabase(
                 baseUrl = configuracaoSupabase.url,
@@ -254,6 +269,9 @@ val moduloRede = module {
                 armazenamentoDeSessao = get(),
                 monitorDeConectividade = get(),
                 registroDeErros = get<TelemetriaDeFalhas>().let { telemetria -> RegistroDeErroDaApi(telemetria::registrarErroDaApi) },
+                // #793: a recusa do refresh passa pela limpeza do Sair. O coordenador depende deste gestor, então é resolvido só
+                // na hora da recusa, nunca ao montar o cliente: sem ciclo no grafo.
+                aoRecusarSessao = { koin.get<CoordenadorDeLogout>().encerrarAposRecusa() },
             )
         }
     }
@@ -310,6 +328,8 @@ val moduloRede = module {
                 TipoAcaoPendente.CANCELAMENTO_POSICAO to { a -> turnos.cancelarPosicao(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
                 TipoAcaoPendente.CANCELAMENTO_VAGA to { a -> vagas.cancelarVaga(checkNotNull(a.alvoId), checkNotNull(a.motivo)); Unit },
             ),
+            // Check-out recusado com fora_da_janela pode já estar gravado (reenvio depois de fim + 60 min, contrato 0.2.83).
+            checkoutJaGravado = turnos::checkoutGravado,
         )
     }
     single { ServicoPerfil { get<GestorClienteKtor>().clienteAtual } }
@@ -335,6 +355,8 @@ val moduloNotificacoes = module {
             ?: GerenciadorPreferenciasNotificacaoEmMemoria()
     }
     single { ProcessadorDePush(get(), get()) }
+    // HaRJJ0L0: as listas abertas relêem ao voltar do segundo plano e quando chega um push da conta; a conta ativa é o vínculo da sessão.
+    single { AtualizacaoAutomatica(sessao = { get<ArmazenamentoDeSessao>().obterSessao()?.vinculoId }) }
     // C0-10: o registro do aparelho numa função só (abrir com sessão, depois de entrar e onNewToken), com versao_app.
     // Falha do registro (rede, servidor, token) só vira log, com o motivo e sem token nem sessão.
     single {
@@ -425,9 +447,14 @@ val moduloFeatures = module {
     viewModel { FeedVagasViewModel(get(), get(), repositorioVagas = get(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
     /** L2-4: a vaga da lista; aberta pelo id (link, aviso), vem também o detalhe lido do servidor (segundo parâmetro, opcional). */
     viewModel { params -> DetalheVagaViewModel(params.get<VagaAbertaDto>(), get(), detalhe = params.getOrNull<VagaDto>(), registrarEvento = get<RegistradorDeTelemetria>()::disparar) }
+    /**
+     * Quem recebe o profissional no local de cada vaga agendada (`detalhe_vaga`, uma leitura por vaga) guardado na sessão: a atualização
+     * automática e o puxar para atualizar de Meus turnos não a repetem. Logout, troca de conta e expiração o esvaziam (`limparGuardas`).
+     */
+    single { QuemRecebeDasVagas { vagaId -> get<ServicoVagas>().detalheVaga(vagaId).responsavelLocal } }
     viewModel {
         val armazenamento = get<ArmazenamentoDeSessao>()
-        MeusTurnosViewModel(get(), filaDeAcoes = get(),
+        MeusTurnosViewModel(get(), filaDeAcoes = get(), quemRecebeDasVagas = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,
             // Não há evento de telemetria para isto (o conjunto é fechado pelo contrato): só o log, com o id do turno e nada mais.
@@ -473,21 +500,41 @@ val moduloFeatures = module {
      */
     viewModel {
         val servicoPerfil = get<ServicoPerfil>()
+        val servicoTurnos = get<ServicoTurnos>()
+        val servicoConta = get<ServicoConta>()
+        val servicoMembros = get<ServicoMembros>()
+        val servicoVagas = get<ServicoVagas>()
         val coordenadorDeLogout = get<CoordenadorDeLogout>()
         ExclusaoDeContaViewModel(
             excluir = { servicoPerfil.excluirConta() },
             aoConcluir = { coordenadorDeLogout.limparSessao() },
+            // Só lê, para a tela listar os turnos futuros que a exclusão cancela: do profissional, ou das casas do contratante.
+            consultarTurnos = { consultarTurnosDaConta(servicoConta, servicoTurnos, servicoMembros, servicoVagas) },
         )
     }
-    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?) ->
+    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
         val confianca = get<ServicoConfianca>()
+        val bloqueios = get<BloqueiosDaSessao>()
         DenunciaViewModel(
             alvoTipo = alvoTipo,
             alvoId = alvoId,
             denunciar = confianca::denunciar,
-            bloquear = confianca::bloquear,
+            bloquear = { tipo, id -> bloqueios.registrandoAposSucesso(tipo, id) { confianca.bloquear(tipo, id) } },
             turnoId = turnoId,
             chamadaId = chamadaId,
+            fotoId = fotoId,
+            bloqueios = bloqueios,
+        )
+    }
+    // GpINsbhj: o bloqueio avulso de quem chamou (chamada recebida) e, no item 187, do perfil público visto pela casa.
+    viewModel { (alvoTipo: TipoDeAlvo, alvoId: String) ->
+        val confianca = get<ServicoConfianca>()
+        val bloqueios = get<BloqueiosDaSessao>()
+        BloqueioDeAlvoViewModel(
+            alvoTipo = alvoTipo,
+            alvoId = alvoId,
+            bloquear = { tipo, id -> bloqueios.registrandoAposSucesso(tipo, id) { confianca.bloquear(tipo, id) } },
+            bloqueios = bloqueios,
         )
     }
     viewModel { (estabelecimentoId: String) ->
@@ -557,7 +604,12 @@ val moduloFeatures = module {
      * Candidatos de uma vaga em seleção e a escolha (RF09, UC04). `posicoesAbertas` e `inicioDaVaga` vêm
      * da tela de origem, que conhece a vaga; nulos escondem o aviso da última posição e o prazo de escolha.
      */
-    viewModel { (vagaId: String, posicoesAbertas: Int?, inicioDaVaga: Instant?) ->
+    viewModel { parametros ->
+        val vagaId: String = parametros[0]
+        val posicoesAbertas: Int? = parametros[1]
+        val inicioDaVaga: Instant? = parametros[2]
+        // A casa é opcional: a rota aberta por aviso push só traz a vaga. Sem ela, o ViewModel não confere o painel.
+        val estabelecimentoId: String? = parametros.values.getOrNull(3) as? String
         val vagas = get<ServicoVagas>()
         CandidatosDaVagaViewModel(
             vagaId = vagaId,
@@ -565,6 +617,7 @@ val moduloFeatures = module {
             escolher = vagas::escolherCandidato,
             posicoesAbertas = posicoesAbertas,
             inicioDaVaga = inicioDaVaga,
+            relerVaga = estabelecimentoId?.let { casa -> { relerVagaNoPainel(vagas, casa, vagaId) } },
         )
     }
     /**
@@ -578,6 +631,7 @@ val moduloFeatures = module {
             nomeEstabelecimento = nomeEstabelecimento,
             vagaRecemPublicadaId = vagaRecemPublicadaId,
             buscarPainel = vagas::painelEstabelecimento,
+            confirmarCheckin = get<ServicoTurnos>()::confirmarCheckinManual,
         )
     }
     /**
@@ -594,6 +648,8 @@ val moduloFeatures = module {
             confirmar = turnos::confirmarCheckinManual,
             reabrir = turnos::reabrirPorAtraso,
             cancelar = turnos::cancelarPosicao,
+            // O painel da casa não traz a avaliação: ela vem de `meus_turnos` da casa (`Turno.avaliacao`, contrato 0.2.31).
+            lerAvaliacaoDaCasa = { turnoId, casa -> turnos.listarMeusTurnosDaCasa(casa).firstOrNull { it.id == turnoId }?.avaliacao?.resposta },
             filaDeAcoes = get(),
             contaAtual = { contaDaSessaoParaTelemetria(armazenamento.obterSessao()) },
             registrarEvento = get<RegistradorDeTelemetria>()::disparar,
@@ -728,9 +784,15 @@ val moduloFeatures = module {
         PreparadorDaFotoDePerfil { referencia -> PreparadorDeJpegDoAparelho(escopo.get<Context>()).preparar(referencia) }
     }
     viewModel {
-        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), get<ServicoMidia>())
+        val midia = get<ServicoMidia>()
+        val fluxo = FluxoDaFotoDePerfil(get<ConferidorDeRostoDaFoto>(), midia)
         val preparador = get<PreparadorDaFotoDePerfil>()
-        FotoDePerfilViewModel(prepararJpeg = preparador::preparar, enviar = fluxo::enviar)
+        FotoDePerfilViewModel(
+            prepararJpeg = preparador::preparar,
+            enviar = fluxo::enviar,
+            listarMidias = midia::minhasMidias,
+            pedirNovaAnaliseMidia = midia::pedirNovaAnaliseMidia,
+        )
     }
     /**
      * Código de chegada (L1-4b): o profissional digita o código que a casa mostra. A distância é medida no toque, até o ponto da vaga (só ela sai,
@@ -802,7 +864,11 @@ val moduloFeatures = module {
     /** L2-6: bloqueios da conta (listar e desfazer) e "Incluir na equipe" do profissional que cumpriu turno. */
     viewModel {
         val confianca = get<ServicoConfianca>()
-        BloqueiosViewModel(listar = confianca::listarBloqueios, desfazer = confianca::desbloquear)
+        val bloqueios = get<BloqueiosDaSessao>()
+        BloqueiosViewModel(
+            listar = confianca::listarBloqueios,
+            desfazer = { tipo, id -> bloqueios.removendoAposSucesso(tipo, id) { confianca.desbloquear(tipo, id) } },
+        )
     }
     viewModel { (estabelecimentoId: String, profissionalId: String) ->
         val confianca = get<ServicoConfianca>()

@@ -73,7 +73,7 @@ class TelasDaCasaTest {
         rule.onNodeWithText("Maria S.").assertIsDisplayed().assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         rule.onNodeWithText("7 de 8 chamariam de novo").assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaCasa.SERVICOS_OFERECIDOS).performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("R$ 150,00 por diária de 8 h").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("R$\u00A0150,00 por diária de 8 h").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Dez anos de salão").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("5 a 10 anos").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Português, Inglês").performScrollTo().assertIsDisplayed()
@@ -299,7 +299,7 @@ class TelasDaCasaTest {
 
         rule.onNodeWithText(TextosChamadaCasa.SUCESSO).assertIsDisplayed()
         rule.onNodeWithText("O profissional tem até 17/11/2026 09:00 para responder.").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("R$ 180,00").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("R$\u00A0180,00").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Bistrô Ipê").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText(TextosChamadaCasa.ENVIAR).assertDoesNotExist()
         rule.onNodeWithText(TextosChamadaCasa.ACOMPANHAR_TITULO).performScrollTo().performClick()

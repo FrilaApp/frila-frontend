@@ -60,11 +60,13 @@ data class EstadoAcompanharChamadas(
 
 /**
  * A vaga direta já fechou pelo que a lista mostra, e `publicar_a_partir_da_chamada` responderia `409 vaga_encerrada`:
- * o turno já começou, ou a última chamada a fechar expirou (`expirar_chamadas` encerra a vaga direta quando a última
- * chamada aberta expira; recusa e cancelamento não a encerram). Sem `respondida_em`, não dá para saber, e o botão fica.
+ * o turno já começou, ou (sem nenhuma chamada aberta) a última chamada a fechar expirou (`expirar_chamadas` encerra
+ * a vaga direta quando a última chamada aberta expira; recusa e cancelamento não a encerram). Sem `respondida_em`,
+ * não dá para saber, e o botão fica.
  */
 internal fun vagaJaEncerrada(chamadas: List<ChamadaResumoDto>, agora: Instant): Boolean {
     if (chamadas.any { c -> FormatoChamada.instante(c.inicioEm)?.let { !it.isAfter(agora) } == true }) return true
+    if (chamadas.any { it.estado == EstadoAcompanharChamadas.ESTADO_ABERTA }) return false
     val ultima = chamadas.maxByOrNull { c -> c.respondidaEm?.let(FormatoChamada::instante) ?: Instant.MIN } ?: return false
     return ultima.estado == "expirada" && ultima.respondidaEm?.let(FormatoChamada::instante) != null
 }
@@ -106,6 +108,7 @@ class AcompanharChamadasViewModel(
     val estado: StateFlow<EstadoAcompanharChamadas> = _estado.asStateFlow()
 
     private var chaveDaPublicacao: String? = null
+    private var encerradaPeloServidor = false
 
     /** Também serve de "tentar novamente". Duas cargas ao mesmo tempo viram uma. */
     fun carregar(): Job {
@@ -119,7 +122,11 @@ class AcompanharChamadasViewModel(
             val todas = withTimeout(prazoMs) { lerTodasAsPaginas() }
             val daVaga = todas.filter { c -> c.vagaId == vagaId }
             _estado.update {
-                it.copy(carregando = false, chamadas = daVaga, vagaEncerrada = it.vagaEncerrada || vagaJaEncerrada(daVaga, relogio()))
+                it.copy(
+                    carregando = false,
+                    chamadas = daVaga,
+                    vagaEncerrada = encerradaPeloServidor || vagaJaEncerrada(daVaga, relogio()),
+                )
             }
         } catch (erro: TimeoutCancellationException) {
             _estado.update { it.copy(carregando = false, erro = TextosChamadaCasa.ERRO) }
@@ -198,6 +205,7 @@ class AcompanharChamadasViewModel(
                 if (erro.codigo == CodigoErroAPI.VAGA_ENCERRADA) {
                     // Vaga direta cancelada, encerrada ou preenchida, ou fora da janela (RN35): o botão some e a lista é
                     // relida, porque as chamadas podem ter mudado do outro lado.
+                    encerradaPeloServidor = true
                     _estado.update { it.copy(acaoEmVoo = false, vagaEncerrada = true, erro = TextosChamadaCasa.VAGA_ENCERRADA_AO_PUBLICAR) }
                     recarregar()
                 } else {

@@ -1,6 +1,7 @@
 package br.com.frila.app
 
 import br.com.frila.app.seguranca.CoordenadorDeLogout
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import br.com.frila.core.notificacoes.GerenciadorDeCanais
 import br.com.frila.core.notificacoes.GerenciadorPreferenciasNotificacao
 import br.com.frila.core.notificacoes.ProcessadorDePush
@@ -112,6 +113,8 @@ class KoinGrafoTest : KoinTest {
         assertNotNull(get<ServicoVagas>())
         assertNotNull(get<ServicoDispositivo>())
         assertNotNull(get<ProcessadorDePush>())
+        // HaRJJ0L0: as rotas e o serviço de push usam getOrNull/inject; sem este registro a atualização automática some sem crash nem log.
+        assertNotNull(get<AtualizacaoAutomatica>())
 
         assertNotNull(get<EntradaViewModel>())
         assertNotNull(get<CadastroViewModel>())
@@ -172,6 +175,25 @@ class KoinGrafoTest : KoinTest {
         assertTrue(resultado.corrotinasCanceladas)
         job.join()
         assertTrue(job.isCancelled)
+    }
+
+    /** #793: o aviso de recusa que o grafo dá ao cliente chega ao coordenador, que está no mesmo grafo, sem ciclo ao montar. */
+    @Test
+    fun `a recusa do refresh avisada pelo cliente passa pela limpeza do Sair`() = kotlinx.coroutines.runBlocking {
+        startKoin { modules(modulosDeTeste) }
+        val gestor = get<GestorClienteKtor>()
+        val escopo = get<kotlinx.coroutines.CoroutineScope>(org.koin.core.qualifier.named(ESCOPO_DA_SESSAO))
+        val job = escopo.launch { kotlinx.coroutines.delay(60_000) }
+        val antigo = gestor.clienteAtual
+        val aviso = ClienteSupabase::class.java.getDeclaredField("aoRecusarSessao").apply { isAccessible = true }.get(antigo)
+
+        @Suppress("UNCHECKED_CAST")
+        (aviso as () -> Unit).invoke()
+
+        assertTrue(antigo.estaFechado, "o cliente da sessão recusada continuou aberto")
+        assertTrue(gestor.clienteAtual !== antigo)
+        job.join()
+        assertTrue(job.isCancelled, "o escopo da sessão seguiu vivo")
     }
 
     @Test

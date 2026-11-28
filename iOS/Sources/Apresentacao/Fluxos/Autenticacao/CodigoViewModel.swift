@@ -5,7 +5,7 @@ import Observation
 public indirect enum DestinoCodigo: Equatable, Sendable {
     case cadastro(email: String)
     case destino(DestinoAposEntrada)
-    case desafioOTP(email: String, desafioID: String)
+    case desafioOTP(email: String, desafioID: String, reenviarEmSegundos: Int = ConfiguracaoApp.cooldownPadraoOTPSegundos)
     case definirSenha(DestinoCodigo)
 }
 
@@ -47,26 +47,35 @@ public final class CodigoViewModel {
     public static let validadeDoCodigo: TimeInterval = 600
 
     private let relogio: any Relogio
+    private let esperaPadraoSegundos: Int
     /// Quando o último código foi pedido (primeiro envio ou reenvio).
     private var codigoPedidoEm: Date
     private var desafioIDAtual: String?
     private var tarefaTemporizador: Task<Void, Never>?
 
-    public init(api: any ApiCliente, email: String, modo: Modo = .entrada, relogio: any Relogio = RelogioDoSistema()) {
+    public init(
+        api: any ApiCliente,
+        email: String,
+        modo: Modo = .entrada,
+        esperaInicialSegundos: Int = ConfiguracaoApp.cooldownPadraoOTPSegundos,
+        relogio: any Relogio = RelogioDoSistema()
+    ) {
         self.api = api
         self.modo = modo
         self.relogio = relogio
+        let esperaNormalizada = ConfiguracaoApp.normalizarCooldownOTP(esperaInicialSegundos)
+        self.esperaPadraoSegundos = esperaNormalizada
         self.codigoPedidoEm = relogio.agora
         self.email = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if case let .loginDispositivo(desafioID) = modo {
             self.desafioIDAtual = desafioID
         }
-        iniciarTemporizador()
+        iniciarTemporizador(segundos: esperaNormalizada)
     }
 
-    public func iniciarTemporizador(segundos: Int = 60) {
+    public func iniciarTemporizador(segundos: Int? = nil) {
         codigoPedidoEm = relogio.agora
-        segundosRestantes = max(1, segundos)
+        segundosRestantes = ConfiguracaoApp.normalizarCooldownOTP(segundos ?? esperaPadraoSegundos)
         tarefaTemporizador?.cancel()
         tarefaTemporizador = Task { [weak self] in
             while true {

@@ -83,6 +83,7 @@ data class AcoesPublicarVaga(
     val aoEditarTraje: (String) -> Unit = {},
     val aoEditarObservacoes: (String) -> Unit = {},
     val aoAlternarRateio: (Boolean) -> Unit = {},
+    val aoEscolherAlertaAntecedencia: (Int) -> Unit = {},
     val aoPublicar: () -> Unit = {},
     val aoVoltar: () -> Unit = {},
 )
@@ -120,6 +121,7 @@ fun TelaPublicarVaga(
             aoEditarTraje = viewModel::editarTraje,
             aoEditarObservacoes = viewModel::editarObservacoes,
             aoAlternarRateio = viewModel::alternarRateio,
+            aoEscolherAlertaAntecedencia = viewModel::escolherAlertaAntecedencia,
             aoPublicar = { viewModel.publicar() },
             aoVoltar = aoVoltar,
         ),
@@ -143,6 +145,9 @@ fun ConteudoPublicarVaga(
 ) {
     var seletorDeFuncaoAberto by rememberSaveable { mutableStateOf(false) }
     var maisOpcoesAberto by rememberSaveable { mutableStateOf(false) }
+    // O erro de um campo de "Mais opções" (traje, observações) escondido pelo fechado não chega à pessoa: abre a seção.
+    val erroEmMaisOpcoes = CampoPublicacao.OBSERVACOES in estado.errosDeCampo || CampoPublicacao.TRAJE in estado.errosDeCampo
+    LaunchedEffect(erroEmMaisOpcoes) { if (erroEmMaisOpcoes) maisOpcoesAberto = true }
     val cores = FrilaTema.cores
 
     Scaffold(
@@ -434,6 +439,18 @@ fun ConteudoPublicarVaga(
                         aoClicar = { acoes.aoAlternarRateio(!estado.participaRateio) },
                         habilitado = estado.podeEditar,
                     )
+                }
+                FrilaGrupoDeLinhas(titulo = TextosPublicarVaga.ALERTA) {
+                    EstadoPublicarVaga.ALERTAS_DE_ANTECEDENCIA_MIN.forEach { minutos ->
+                        linha {
+                            FrilaLinhaDeOpcao(
+                                titulo = TextosPublicarVaga.alertaAntecedencia(minutos),
+                                marcada = estado.alertaAntecedenciaMin == minutos,
+                                aoClicar = { acoes.aoEscolherAlertaAntecedencia(minutos) },
+                                habilitada = estado.podeEditar,
+                            )
+                        }
+                    }
                 }
                 CampoDeTexto(
                     valor = estado.observacoes,

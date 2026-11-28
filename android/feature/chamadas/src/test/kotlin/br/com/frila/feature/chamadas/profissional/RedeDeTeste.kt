@@ -55,7 +55,10 @@ internal object Fixtures {
         expiraEm: String = "2026-11-17T12:00:00Z",
         contaNova: Boolean = false,
         recado: String? = "Traga avental",
-    ) = """{"id":"$CHAMADA","vaga_id":"$VAGA","profissional_id":"$PROFISSIONAL","estabelecimento_id":"$CASA","estado":"$estado","recado":${recado?.let { "\"$it\"" }},"expira_em":"$expiraEm","criada_em":"2026-11-16T20:00:00Z","funcao":$funcaoJson,"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"$CASA","tipo":"estabelecimento","nome":"Bistrô Aurora","reputacao":$reputacaoJson},"tipo_estabelecimento":"food_service","conta_nova":$contaNova,"regiao_administrativa":"Plano Piloto","distancia_faixa":"de_5_a_15_km","inclui_refeicao":true,"inclui_transporte":false,"exige_material_proprio":false}"""
+        turnoId: String? = null,
+        local: String? = null,
+        responsavelLocal: String? = null,
+    ) = """{"id":"$CHAMADA","vaga_id":"$VAGA","profissional_id":"$PROFISSIONAL","estabelecimento_id":"$CASA","estado":"$estado","recado":${recado?.let { "\"$it\"" }},"expira_em":"$expiraEm","criada_em":"2026-11-16T20:00:00Z","funcao":$funcaoJson,"inicio_em":"2026-11-20T22:00:00Z","fim_em":"2026-11-21T02:00:00Z","valor_centavos":18000,"outra_parte":{"id":"$CASA","tipo":"estabelecimento","nome":"Bistrô Aurora","reputacao":$reputacaoJson},"tipo_estabelecimento":"food_service","conta_nova":$contaNova,"regiao_administrativa":"Plano Piloto","distancia_faixa":"de_5_a_15_km","inclui_refeicao":true,"inclui_transporte":false,"exige_material_proprio":false${turnoId?.let { ",\"turno_id\":\"$it\"" } ?: ""}${local?.let { ",\"local\":\"$it\"" } ?: ""}${responsavelLocal?.let { ",\"responsavel_local\":\"$it\"" } ?: ""}}"""
 
     fun resultadoJson(estado: String) =
         """{"chamada":{"id":"$CHAMADA","vaga_id":"$VAGA","profissional_id":"$PROFISSIONAL","estabelecimento_id":"$CASA","estado":"$estado","expira_em":"2026-11-17T12:00:00Z","respondida_em":"2026-11-16T21:00:00Z","criada_em":"2026-11-16T20:00:00Z"}${if (estado == "aceita") ",\"turno_id\":\"$TURNO\",\"local\":\"SCS Quadra 2\",\"ponto\":{\"latitude\":-15.79,\"longitude\":-47.88},\"responsavel_local\":\"Ana\"" else ""}}"""

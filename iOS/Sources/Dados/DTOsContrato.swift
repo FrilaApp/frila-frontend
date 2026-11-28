@@ -179,6 +179,7 @@ enum ContratoAPI {
         let desafioID: String?
         let expiraEm: String?
         let descartarDeviceToken: Bool?
+        let reenviarEmSegundos: Int?
 
         enum CodingKeys: String, CodingKey {
             case status, sessao
@@ -187,6 +188,7 @@ enum ContratoAPI {
             case desafioID = "desafio_id"
             case expiraEm = "expira_em"
             case descartarDeviceToken = "descartar_device_token"
+            case reenviarEmSegundos = "reenviar_em_segundos"
         }
     }
 
@@ -2483,6 +2485,8 @@ enum ContratoAPI {
         let mensagem: String?
         /// 0.2.54: ausente vale tudo desligado.
         let recursos: RecursosDoAppDTO?
+        /// 0.2.120: ausente ou inválido vale 60s.
+        let reenviarOTPEmSegundos: Int?
 
         enum CodingKeys: String, CodingKey {
             case plataforma
@@ -2491,6 +2495,7 @@ enum ContratoAPI {
             case versaoMinima = "versao_minima"
             case versaoRecomendada = "versao_recomendada"
             case urlDaLoja = "url_da_loja"
+            case reenviarOTPEmSegundos = "reenviar_otp_em_segundos"
         }
 
         /// Hosts oficiais permitidos para o redirecionamento da App Store (Apple).
@@ -2504,7 +2509,8 @@ enum ContratoAPI {
                 versaoRecomendada: versaoRecomendada,
                 mensagem: mensagem,
                 urlDaLoja: Self.urlSeguraDaLoja(urlDaLoja),
-                recursos: recursos?.dominio() ?? .desligados
+                recursos: recursos?.dominio() ?? .desligados,
+                reenviarOTPEmSegundos: ConfiguracaoApp.normalizarCooldownOTP(reenviarOTPEmSegundos)
             )
         }
 

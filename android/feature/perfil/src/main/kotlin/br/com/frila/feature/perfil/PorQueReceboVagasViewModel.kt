@@ -79,7 +79,9 @@ class PorQueReceboVagasViewModel(
                 _estado.value = when (erroApi?.codigo) {
                     CodigoErroAPI.SEM_REDE -> EstadoPorQueReceboVagas.SemRede
                     CodigoErroAPI.NAO_ENCONTRADO -> EstadoPorQueReceboVagas.Vazio
-                    else -> EstadoPorQueReceboVagas.Erro(erroApi?.detalhes)
+                    // Como o iOS (`.erro` sem mensagem): o título fixo da tela explica; o `details` da recusa (ex.:
+                    // `conta_suspensa`) e a mensagem técnica nunca vão para a tela.
+                    else -> EstadoPorQueReceboVagas.Erro()
                 }
             }
         }

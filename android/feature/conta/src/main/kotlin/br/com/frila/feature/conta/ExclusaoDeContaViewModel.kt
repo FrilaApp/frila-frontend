@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ExclusaoDeContaDto
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -20,6 +21,8 @@ data class EstadoExclusaoDeConta(
     val excluindo: Boolean = false,
     val mensagemErro: String? = null,
     val resultado: ExclusaoDeContaDto? = null,
+    /** Os turnos futuros que a exclusão cancelaria (só do profissional; a casa vem em outro PR). Não condiciona [podeExcluir]. */
+    val turnosFuturos: TurnosFuturosDaExclusao = TurnosFuturosDaExclusao.NaoConsultados,
 ) {
     val podeExcluir: Boolean get() = confirmouConsequencias && !excluindo && resultado == null
 }
@@ -39,6 +42,9 @@ data class EstadoExclusaoDeConta(
 class ExclusaoDeContaViewModel(
     private val excluir: suspend () -> ExclusaoDeContaDto,
     private val aoConcluir: () -> Unit = {},
+    /** Os turnos da conta (do profissional, ou das casas do contratante). `null`: a tela não consulta e mostra só o texto geral. */
+    private val consultarTurnos: (suspend () -> ConsultaDeTurnosDaExclusao)? = null,
+    private val relogio: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -46,6 +52,37 @@ class ExclusaoDeContaViewModel(
 
     private val _estado = MutableStateFlow(EstadoExclusaoDeConta())
     val estado: StateFlow<EstadoExclusaoDeConta> = _estado.asStateFlow()
+
+    private var leituraDosTurnos: Job? = null
+
+    /**
+     * Lê os turnos futuros ao abrir a tela (contrato: a exclusão cancela os turnos futuros do profissional e avisa as
+     * contrapartes). Só lê e mostra: nunca exclui, e a lista indisponível não bloqueia a exclusão. Chamar de novo com a
+     * leitura em voo ou já feita não lê outra vez.
+     */
+    fun carregarTurnos(): Job {
+        val consultar = consultarTurnos ?: return escopoDeTrabalho.launch { }
+        leituraDosTurnos?.let { return it }
+        _estado.update { it.copy(turnosFuturos = TurnosFuturosDaExclusao.Carregando) }
+        return escopoDeTrabalho.launch {
+            val resultado = try {
+                val agora = relogio()
+                val consulta = consultar()
+                TurnosFuturosDaExclusao.Lista(
+                    turnos = consulta.turnos
+                        .filter { turno -> turno.inicio.isAfter(agora) }
+                        .sortedBy { turno -> turno.inicio },
+                    limitada = consulta.limitada,
+                )
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Qualquer falha (rede, sessão, corpo ilegível): a tela avisa e a exclusão segue liberada.
+                TurnosFuturosDaExclusao.Indisponivel
+            }
+            _estado.update { it.copy(turnosFuturos = resultado) }
+        }.also { leituraDosTurnos = it }
+    }
 
     fun alterarConfirmacao(confirmou: Boolean) {
         _estado.update { if (it.excluindo || it.resultado != null) it else it.copy(confirmouConsequencias = confirmou) }

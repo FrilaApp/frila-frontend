@@ -291,6 +291,38 @@ class HistoricoDeTurnosViewModelTest {
         }
     }
 
+    /** AMKlGp1o: o `message` do ErroDaApi é o texto de depuração e nunca vai à tela; cada recusa tem o texto do iOS. */
+    @Test
+    fun recusaDaApiNaExportacaoMostraOTextoDoIosENuncaODeDepuracao() = runTest {
+        val tempDir = Files.createTempDirectory("teste-erros-texto").toFile()
+        try {
+            val casos = listOf(
+                Triple(CodigoErroAPI.SEM_REDE, "sem_rede", TextosHistoricoDeTurnos.SEM_REDE to true),
+                Triple(CodigoErroAPI.NAO_AUTENTICADO, "nao_autenticado", TextosHistoricoDeTurnos.SESSAO_EXPIRADA to false),
+                Triple(CodigoErroAPI.SEM_PERMISSAO, "sem_permissao", TextosHistoricoDeTurnos.SEM_PERMISSAO to false),
+                Triple(CodigoErroAPI.PERFIL_INCOMPATIVEL, "perfil_incompativel", TextosHistoricoDeTurnos.SEM_PERMISSAO to true),
+                Triple(CodigoErroAPI.LIMITE_EXCEDIDO, "limite_excedido", TextosHistoricoDeTurnos.LIMITE_EXCEDIDO to true),
+                Triple(CodigoErroAPI.NAO_ENCONTRADO, "nao_encontrado", TextosHistoricoDeTurnos.ERRO_DESCONHECIDO to true),
+                Triple(CodigoErroAPI.DESCONHECIDO, "algo_novo", TextosHistoricoDeTurnos.ERRO_DESCONHECIDO to true),
+            )
+            for ((codigo, original, esperado) in casos) {
+                val erro = ErroDaApi(codigo = codigo, codigoOriginal = original, detalhes = null, mensagemCrua = "corpo cru do servidor")
+                coEvery { servicoTurnos.listarMeusTurnos() } throws erro
+                val vm = HistoricoDeTurnosViewModel(servicoTurnos, relogioPadrao)
+                vm.exportar(tempDir)
+                advanceUntilIdle()
+
+                val estado = vm.estado.value.estado as EstadoHistorico.Erro
+                assertEquals(original, esperado.first, estado.mensagem)
+                assertEquals(original, esperado.second, estado.repetivel)
+                assertFalse("$original: o texto de depuração chegou ao estado", vm.estado.value.toString().contains("ErroDaApi("))
+                assertFalse(original, estado.mensagem.contains("corpo cru"))
+            }
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
     @Test
     fun limparArquivosAntigosRemoveApenasRelatorios() {
         val tempDir = Files.createTempDirectory("teste-limpeza").toFile()

@@ -85,6 +85,12 @@ data class EstadoFeed(
     val mensagemErro: String? = null,
     /** O servidor recusou a lista por falta de ponto de referência: o perfil não tem ponto base (`422 campo_obrigatorio`, `details: latitude`). */
     val semPontoBase: Boolean = false,
+    /** O servidor recusou a lista porque a conta não é de profissional (`422 perfil_incompativel`): sem "tentar de novo", ele falharia sempre. */
+    val perfilIncompativel: Boolean = false,
     val atualizando: Boolean = false,
     val emCache: Boolean = false,
 )
+
+/** Paridade com `TextosDoProfissional.Lista.perfilIncompativel` do iOS. */
+const val TEXTO_PERFIL_INCOMPATIVEL = "Esta lista é para quem trabalha como profissional."
+

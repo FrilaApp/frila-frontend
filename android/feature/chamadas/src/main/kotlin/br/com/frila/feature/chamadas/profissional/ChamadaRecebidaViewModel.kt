@@ -33,6 +33,14 @@ data class EstadoChamadaRecebida(
     val mostrarRecusa: Boolean = false,
     val motivoSelecionado: String? = null,
 ) {
+    /** A chamada foi aceita por este profissional: pelo resultado deste toque ou pelo detalhe de uma chamada reaberta. */
+    val chamadaAceita: Boolean
+        get() = resultado?.chamada?.estado == "aceita" || detalhe?.estado == "aceita"
+
+    /** O turno do aceite, para "Ver meu turno": o do resultado deste toque ou o do detalhe. Sem aceite, nenhum. */
+    val turnoAceito: String?
+        get() = if (chamadaAceita) resultado?.turnoId ?: detalhe?.turnoId else null
+
     val podeResponder: Boolean
         get() = detalhe?.estado == "aberta" && resultado == null && mensagemDeConcorrencia == null &&
             !respondendo && !carregando
@@ -97,7 +105,8 @@ class ChamadaRecebidaViewModel(
     private fun responderCom(resposta: String, motivo: String?): Job {
         val atual = _estado.value
         val detalhe = atual.detalhe
-        if (detalhe != null && detalhe.estado == "aberta" && jaExpirou(detalhe)) {
+        // Depois de um erro sem resposta o aceite pode ter gravado: o relógio do aparelho não decide, o servidor sim.
+        if (detalhe != null && detalhe.estado == "aberta" && jaExpirou(detalhe) && atual.erro == null) {
             _estado.update { it.copy(mensagemDeConcorrencia = TextosChamadaProfissional.CHAMADA_EXPIRADA, mostrarRecusa = false) }
             return escopoDeTrabalho.launch { }
         }
@@ -117,18 +126,50 @@ class ChamadaRecebidaViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                _estado.update { aplicarErroAoResponder(it.copy(respondendo = false, mostrarRecusa = false), erro) }
+                depoisDoErro(erro, fecharRecusa = true)
             } catch (_: Exception) {
-                _estado.update { it.copy(respondendo = false, erro = TextosChamadaProfissional.ERRO) }
+                depoisDoErro(null, fecharRecusa = false)
             }
         }
     }
+
+    /**
+     * Rede, 409 e falhas sem resposta deixam o resultado incerto: o aceite pode ter gravado sem a resposta chegar. Antes de mostrar
+     * qualquer aviso o servidor é conferido (`detalhe_chamada`), e o estado dele vale: aceita vira a tela de aceita, e expirada,
+     * cancelada ou encerrada vira o aviso certo. Se a chamada segue aberta (a resposta nunca chegou lá) ou a conferência falha, vale
+     * a mensagem do erro, e tentar de novo continua possível. Recusas definitivas (inelegível, desligado, suspensa, bloqueio) não conferem.
+     */
+    private suspend fun depoisDoErro(erro: ErroDaApi?, fecharRecusa: Boolean) {
+        val conferido = if (erro == null || erro.deixaOResultadoIncerto()) conferirNoServidor() else null
+        _estado.update { atual ->
+            val tela = atual.copy(respondendo = false, mostrarRecusa = atual.mostrarRecusa && !fecharRecusa)
+            when {
+                // O estado final vale, e a folha de recusa não fica aberta sobre ele (já não há o que responder).
+                conferido != null && (conferido.estado != "aberta" || jaExpirou(conferido)) ->
+                    tela.copy(detalhe = conferido, mensagemDeConcorrencia = concorrenciaDe(conferido), erro = null, mostrarRecusa = false)
+                erro != null -> aplicarErroAoResponder(tela.copy(detalhe = conferido ?: tela.detalhe), erro)
+                else -> tela.copy(detalhe = conferido ?: tela.detalhe, erro = TextosChamadaProfissional.ERRO)
+            }
+        }
+    }
+
+    private suspend fun conferirNoServidor(): ChamadaDetalheDto? = try {
+        detalhar(chamadaId)
+    } catch (cancelado: CancellationException) {
+        throw cancelado
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun ErroDaApi.deixaOResultadoIncerto(): Boolean =
+        !(codigo == CodigoErroAPI.INELEGIVEL || codigo == CodigoErroAPI.FUNCAO_INCOMPATIVEL || recursoDesligado || contaSuspensa ||
+            codigo == CodigoErroAPI.NAO_ENCONTRADO)
 
     private fun jaExpirou(detalhe: ChamadaDetalheDto): Boolean =
         FormatoChamada.instante(detalhe.expiraEm)?.let { !agora().isBefore(it) } == true
 
     private fun concorrenciaDe(detalhe: ChamadaDetalheDto): String? = when {
-        detalhe.estado == "aceita" || detalhe.estado == "encerrada" -> TextosChamadaProfissional.CHAMADA_ENCERRADA
+        detalhe.estado == "encerrada" -> TextosChamadaProfissional.CHAMADA_ENCERRADA
         detalhe.estado == "recusada" -> TextosChamadaProfissional.CHAMADA_RECUSADA
         detalhe.estado == "expirada" || (detalhe.estado == "aberta" && jaExpirou(detalhe)) ->
             TextosChamadaProfissional.CHAMADA_EXPIRADA

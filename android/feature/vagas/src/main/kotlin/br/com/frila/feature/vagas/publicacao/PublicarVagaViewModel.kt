@@ -41,6 +41,7 @@ enum class ErroGlobalPublicacao(val mensagem: String) {
     CONTA_SUSPENSA(TextosPublicarVaga.ERRO_CONTA_SUSPENSA),
     SESSAO_EXPIRADA(TextosPublicarVaga.ERRO_SESSAO),
     SEM_REDE(TextosPublicarVaga.ERRO_SEM_REDE),
+    ANTI_CONTATO(TextosPublicarVaga.ERRO_ANTI_CONTATO),
     RECUSADA_NA_FILA(TextosPublicarVaga.RECUSADA_NA_FILA),
     GENERICO(TextosPublicarVaga.ERRO_GENERICO),
 }
@@ -76,6 +77,8 @@ data class EstadoPublicarVaga(
     val traje: String = "",
     val observacoes: String = "",
     val participaRateio: Boolean = false,
+    /** Quando avisar a casa se a vaga seguir vazia (`alerta_antecedencia_min`, contrato 0.2.x): 120, 180 (padrão) ou 360 minutos antes do início. */
+    val alertaAntecedenciaMin: Int = 180,
     val naFila: Boolean = false,
     val enviadaPelaFila: Boolean = false,
     val enviando: Boolean = false,
@@ -116,6 +119,8 @@ data class EstadoPublicarVaga(
     val selecaoDisponivel: Boolean get() = inicio.isAfter(agora.plus(ANTECEDENCIA_DA_SELECAO))
 
     companion object {
+        /** As antecedências do aviso de vaga vazia, em minutos, na ordem da tela: 2, 3 (padrão) e 6 horas. */
+        val ALERTAS_DE_ANTECEDENCIA_MIN = listOf(120, 180, 360)
         const val POSICOES_MIN = 1
         const val POSICOES_MAX = 200
         val ANTECEDENCIA_DA_SELECAO: Duration = Duration.ofHours(24)
@@ -296,6 +301,11 @@ class PublicarVagaViewModel(
 
     fun alternarRateio(participa: Boolean) = editar { copy(participaRateio = participa) }
 
+    /** Quando avisar a casa se a vaga seguir vazia. Só 2, 3 e 6 horas (as opções do iOS, `MaisOpcoesDoEstudio`); outro valor é ignorado. */
+    fun escolherAlertaAntecedencia(minutos: Int) {
+        if (minutos in EstadoPublicarVaga.ALERTAS_DE_ANTECEDENCIA_MIN) editar { copy(alertaAntecedenciaMin = minutos) }
+    }
+
     /**
      * Valida e publica. Sem efeito durante o envio ou depois de publicada: o segundo toque não cria duas
      * vagas. Com uma publicação [EstadoPublicarVaga.pendente], reenvia o mesmo corpo sem validar de novo.
@@ -361,6 +371,7 @@ class PublicarVagaViewModel(
         participaRateio = estado.participaRateio,
         observacoes = estado.observacoes.trim().ifEmpty { null },
         modo = estado.modo.chave,
+        alertaAntecedenciaMin = estado.alertaAntecedenciaMin,
         chave = novaChave(),
     )
 
@@ -406,7 +417,16 @@ class PublicarVagaViewModel(
                     TextosPublicarVaga.CAMPO_INVALIDO
                 }
                 val campos = camposDaRecusa(erro.detalhes)
-                liberado.copy(errosDeCampo = campos.associateWith { mensagem }, erro = ErroGlobalPublicacao.CONFIRA_CAMPOS)
+                if (erro.codigo == CodigoErroAPI.CAMPO_INVALIDO && campos == setOf(CampoPublicacao.OBSERVACOES)) {
+                    // O filtro de contato (diretriz 1.2): só nas observações o texto diz o que tirar; nos outros campos filtrados
+                    // (local, responsável, traje) o texto segue o genérico, como no iOS (PublicarVaga.swift).
+                    liberado.copy(
+                        errosDeCampo = mapOf(CampoPublicacao.OBSERVACOES to TextosPublicarVaga.ERRO_ANTI_CONTATO),
+                        erro = ErroGlobalPublicacao.ANTI_CONTATO,
+                    )
+                } else {
+                    liberado.copy(errosDeCampo = campos.associateWith { mensagem }, erro = ErroGlobalPublicacao.CONFIRA_CAMPOS)
+                }
             }
             CodigoErroAPI.FUNCAO_INCOMPATIVEL -> liberado.copy(
                 errosDeCampo = mapOf(CampoPublicacao.FUNCAO to TextosPublicarVaga.CAMPO_INVALIDO),

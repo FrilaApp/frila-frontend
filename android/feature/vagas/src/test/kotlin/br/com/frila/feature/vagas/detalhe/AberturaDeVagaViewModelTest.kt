@@ -22,6 +22,7 @@ internal fun vagaDoServidor(
     distanciaKm: Double? = 4.2,
     traje: String? = "Camisa preta",
     observacoes: String? = "Chegar 15 minutos antes",
+    participaRateio: Boolean? = null,
 ) = VagaDto(
     id = "v1",
     estabelecimento = PerfilPublicoDto(id = "e1", tipo = "estabelecimento", nome = "Bar do Zé", reputacao = ReputacaoDto(7, 8, null, 8, 8)),
@@ -38,6 +39,7 @@ internal fun vagaDoServidor(
     inclusos = InclusosDto(incluiRefeicao = true, incluiTransporte = false, exigeMaterialProprio = false),
     responsavelLocal = "Procure a gerente no balcão",
     traje = traje,
+    participaRateio = participaRateio,
     observacoes = observacoes,
     modo = modo,
     estado = estado,

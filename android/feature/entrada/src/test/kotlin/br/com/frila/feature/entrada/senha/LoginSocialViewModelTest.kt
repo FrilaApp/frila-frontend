@@ -7,6 +7,7 @@ import br.com.frila.core.rede.SegurancaOAuthSocial
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.seguranca.ArmazenamentoDeSessaoEmMemoria
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -15,6 +16,7 @@ import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import java.net.URI
 import java.net.URLDecoder
+import java.net.UnknownHostException
 import java.util.Base64
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -265,4 +267,116 @@ class LoginSocialViewModelTest {
         // Garante que a transação foi consumida e limpa no armazenamento persistido
         assertNull(armazenamentoOAuth.obter())
     }
+
+    // ---- Erros do login social: 429 e sem rede (cartão XDC30DTC): só teste, os ramos já existem ----
+
+    private val textoSemRede = "Sem conexão. Verifique sua internet e tente de novo."
+    private val textoLimite = "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo."
+    private val textoPadrao = "Não foi possível concluir a entrada agora. Tente de novo ou use e-mail e senha."
+
+    /** Uma falha de rede ou do servidor. O engine é que falha: o `ErroDaApi` nasce dentro do `ClienteSupabase` real. */
+    private sealed interface Falha {
+        data class Rede(val causa: Exception) : Falha
+        data class Http(val status: HttpStatusCode, val corpo: String) : Falha
+    }
+
+    private val respostasDe429 = listOf(
+        Falha.Http(HttpStatusCode.TooManyRequests, """{"code":"limite_excedido","message":"x"}"""),
+        // O Auth (GoTrue) não usa o código do domínio: 429 e `over_*_rate_limit` valem o mesmo limite.
+        Falha.Http(HttpStatusCode.TooManyRequests, """{"error_code":"over_request_rate_limit","msg":"x"}"""),
+    )
+    private val falhasDeRede = listOf(
+        Falha.Rede(ConnectTimeoutException("sem rede")),
+        Falha.Rede(UnknownHostException("dev.supabase.co")),
+    )
+
+    /** `noInicio` vale para `iniciar_pkce`; `naConclusao` para a troca do código. Sem falha, responde como o servidor responderia. */
+    private fun clienteQueFalha(noInicio: Falha? = null, naConclusao: Falha? = null): ClienteSupabase {
+        val json = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+        val engine = MockEngine { request ->
+            val texto = (request.body as? OutgoingContent.ByteArrayContent)?.bytes()?.decodeToString().orEmpty()
+            val corpo = Json.parseToJsonElement(texto).jsonObject
+            val iniciando = corpo["fluxo"]?.jsonPrimitive?.content == "iniciar_pkce"
+            when (val falha = if (iniciando) noInicio else naConclusao) {
+                is Falha.Rede -> throw falha.causa
+                is Falha.Http -> respond(falha.corpo, falha.status, json)
+                null -> if (iniciando) {
+                    val redirectTo = corpo["redirect_to"]?.jsonPrimitive?.content ?: SegurancaOAuthSocial.URL_CALLBACK
+                    val url = "https://dev.supabase.co/auth/v1/authorize?provider=google&redirect_to=${java.net.URLEncoder.encode(redirectTo, "UTF-8")}"
+                    respond("""{"transacao_id":"33333333-3333-4333-8333-333333333333","url_autorizacao":"$url","expira_em":"2026-11-25T21:10:00Z"}""", HttpStatusCode.OK, json)
+                } else {
+                    respond(
+                        """{"sessao":{"access_token":"${fakeJwtComEmail("ana@frila.test")}","refresh_token":"r","token_type":"bearer","expires_in":3600},"provedor":"google","precisa_definir_senha":false}""",
+                        HttpStatusCode.OK,
+                        json,
+                    )
+                }
+            }
+        }
+        return ClienteSupabase(baseUrl = "https://dev.supabase.co", apiKey = "anon-key", engine = engine)
+    }
+
+    private fun viewModelDe(cliente: ClienteSupabase, armazenamento: ArmazenamentoDeSessaoEmMemoria = ArmazenamentoDeSessaoEmMemoria()) =
+        EntradaComSenhaViewModel(
+            servicoAutenticacao = ServicoAutenticacao(cliente),
+            armazenamentoDeSessao = armazenamento,
+            escopo = escopo(),
+            mostrarLoginSocial = true,
+        )
+
+    /** Abre o login social e devolve o `tx` do retorno do navegador (a URL de autorização leva o `redirect_to` com ele). */
+    private suspend fun EntradaComSenhaViewModel.iniciarEDevolverTx(): String {
+        var url: String? = null
+        iniciarEntradaSocial(ProvedorSocial.GOOGLE) { url = it }?.join()
+        return extrairParam(extrairParam(url!!, "redirect_to")!!, "tx")!!
+    }
+
+    private fun verificarIniciar(falha: Falha, textoEsperado: String) = runBlocking {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val vm = viewModelDe(clienteQueFalha(noInicio = falha), armazenamento)
+        var urlAberta = false
+
+        vm.iniciarEntradaSocial(ProvedorSocial.GOOGLE) { urlAberta = true }?.join()
+
+        assertEquals("$falha", textoEsperado, vm.estado.value.erro)
+        assertFalse("$falha", vm.estado.value.carregando)
+        assertFalse("$falha", urlAberta)
+        assertFalse("$falha", vm.estado.value.autenticado)
+        assertNull("$falha", armazenamento.obterSessao())
+        // Nada ficou pendente: um retorno do navegador agora é ignorado.
+        assertNull("$falha", vm.aoReceberCallbackOAuth("frila-auth://auth/callback?code=c&tx=qualquer"))
+    }
+
+    private fun verificarConcluir(falha: Falha, textoEsperado: String) = runBlocking {
+        val armazenamento = ArmazenamentoDeSessaoEmMemoria()
+        val vm = viewModelDe(clienteQueFalha(naConclusao = falha), armazenamento)
+        val tx = vm.iniciarEDevolverTx()
+
+        vm.aoReceberCallbackOAuth("frila-auth://auth/callback?code=cod-123&tx=$tx")?.join()
+
+        assertEquals("$falha", textoEsperado, vm.estado.value.erro)
+        assertFalse("$falha", vm.estado.value.carregando)
+        assertFalse("$falha", vm.estado.value.autenticado)
+        assertNull("$falha", armazenamento.obterSessao())
+    }
+
+    @Test
+    fun `iniciar o login social com 429 mostra o aviso de muitas tentativas`() = respostasDe429.forEach { verificarIniciar(it, textoLimite) }
+
+    @Test
+    fun `iniciar o login social sem rede mostra o aviso de sem conexao`() = falhasDeRede.forEach { verificarIniciar(it, textoSemRede) }
+
+    @Test
+    fun `iniciar o login social com outro erro do servidor mostra o aviso padrao`() =
+        verificarIniciar(Falha.Http(HttpStatusCode.InternalServerError, """{"code":"erro_interno","message":"x"}"""), textoPadrao)
+
+    @Test
+    fun `concluir o login social com 429 mostra o aviso de muitas tentativas`() = respostasDe429.forEach { verificarConcluir(it, textoLimite) }
+
+    @Test
+    fun `concluir o login social sem rede mostra o aviso de sem conexao`() = falhasDeRede.forEach { verificarConcluir(it, textoSemRede) }
+
+    @Test
+    fun `concluir o login social com outro erro do servidor mostra o aviso padrao`() =
+        verificarConcluir(Falha.Http(HttpStatusCode.InternalServerError, """{"code":"erro_interno","message":"x"}"""), textoPadrao)
 }
