@@ -19,6 +19,7 @@ import br.com.frila.app.seguranca.LeitorDeAmbienteAndroid
 import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import br.com.frila.core.dominio.modelo.Coordenada
 import br.com.frila.core.dominio.modelo.PapelMembro
+import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
 import br.com.frila.core.localizacao.GeocodificadorDfOffline
 import br.com.frila.core.localizacao.ProvedorDeLocalizacao
@@ -172,9 +173,17 @@ val moduloSeguranca = module {
                 runCatching { getOrNull<GuardaDaBusca>()?.limpar() }
                 // O responsável do local de cada vaga agendada (QpgRwPFM) é lido da conta que estava na sessão.
                 runCatching { getOrNull<QuemRecebeDasVagas>()?.limpar() }
+                // Quem a pessoa bloqueou nesta sessão (I1PonzKJ) é da conta que saiu: a próxima começa sem nenhum.
+                runCatching { getOrNull<BloqueiosDaSessao>()?.limpar() }
             },
         )
     }
+    /**
+     * Quem a pessoa bloqueou nesta sessão: só em memória, sem hidratar de `listar_bloqueios` (paridade com o iOS). Os escritores abaixo
+     * (denúncia, bloqueio avulso, desbloqueio) só o mexem depois de o servidor confirmar; logout, troca de conta e expiração o esvaziam
+     * por `limparGuardas`.
+     */
+    single { BloqueiosDaSessao() }
     single<ArmazenamentoDeSessao> {
         val origem = getOrNull<Context>()?.let(::ArmazenamentoDeSessaoKeystore)
             ?: ArmazenamentoDeSessaoEmMemoria()
@@ -501,19 +510,28 @@ val moduloFeatures = module {
     }
     viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
         val confianca = get<ServicoConfianca>()
+        val bloqueios = get<BloqueiosDaSessao>()
         DenunciaViewModel(
             alvoTipo = alvoTipo,
             alvoId = alvoId,
             denunciar = confianca::denunciar,
-            bloquear = confianca::bloquear,
+            bloquear = { tipo, id -> bloqueios.registrandoAposSucesso(tipo, id) { confianca.bloquear(tipo, id) } },
             turnoId = turnoId,
             chamadaId = chamadaId,
             fotoId = fotoId,
+            bloqueios = bloqueios,
         )
     }
     // GpINsbhj: o bloqueio avulso de quem chamou (chamada recebida) e, no item 187, do perfil público visto pela casa.
     viewModel { (alvoTipo: TipoDeAlvo, alvoId: String) ->
-        BloqueioDeAlvoViewModel(alvoTipo = alvoTipo, alvoId = alvoId, bloquear = get<ServicoConfianca>()::bloquear)
+        val confianca = get<ServicoConfianca>()
+        val bloqueios = get<BloqueiosDaSessao>()
+        BloqueioDeAlvoViewModel(
+            alvoTipo = alvoTipo,
+            alvoId = alvoId,
+            bloquear = { tipo, id -> bloqueios.registrandoAposSucesso(tipo, id) { confianca.bloquear(tipo, id) } },
+            bloqueios = bloqueios,
+        )
     }
     viewModel { (estabelecimentoId: String) ->
         val confianca = get<ServicoConfianca>()
@@ -842,7 +860,11 @@ val moduloFeatures = module {
     /** L2-6: bloqueios da conta (listar e desfazer) e "Incluir na equipe" do profissional que cumpriu turno. */
     viewModel {
         val confianca = get<ServicoConfianca>()
-        BloqueiosViewModel(listar = confianca::listarBloqueios, desfazer = confianca::desbloquear)
+        val bloqueios = get<BloqueiosDaSessao>()
+        BloqueiosViewModel(
+            listar = confianca::listarBloqueios,
+            desfazer = { tipo, id -> bloqueios.removendoAposSucesso(tipo, id) { confianca.desbloquear(tipo, id) } },
+        )
     }
     viewModel { (estabelecimentoId: String, profissionalId: String) ->
         val confianca = get<ServicoConfianca>()
