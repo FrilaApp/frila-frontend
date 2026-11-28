@@ -2,6 +2,7 @@ package br.com.frila.feature.suporte
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.dominio.modelo.AlvoBloqueado
 import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -41,6 +42,17 @@ class BloqueioDeAlvoViewModel(
 
     private val _estado = MutableStateFlow(EstadoBloqueioDeAlvo(bloqueado = bloqueios?.contem(alvoTipo, alvoId) == true))
     val estado: StateFlow<EstadoBloqueioDeAlvo> = _estado.asStateFlow()
+
+    init {
+        // O alvo pode ser bloqueado (ou desbloqueado) por outra tela enquanto esta existe, como a Denúncia aberta a partir da chamada
+        // recebida: o conjunto da sessão manda, e este estado o acompanha em vez de ler só ao nascer.
+        bloqueios?.let { sessao ->
+            val alvo = AlvoBloqueado(alvoTipo, alvoId)
+            escopoDeTrabalho.launch {
+                sessao.alvos.collect { alvos -> _estado.update { it.copy(bloqueado = alvo in alvos) } }
+            }
+        }
+    }
 
     fun abrirDialogo() {
         _estado.update {
