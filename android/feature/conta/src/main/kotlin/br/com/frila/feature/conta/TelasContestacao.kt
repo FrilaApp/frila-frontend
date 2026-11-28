@@ -113,7 +113,8 @@ fun SecaoContestacaoDaSuspensao(estado: EstadoContaSuspensa, emailSuporte: Strin
                 CampoDoRelato(
                     valor = estado.relato,
                     rotulo = TextosContaSuspensa.ROTULO_RELATO,
-                    dica = TextosContaSuspensa.DICA_RELATO,
+                    exemplo = TextosContaSuspensa.EXEMPLO_RELATO,
+                    apoio = if (estado.relatoValido) TextosContaSuspensa.RELATO_MINIMO_ATENDIDO else TextosContaSuspensa.DICA_RELATO,
                     habilitado = !estado.enviando,
                     aoMudar = acoes.aoMudarRelato,
                 )
@@ -214,7 +215,8 @@ fun ConteudoContestarDespacho(
                     CampoDoRelato(
                         valor = estado.relato,
                         rotulo = TextosContestarDespacho.ROTULO_RELATO,
-                        dica = TextosContestarDespacho.DICA_RELATO,
+                        exemplo = TextosContestarDespacho.EXEMPLO_RELATO,
+                        apoio = if (estado.relatoValido) TextosContestarDespacho.RELATO_MINIMO_ATENDIDO else TextosContestarDespacho.DICA_RELATO,
                         habilitado = !estado.enviando,
                         aoMudar = aoMudarRelato,
                     )
@@ -226,12 +228,13 @@ fun ConteudoContestarDespacho(
 }
 
 @Composable
-private fun CampoDoRelato(valor: String, rotulo: String, dica: String, habilitado: Boolean, aoMudar: (String) -> Unit) {
+private fun CampoDoRelato(valor: String, rotulo: String, exemplo: String, apoio: String, habilitado: Boolean, aoMudar: (String) -> Unit) {
     CampoDeTexto(
         valor = valor,
         aoMudar = aoMudar,
         rotulo = rotulo,
-        apoio = dica,
+        dica = exemplo,
+        apoio = apoio,
         habilitado = habilitado,
         umaLinha = false,
         linhasMinimas = 3,

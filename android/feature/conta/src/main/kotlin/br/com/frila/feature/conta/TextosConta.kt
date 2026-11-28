@@ -64,6 +64,10 @@ object TextosContaSuspensa {
     const val BOTAO_CONTESTAR = "Contestar suspensão"
     const val ROTULO_RELATO = "Motivos da contestação"
     const val DICA_RELATO = "Mínimo de 10 caracteres."
+    /** O exemplo DENTRO do campo vazio (iOS: `promptRelato`, `TextosContaSuspensa.swift:13`). */
+    const val EXEMPLO_RELATO = "Descreva seus argumentos para contestar a suspensão\u2026"
+    /** No lugar da dica de 10 caracteres quando o relato já a atende (iOS: `relatoValidoAcessibilidade`, `TextosContaSuspensa.swift:16`). */
+    const val RELATO_MINIMO_ATENDIDO = "Mínimo de caracteres atendido"
     const val BOTAO_ENVIAR = "Enviar contestação"
     const val ENVIANDO = "Enviando contestação…"
     const val CANCELAR = "Cancelar"
@@ -90,6 +94,10 @@ object TextosContestarDespacho {
     const val EXPLICACAO = "Se você acha que deveria ter recebido uma vaga, peça a revisão. A Equipe Frila responde por e-mail em até 5 dias úteis."
     const val ROTULO_RELATO = "O que aconteceu"
     const val DICA_RELATO = "Mínimo de 10 caracteres."
+    /** O exemplo DENTRO do campo vazio (iOS: `promptRelato`, `TextosPorQueReceboVagas.swift:32`). */
+    const val EXEMPLO_RELATO = "Conte qual vaga esperava receber e por quê\u2026"
+    /** No lugar da dica de 10 caracteres quando o relato já a atende (iOS: `relatoValidoAcessibilidade`, `TextosPorQueReceboVagas.swift:34`). */
+    const val RELATO_MINIMO_ATENDIDO = "Mínimo de caracteres atendido"
     const val BOTAO_ENVIAR = "Enviar pedido"
     const val ENVIANDO = "Enviando pedido…"
     const val VOLTAR = "Voltar"
