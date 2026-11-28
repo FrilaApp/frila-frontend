@@ -160,7 +160,7 @@ private fun LazyListScope.secao(titulo: String, itens: List<ItemCandidatura>, ac
 private val margem: Modifier = Modifier.padding(horizontal = FrilaEspacamento.grupo)
 
 /** O selo diz o estado da candidatura: aguardando é contorno, escolhida é amarelo, o que fechou sem você é tinta suave. */
-private fun estiloDoSelo(item: ItemCandidatura): EstiloDoSelo = when {
+internal fun estiloDoSelo(item: ItemCandidatura): EstiloDoSelo = when {
     item.pendente -> EstiloDoSelo.CONTORNO
     // Decidido pela flag, não pelo texto: o turno cancelado é encerrado, mesmo que o texto da aceita mude.
     item.turnoCancelado -> EstiloDoSelo.ENCERRADO
