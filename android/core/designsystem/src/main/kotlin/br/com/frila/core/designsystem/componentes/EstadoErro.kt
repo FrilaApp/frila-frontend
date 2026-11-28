@@ -30,7 +30,8 @@ fun EstadoErro(
     aoTentarNovamente: (() -> Unit)? = null,
 ) {
     val cores = FrilaTema.cores
-    val descricaoErro = mensagem ?: titulo
+    // Mensagem vazia ou em branco não aparece na tela (mais abaixo), então também não é o que se anuncia: cai no título.
+    val descricaoErro = mensagem?.takeIf { it.isNotBlank() } ?: titulo
 
     Column(
         modifier = modifier
