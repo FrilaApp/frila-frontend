@@ -6,6 +6,7 @@ import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.ServicoAutenticacao
 import br.com.frila.core.rede.SessaoDto
+import br.com.frila.core.rede.atualizarSeASessaoDeQuemChamou
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import br.com.frila.core.seguranca.Sessao
 import java.util.concurrent.atomic.AtomicLong
@@ -97,13 +98,13 @@ class DefinirSenhaViewModel(
                     refreshToken = sessaoAtual?.refreshToken,
                 )
                 if (tentativaAtual != idTentativa) return@launch
-                resposta.sessao?.let { novaSessao ->
-                    armazenamentoDeSessao.salvarSessao(
-                        novaSessao.paraSessaoDefinir(
-                            vinculoId = sessaoAtual?.vinculoId,
-                            email = emailResolvido,
-                        ),
-                    )
+                // A sessão nova é da conta que definiu a senha: só vai para o armazenamento se a sessão guardada ainda é a dela (a lida antes da
+                // chamada, ou a mesma conta renovada durante a espera). Se outra conta entrou ou a pessoa saiu, a sessão nova não a substitui.
+                val novaSessao = resposta.sessao
+                if (novaSessao != null && sessaoAtual != null) {
+                    armazenamentoDeSessao.atualizarSeASessaoDeQuemChamou(sessaoAtual) { vigente ->
+                        novaSessao.paraSessaoDefinir(vinculoId = vigente.vinculoId, email = emailResolvido)
+                    }
                 }
                 _estado.update {
                     it.copy(

@@ -1,6 +1,7 @@
 package br.com.frila.core.notificacoes
 
 import br.com.frila.core.rede.ServicoDispositivo
+import br.com.frila.core.rede.atualizarSeASessaoDeQuemChamou
 import br.com.frila.core.seguranca.ArmazenamentoDeSessao
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
@@ -26,11 +27,14 @@ suspend fun sincronizarNovoToken(
     armazenamentoDeSessao: ArmazenamentoDeSessao,
     versaoApp: String? = null,
 ) {
+    // A sessão de quem pede, lida ANTES da rede: o registro vale para ela. Se outra conta entrar durante a chamada, o `vinculo_id`
+    // devolvido é do aparelho da conta que pediu e não pode ir para a sessão da que entrou (cartão O9aPbBR2).
+    val sessaoDeQuemPediu = armazenamentoDeSessao.obterSessao()
     val dispositivo = servicoDispositivo.registrarDispositivo(tokenFcm = token, versaoApp = versaoApp)
-    val sessaoAtiva = armazenamentoDeSessao.obterSessao()
+    val vinculoId = dispositivo.vinculoId
 
-    if (sessaoAtiva != null && dispositivo.vinculoId != null) {
-        armazenamentoDeSessao.salvarSessao(sessaoAtiva.copy(vinculoId = dispositivo.vinculoId))
+    if (sessaoDeQuemPediu != null && vinculoId != null) {
+        armazenamentoDeSessao.atualizarSeASessaoDeQuemChamou(sessaoDeQuemPediu) { vigente -> vigente.copy(vinculoId = vinculoId) }
     }
 }
 
