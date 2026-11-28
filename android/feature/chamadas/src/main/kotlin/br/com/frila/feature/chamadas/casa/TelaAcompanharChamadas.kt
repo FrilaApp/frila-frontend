@@ -31,6 +31,7 @@ import br.com.frila.core.designsystem.componentes.BotaoPrimario
 import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CartaoFrila
 import br.com.frila.core.designsystem.componentes.EstadoCarregando
+import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.EstadoVazio
 import br.com.frila.core.designsystem.componentes.EstiloDoSelo
 import br.com.frila.core.designsystem.componentes.FrilaBarraDeTopo
@@ -61,6 +62,7 @@ fun TelaAcompanharChamadas(
         aoVoltar = aoVoltar,
         modifier = modifier,
         aoVerVagaPublicada = aoVerVagaPublicada,
+        aoTentarNovamente = { viewModel.carregar() },
     )
 }
 
@@ -77,6 +79,8 @@ fun ConteudoAcompanharChamadas(
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
     aoVerVagaPublicada: ((vagaId: String) -> Unit)? = null,
+    /** Lê a lista de novo depois de uma falha da carga ("Tentar novamente"). */
+    aoTentarNovamente: (() -> Unit)? = null,
 ) {
     var idParaCancelar by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -95,10 +99,21 @@ fun ConteudoAcompanharChamadas(
             verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
         ) {
             TituloDaTela(TextosChamadaCasa.ACOMPANHAR_TITULO)
+            val falha = tela.falhaAoCarregar
             if (tela.carregando) {
                 EstadoCarregando()
+            } else if (falha != null && tela.chamadas.isEmpty()) {
+                // rsojCnB5: sem lista para mostrar, a falha não é "Nenhuma chamada encontrada": é o erro, com "Tentar novamente".
+                EstadoErro(
+                    titulo = falha,
+                    mensagem = null,
+                    textoBotao = TextosChamadaCasa.TENTAR_NOVAMENTE,
+                    aoTentarNovamente = aoTentarNovamente,
+                )
             } else {
                 tela.erro?.let { AvisoFrila(tom = TomAviso.ERRO, mensagem = it) }
+                // Com a lista já na tela, a releitura que falhou não a apaga: a lista fica e a falha vira aviso.
+                falha?.let { AvisoFrila(tom = TomAviso.ERRO, mensagem = it) }
                 tela.sucesso?.let { AvisoFrila(tom = TomAviso.SUCESSO, mensagem = it) }
 
                 RotuloDeGrupo(TextosChamadaCasa.CHAMADAS_ENVIADAS)
