@@ -1583,9 +1583,12 @@ fun AppNavegacao(
                             viewModel.atualizarEmSilencio().join()
                         }
                     }
+                    // I1PonzKJ: quem a pessoa bloqueou nesta sessão some da lista já carregada (o servidor o tirou da equipe, B-022).
+                    val bloqueados = alvosBloqueadosDaSessao()
                     TelaEquipeDeConfianca(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
+                        estaBloqueado = { perfil -> bloqueados.bloqueia(perfil) },
                         aoChamarDeNovo = if (chamadaDiretaHabilitada) {
                             { profissional ->
                                 navController.navigate(RotasChamadaCasa.chamar(estabelecimentoId, profissional.id))
