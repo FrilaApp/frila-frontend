@@ -87,10 +87,21 @@ public struct TelaDefinirSenha: View {
 
     @State private var campoFocado: Campo?
     @State private var visibilidade = EstadoVisibilidadeDeSenha()
+    @State private var focoCampos = FocoCamposSenha()
 
     private enum Campo: Hashable {
         case senha
         case confirmacao
+    }
+
+    @MainActor
+    private final class FocoCamposSenha {
+        weak var confirmacao: UITextField?
+
+        func focarConfirmacao() -> Bool {
+            guard let campo = confirmacao, campo.isEnabled, campo.window != nil else { return false }
+            return campo.becomeFirstResponder()
+        }
     }
 
     public init(
@@ -154,7 +165,11 @@ public struct TelaDefinirSenha: View {
                                 }
                             ),
                             ocultarPorSeguranca: scenePhase != .active,
-                            aoSubmeter: { campoFocado = .confirmacao }
+                            aoSubmeter: {
+                                if !focoCampos.focarConfirmacao() {
+                                    campoFocado = .confirmacao
+                                }
+                            }
                         )
                         .frilaFormField(
                             id: "definir-senha-campo",
@@ -196,6 +211,7 @@ public struct TelaDefinirSenha: View {
                                 }
                             ),
                             ocultarPorSeguranca: scenePhase != .active,
+                            aoCriarCampo: { focoCampos.confirmacao = $0 },
                             aoSubmeter: { salvar() }
                         )
                         .frilaFormField(
@@ -415,6 +431,7 @@ struct CampoDeSenhaComVisibilidade: View {
     let ocultarPorSeguranca: Bool
     var textContentType: UITextContentType = .newPassword
     var revelacaoBreve: Bool = true
+    var aoCriarCampo: ((UITextField) -> Void)? = nil
     let aoSubmeter: () -> Void
 
     var body: some View {
@@ -431,6 +448,7 @@ struct CampoDeSenhaComVisibilidade: View {
                 ocultarRevelacao: ocultarPorSeguranca,
                 textContentType: textContentType,
                 revelacaoBreve: revelacaoBreve,
+                aoCriarCampo: aoCriarCampo,
                 aoSubmeter: aoSubmeter
             )
 
@@ -472,6 +490,7 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
     let ocultarRevelacao: Bool
     let textContentType: UITextContentType
     let revelacaoBreve: Bool
+    let aoCriarCampo: ((UITextField) -> Void)?
     let aoSubmeter: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -507,6 +526,7 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
         campo.setContentHuggingPriority(.defaultLow, for: .horizontal)
         campo.addTarget(context.coordinator, action: #selector(Coordinator.textoMudou(_:)), for: .editingChanged)
         context.coordinator.configurarSobreposicao(em: campo)
+        aoCriarCampo?(campo)
         return campo
     }
 
