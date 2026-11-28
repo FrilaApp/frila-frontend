@@ -1682,4 +1682,46 @@ class TelaPerfilTest {
             rule.onAllNodesWithText(TextosConfirmarSaida.TITULO).assertCountEquals(0)
         }
     }
+
+    // ---- 3DRgNM6W: "Sair da conta" sai só desta conta; revogar todos os aparelhos é a outra ação ----
+
+    @Test
+    fun sairDaContaNaoPedeAoServicoParaRevogarTodosOsDispositivos() {
+        runBlocking {
+            val revogacoes = java.util.concurrent.atomic.AtomicInteger(0)
+            val viewModel = criarViewModel(
+                respostaJson = """{"code":"nao_encontrado","message":"perfil nao encontrado"}""",
+                statusHttp = HttpStatusCode.NotFound,
+                revogarDispositivos = { revogacoes.incrementAndGet(); 2 },
+            )
+            viewModel.carregar().join()
+            var saidas = 0
+
+            rule.setContent {
+                FrilaTheme {
+                    TelaPerfil(
+                        viewModel = viewModel,
+                        aoDeslogar = { saidas++ },
+                        aoAbrirExclusaoDeConta = {},
+                        aoAbrirEquipe = {},
+                        aoMinhasVagas = {},
+                        aoPublicarVaga = {},
+                        manterAtalhosDeContratanteNoErro = true,
+                    )
+                }
+            }
+            rule.waitForIdle()
+            // A ação irmã existe na tela: o serviço de revogar está ligado, e é ele que "Sair da conta" não pode usar.
+            rule.onNodeWithTag("perfil-sair-todos-dispositivos").performScrollTo().assertIsDisplayed()
+
+            rule.onNodeWithText("Sair da conta").performScrollTo().performClick()
+            rule.onNodeWithTag(TextosConfirmarSaida.TAG_SAIR).performClick()
+            rule.waitUntil(5_000) { saidas == 1 }
+            rule.waitForIdle()
+
+            assertEquals(1, saidas)
+            assertEquals(0, revogacoes.get())
+            assertFalse(viewModel.estado.value.revogandoDispositivos)
+        }
+    }
 }
