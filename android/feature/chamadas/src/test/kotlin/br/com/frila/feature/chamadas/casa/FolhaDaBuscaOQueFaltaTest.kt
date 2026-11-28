@@ -86,6 +86,19 @@ class FolhaDaBuscaOQueFaltaTest {
         TextosChamadaCasa.RECADO_LONGO, TextosChamadaCasa.BUSCA_SEM_CASA,
     )
 
+    /** Escolhe data e hora nos seletores do sistema que o toque abre. `mes` é de 1 a 12. */
+    private fun escolherNosSeletores(ano: Int, mes: Int, dia: Int, hora: Int, minuto: Int) {
+        rule.waitForIdle()
+        val data = org.robolectric.shadows.ShadowDialog.getShownDialogs().filterIsInstance<android.app.DatePickerDialog>().last()
+        data.updateDate(ano, mes - 1, dia)
+        data.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        rule.waitForIdle()
+        val horaDialogo = org.robolectric.shadows.ShadowDialog.getShownDialogs().filterIsInstance<android.app.TimePickerDialog>().last()
+        horaDialogo.updateTime(hora, minuto)
+        horaDialogo.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        rule.waitForIdle()
+    }
+
     private fun preencherTudo() {
         rule.onNodeWithTag("folha-valor").performTextInput("180")
         rule.onNodeWithTag("folha-confirmar-total").performClick()
@@ -153,16 +166,20 @@ class FolhaDaBuscaOQueFaltaTest {
         semMotivo(*todosOsMotivos)
         enviar().assertIsEnabled()
 
-        rule.onNodeWithTag("folha-inicio").performScrollTo().performTextReplacement("amanhã")
-        faltaNaTela(TextosChamadaCasa.BUSCA_DATA_INVALIDA)
-        enviar().assertIsNotEnabled()
-        rule.onNodeWithTag("folha-inicio").performScrollTo().performTextReplacement("16/11/2026 13:00")
+        // Início, pelos seletores: 16/11 às 13:00 (Brasília) fica a menos de 2 h do relógio da folha (16/11 12:00 em Brasília).
+        rule.onNodeWithTag("folha-inicio").performScrollTo().performClick()
+        escolherNosSeletores(2026, 11, 16, 13, 0)
         faltaNaTela(TextosChamadaCasa.FALTA_ANTECEDENCIA)
-        rule.onNodeWithTag("folha-inicio").performScrollTo().performTextReplacement("17/11/2026 12:00")
-        rule.onNodeWithTag("folha-fim").performScrollTo().performTextReplacement("17/11/2026 13:00")
+        enviar().assertIsNotEnabled()
+        rule.onNodeWithTag("folha-inicio").performScrollTo().performClick()
+        escolherNosSeletores(2026, 11, 17, 12, 0)
+        // Término a 1 h do início: turno curto demais.
+        rule.onNodeWithTag("folha-fim").performScrollTo().performClick()
+        escolherNosSeletores(2026, 11, 17, 13, 0)
         faltaNaTela(TextosChamadaCasa.FALTA_DURACAO)
         enviar().assertIsNotEnabled()
-        rule.onNodeWithTag("folha-fim").performScrollTo().performTextReplacement("17/11/2026 16:00")
+        rule.onNodeWithTag("folha-fim").performScrollTo().performClick()
+        escolherNosSeletores(2026, 11, 17, 16, 0)
         semMotivo(*todosOsMotivos)
 
         rule.onNodeWithTag("folha-recado").performScrollTo().performTextInput("x".repeat(301))
