@@ -66,6 +66,8 @@ public final class AcompanhamentoViewModel {
     public private(set) var resultado: ResultadoDoAcompanhamento?
     /// A vaga (e a posição, quando a ação foi sobre uma só) de onde saiu `resultado`.
     private var alvoDoResultado: (vagaID: UUID, posicaoID: UUID?)?
+    /// A origem da vaga de onde saiu `resultado`: o aviso da vaga direta não promete nova oferta.
+    public private(set) var origemDoResultado: OrigemVaga?
     public private(set) var falha: FalhaDoAcompanhamento?
     /// Posições com confirmação ou reabertura em voo: um segundo toque não repete a chamada.
     public private(set) var emAndamento: Set<UUID> = []
@@ -158,6 +160,7 @@ public final class AcompanhamentoViewModel {
     private func registrar(_ novo: ResultadoDoAcompanhamento, vaga vagaID: UUID, posicao posicaoID: UUID?) {
         resultado = novo
         alvoDoResultado = (vagaID, posicaoID)
+        origemDoResultado = vaga(id: vagaID)?.vaga.origem
     }
 
     /// O resultado da última ação, só se ela saiu da tela que pergunta. `vaga` é a vaga da tela (`nil` na
@@ -409,7 +412,8 @@ public final class AcompanhamentoViewModel {
             lado: .contratante, alvo: .posicao(id: posicaoID, turnoID: turno.posicao.turnoID), periodo: turno.vaga.periodo,
             relogio: RelogioDaFuncao(funcao: agora), fila: fila,
             executar: { .posicao(try await chamada(posicaoID, $0)) },
-            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho, alvoID: posicaoID, vagaID: turno.vaga.id) }
+            aoConcluir: { [weak self] desfecho in self?.aplicar(desfecho, alvoID: posicaoID, vagaID: turno.vaga.id) },
+            origem: turno.vaga.origem
         )
     }
 

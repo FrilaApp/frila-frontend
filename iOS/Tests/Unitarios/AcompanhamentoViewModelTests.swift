@@ -120,12 +120,14 @@ private enum PainelDeTeste {
     )
 
     static func vaga(
-        id: UUID = UUID(), inicioEm deslocamento: TimeInterval = -20 * minuto, alerta: Bool = false, posicoes: [PosicaoNoPainel] = []
+        id: UUID = UUID(), inicioEm deslocamento: TimeInterval = -20 * minuto, alerta: Bool = false, posicoes: [PosicaoNoPainel] = [],
+        origem: OrigemVaga? = nil
     ) throws -> VagaNoPainel {
         let inicio = agoraDoTeste.addingTimeInterval(deslocamento)
         let resumo = VagaResumo(
             id: id, funcao: "Garçom", local: "CLS 405", regiaoAdministrativa: "Plano Piloto",
-            periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * hora)), valor: Dinheiro(centavos: 12000)
+            periodo: try Periodo(inicio: inicio, fim: inicio.addingTimeInterval(4 * hora)), valor: Dinheiro(centavos: 12000),
+            origem: origem
         )
         return VagaNoPainel(vaga: resumo, modo: .urgencia, estado: .publicada, alertaVagaVazia: alerta, candidatosPendentes: 0, posicoes: posicoes)
     }
@@ -139,11 +141,12 @@ private enum PainelDeTeste {
 
     /// Um turno com check-in manual pendente (`pendente: true`) ou em atraso.
     static func painel(
-        pendente: Bool = false, emAtraso: Bool = false, aCaminhoEm: Date? = nil, verificacao: Verificacao = .pendente
+        pendente: Bool = false, emAtraso: Bool = false, aCaminhoEm: Date? = nil, verificacao: Verificacao = .pendente,
+        origem: OrigemVaga? = nil
     ) throws -> Painel {
         Painel(
             estabelecimentoID: casa,
-            vagas: [try vaga(posicoes: [posicao(verificacao: verificacao, emAtraso: emAtraso, aCaminhoEm: aCaminhoEm)])],
+            vagas: [try vaga(posicoes: [posicao(verificacao: verificacao, emAtraso: emAtraso, aCaminhoEm: aCaminhoEm)], origem: origem)],
             checkinsPendentes: pendente ? [turnoID] : []
         )
     }
@@ -493,6 +496,73 @@ struct AcompanhamentoViewModelTests {
         let posicoes = try #require(viewModel.painel?.vagas.first?.posicoes)
         #expect(posicoes.map(\.estado) == [.cancelada, .aberta])
         #expect(posicoes.last?.id == PainelDeTeste.reaberto.novaPosicaoID)
+    }
+
+    /// O view model sobre um painel fixo, em que reabrir e cancelar devolvem a posição reaberta.
+    private func viewModelDeOrigem(_ origem: OrigemVaga?) async throws -> AcompanhamentoViewModel {
+        let painel = try PainelDeTeste.painel(emAtraso: true, origem: origem)
+        let leituras = Contador()
+        let viewModel = AcompanhamentoViewModel(
+            buscarPainel: {
+                await leituras.somar()
+                guard await leituras.valor == 1 else { throw ErroDaApi(codigo: .semRede) }
+                return painel
+            },
+            confirmar: { _ in PainelDeTeste.confirmado },
+            reabrir: { _ in PainelDeTeste.reaberto },
+            cancelarPosicao: { _, _ in PainelDeTeste.reaberto },
+            agora: { agoraDoTeste }
+        )
+        await viewModel.carregar()
+        return viewModel
+    }
+
+    @Test("Reabrir por atraso, vaga normal (publicacao ou origem ausente): pergunta e resultado de sempre", arguments: [OrigemVaga?.none, .publicacao])
+    func textosDaReaberturaNaVagaNormal(origem: OrigemVaga?) async throws {
+        let viewModel = try await viewModelDeOrigem(origem)
+        viewModel.pedirReabertura(try #require(viewModel.emAtraso.first))
+
+        #expect(TextosDoAcompanhamento.avisoDeReabertura(viewModel.reaberturaEmConfirmacao)
+            == "Conta como falta para Ana Cunha, e a vaga volta a ser oferecida a outros profissionais.")
+
+        await viewModel.confirmarReabertura()?.value
+
+        let resultado = try #require(viewModel.resultado)
+        #expect(TextosDoAcompanhamento.resultado(resultado, origem: viewModel.origemDoResultado)
+            == "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida.")
+    }
+
+    @Test("Reabrir por atraso, vaga direta: pergunta e resultado sem promessa de oferta")
+    func textosDaReaberturaNaVagaDireta() async throws {
+        let viewModel = try await viewModelDeOrigem(.chamadaDireta)
+        viewModel.pedirReabertura(try #require(viewModel.emAtraso.first))
+
+        #expect(TextosDoAcompanhamento.avisoDeReabertura(viewModel.reaberturaEmConfirmacao)
+            == "Conta como falta para Ana Cunha. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos.")
+
+        await viewModel.confirmarReabertura()?.value
+
+        let resultado = try #require(viewModel.resultado)
+        #expect(TextosDoAcompanhamento.resultado(resultado, origem: viewModel.origemDoResultado)
+            == "Vaga reaberta. A falta foi registrada, e a posição ficou aberta só para você chamar outra pessoa ou publicar para todos.")
+    }
+
+    @Test("Cancelar a posição: a folha e o aviso do acompanhamento seguem a origem da vaga", arguments: [OrigemVaga?.none, .publicacao, .chamadaDireta])
+    func cancelamentoDaCasaSegueAOrigem(origem: OrigemVaga?) async throws {
+        let direta = origem == .chamadaDireta
+        let viewModel = try await viewModelDeOrigem(origem)
+        let turno = try #require(viewModel.emAtraso.first)
+        let folha = try #require(viewModel.criarCancelamento(de: turno))
+        #expect(folha.origem == origem)
+
+        folha.motivo = .movimentoMenor
+        await folha.confirmar()
+
+        let resultado = try #require(viewModel.resultado)
+        #expect(resultado == .posicaoCancelada(reaberta: true))
+        #expect(TextosDoAcompanhamento.resultado(resultado, origem: viewModel.origemDoResultado) == (direta
+            ? "Posição cancelada. Ela continua aberta só para você chamar outra pessoa ou publicar para todos."
+            : "Posição cancelada. Ela voltou a ser oferecida a outros profissionais."))
     }
 
     @Test("O servidor decide a tolerância e o check-in: a recusa vira aviso, e a tela relê o painel", arguments: [
