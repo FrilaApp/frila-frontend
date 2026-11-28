@@ -20,7 +20,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.BotaoPrimario
+import br.com.frila.core.designsystem.componentes.BotaoSecundario
 import br.com.frila.core.designsystem.componentes.CampoDeTexto
 import br.com.frila.core.designsystem.componentes.FrilaBottomSheet
 import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
@@ -29,6 +31,7 @@ import br.com.frila.core.designsystem.componentes.MensagemJuntoAoBotao
 import br.com.frila.core.designsystem.componentes.RodapeAncorado
 import br.com.frila.core.designsystem.componentes.RotuloDeGrupo
 import br.com.frila.core.designsystem.componentes.TituloDaTela
+import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.designsystem.tema.FrilaEspacamento
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
@@ -55,6 +58,8 @@ fun TelaCadastroEstabelecimento(
         aoEscolherRegiao = viewModel::escolherRegiao,
         aoEditarLatitude = viewModel::editarLatitude,
         aoEditarLongitude = viewModel::editarLongitude,
+        aoBuscarEndereco = { viewModel.buscarEndereco() },
+        aoEscolherEndereco = viewModel::escolherEndereco,
         aoCadastrar = { viewModel.cadastrar() },
         aoVoltar = aoVoltar,
         modifier = modifier,
@@ -82,6 +87,8 @@ fun ConteudoCadastroEstabelecimento(
     aoCadastrar: () -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    aoBuscarEndereco: () -> Unit = {},
+    aoEscolherEndereco: (EnderecoEncontrado) -> Unit = {},
 ) {
     var seletorDeRegiaoAberto by rememberSaveable { mutableStateOf(false) }
 
@@ -161,6 +168,8 @@ fun ConteudoCadastroEstabelecimento(
                 habilitado = estado.podeEditar,
             )
 
+            BuscaDeEnderecoNaTela(estado = estado, aoBuscar = aoBuscarEndereco, aoEscolher = aoEscolherEndereco)
+
             CampoDeSelecao(
                 rotulo = TextosCadastroEstabelecimento.REGIAO,
                 valor = estado.regiaoAdministrativa.ifEmpty { TextosCadastroEstabelecimento.REGIAO_SELECIONAR },
@@ -216,6 +225,46 @@ fun ConteudoCadastroEstabelecimento(
                                 },
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "Buscar endereço" abaixo do campo (paridade com o iOS, sem mapa). Sem serviço de geocodificação no aparelho a seção só avisa
+ * que a coordenada é digitada; os campos de latitude e longitude seguem como plano B nos três casos.
+ */
+@Composable
+private fun BuscaDeEnderecoNaTela(
+    estado: EstadoCadastroEstabelecimento,
+    aoBuscar: () -> Unit,
+    aoEscolher: (EnderecoEncontrado) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        if (!estado.buscaDisponivel) {
+            Text(text = TextosCadastroEstabelecimento.ENDERECO_BUSCA_INDISPONIVEL, style = FrilaTipo.apoio, color = FrilaTema.cores.tintaSuave)
+            return@Column
+        }
+        BotaoSecundario(
+            texto = if (estado.buscando) TextosCadastroEstabelecimento.BUSCANDO_ENDERECO else TextosCadastroEstabelecimento.BUSCAR_ENDERECO,
+            aoClicar = aoBuscar,
+            habilitado = estado.podeEditar && !estado.buscando && estado.endereco.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (estado.buscaSemResultado) AvisoFrila(tom = TomAviso.INFORMATIVO, mensagem = TextosCadastroEstabelecimento.ENDERECO_SEM_RESULTADO)
+        if (estado.erroDaBusca) AvisoFrila(tom = TomAviso.ERRO, mensagem = TextosCadastroEstabelecimento.ENDERECO_ERRO_DA_BUSCA)
+        if (estado.resultadosDaBusca.isNotEmpty()) {
+            FrilaGrupoDeLinhas(titulo = TextosCadastroEstabelecimento.ENDERECOS_ENCONTRADOS) {
+                estado.resultadosDaBusca.forEach { encontrado ->
+                    linha {
+                        FrilaLinhaDeOpcao(
+                            titulo = encontrado.texto,
+                            marcada = false,
+                            aoClicar = { aoEscolher(encontrado) },
+                            habilitada = estado.podeEditar,
+                        )
                     }
                 }
             }
