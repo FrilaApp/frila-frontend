@@ -46,9 +46,16 @@ class ExclusaoDeContaViewModel(
     private val consultarTurnos: (suspend () -> ConsultaDeTurnosDaExclusao)? = null,
     private val relogio: () -> Instant = Instant::now,
     escopo: CoroutineScope? = null,
+    /**
+     * F4owLsLH: onde roda o PEDIDO de exclusão (e o [aoConcluir]). Sair da tela com o pedido em voo limpa o ViewModel e cancelaria o
+     * `viewModelScope` no meio, com o servidor já tendo aceitado e a sessão sem ser limpa. O iOS roda o pedido numa `Task` não estruturada
+     * (`TelaExclusaoDeConta.swift`), que não morre com a tela; aqui é um escopo de aplicação. Nulo: o mesmo escopo do ViewModel (os testes).
+     */
+    escopoDoPedido: CoroutineScope? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
+    private val escopoDoPedido: CoroutineScope = escopoDoPedido ?: escopoDeTrabalho
 
     private val _estado = MutableStateFlow(EstadoExclusaoDeConta())
     val estado: StateFlow<EstadoExclusaoDeConta> = _estado.asStateFlow()
@@ -95,7 +102,8 @@ class ExclusaoDeContaViewModel(
     fun confirmarExclusao(): Job {
         if (!_estado.value.podeExcluir) return escopoDeTrabalho.launch { }
         _estado.update { it.copy(excluindo = true, mensagemErro = null) }
-        return escopoDeTrabalho.launch {
+        // No escopo do pedido, e não no do ViewModel: com o pedido no ar, sair da tela não pode cancelá-lo (F4owLsLH).
+        return escopoDoPedido.launch {
             try {
                 val resultado = excluir()
                 _estado.update { it.copy(excluindo = false, resultado = resultado) }

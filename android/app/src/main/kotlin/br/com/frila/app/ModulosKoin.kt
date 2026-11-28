@@ -155,6 +155,8 @@ private val configuracaoSupabase = ConfiguracaoSupabase.doBuildConfig()
 
 /** Qualificador do [CoroutineScope] cujos filhos o logout cancela. */
 const val ESCOPO_DA_SESSAO = "escopoDaSessao"
+/** F4owLsLH: onde roda o pedido de exclusão de conta. Não é o da sessão: o logout cancela os filhos daquele, e o `aoConcluir` cancelaria o job que o chamou. */
+const val ESCOPO_DA_EXCLUSAO = "escopoDaExclusao"
 
 /** Usa Android Keystore em produção e mantém o grafo utilizável em testes JVM sem [Context]. */
 val moduloSeguranca = module {
@@ -205,6 +207,8 @@ val moduloSeguranca = module {
     }
     /** Cartão 101: escopo das corrotinas de sessão; o logout cancela os filhos, não o escopo. */
     single(named(ESCOPO_DA_SESSAO)) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
+    /** F4owLsLH: sobrevive à tela (o iOS usa uma `Task` não estruturada) e ao logout, que cancela só o [ESCOPO_DA_SESSAO]. */
+    single(named(ESCOPO_DA_EXCLUSAO)) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     /** Cartão 101: coordenador central de logout com limpeza segura de dados. */
     single {
         CoordenadorDeLogout(
@@ -510,6 +514,7 @@ val moduloFeatures = module {
             aoConcluir = { coordenadorDeLogout.limparSessao() },
             // Só lê, para a tela listar os turnos futuros que a exclusão cancela: do profissional, ou das casas do contratante.
             consultarTurnos = { consultarTurnosDaConta(servicoConta, servicoTurnos, servicoMembros, servicoVagas) },
+            escopoDoPedido = get(named(ESCOPO_DA_EXCLUSAO)),
         )
     }
     viewModel { (alvoTipo: TipoDeAlvo, alvoId: String, turnoId: String?, chamadaId: String?, fotoId: String?) ->
