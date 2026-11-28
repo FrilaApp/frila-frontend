@@ -340,6 +340,9 @@ internal fun RotaTurnoDoContratante(
             // L2-6: só com a presença verificada (a condição de `incluir_na_equipe`; o servidor confere de novo), como o iOS.
             // O bloco entra na própria tela do turno, depois da chegada.
             val profissional = atual.contexto.profissional?.takeIf { atual.contexto.verificacao == "verificado" }
+            // I1PonzKJ: quem a casa bloqueou nesta sessão não se inclui na equipe (D-14 do iOS), e a tela diz que foi bloqueado.
+            val bloqueados = alvosBloqueadosDaSessao()
+            val profissionalBloqueado = atual.contexto.profissional?.let { bloqueados.bloqueia(it) } == true
             TelaTurnoDoContratante(
                 viewModel = viewModel,
                 aoVoltar = aoVoltar,
@@ -347,7 +350,8 @@ internal fun RotaTurnoDoContratante(
                 aoPedirSuporte = aoPedirSuporte,
                 codigoDaCasa = codigoDaCasa,
                 aoAvaliarTurno = aoAvaliarTurno,
-                depoisDaChegada = profissional?.let {
+                profissionalBloqueado = profissionalBloqueado,
+                depoisDaChegada = profissional?.takeIf { !profissionalBloqueado }?.let {
                     {
                         val incluir: IncluirNaEquipeViewModel = koinViewModel(
                             key = "incluir-${it.id}",

@@ -9,6 +9,8 @@ object TextosTurnoDoContratante {
     const val FUNCOES = "Funções: %s"
     const val PEDIR_AJUDA = "Pedir ajuda com o turno"
     const val DENUNCIAR = "Denunciar"
+    /** `TextosDaSeguranca.voceBloqueouProfissional` do iOS: o que a tela diz do profissional que a casa bloqueou. */
+    const val VOCE_BLOQUEOU_PROFISSIONAL = "Você bloqueou este profissional"
     /** Como o iOS (`AcoesDeSeguranca.swift:46`): "Denunciar <nome>". */
     const val DENUNCIAR_ROTULO = "Denunciar %s"
     const val CHEGADA = "Chegada"

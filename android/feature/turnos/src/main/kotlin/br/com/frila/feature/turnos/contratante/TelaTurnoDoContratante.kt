@@ -97,6 +97,8 @@ fun TelaTurnoDoContratante(
     /** O que o app põe depois da chegada e antes das ações de risco (incluir na equipe de confiança). Nulo não põe nada. */
     depoisDaChegada: (@Composable () -> Unit)? = null,
     aoAvaliarTurno: ((turnoId: String) -> Unit)? = null,
+    /** O profissional deste turno está entre os bloqueados da sessão (I1PonzKJ): a tela o diz, junto das ações de risco. */
+    profissionalBloqueado: Boolean = false,
 ) {
     val estado by viewModel.estado.collectAsState()
     ConteudoTurnoDoContratante(
@@ -119,6 +121,7 @@ fun TelaTurnoDoContratante(
         modifier = modifier,
         cartaoDoCodigo = codigoDaCasa?.let { codigo -> { CartaoDoCodigoDaCasa(codigo) } },
         depoisDaChegada = depoisDaChegada,
+        profissionalBloqueado = profissionalBloqueado,
     )
 }
 
@@ -136,13 +139,14 @@ fun ConteudoTurnoDoContratante(
     modifier: Modifier = Modifier,
     cartaoDoCodigo: (@Composable () -> Unit)? = null,
     depoisDaChegada: (@Composable () -> Unit)? = null,
+    profissionalBloqueado: Boolean = false,
 ) {
     // A folha de motivos substitui o corpo (como a tela de cancelar a vaga) em vez de abrir uma janela: assim a tela de baixo não fica
     // focável por baixo da folha, e o campo do detalhe vive na mesma composição.
     if (estado.pedindoCancelamento) {
         FolhaDeMotivosDoCancelamento(estado, acoes, modifier)
     } else {
-        CorpoDoTurnoDoContratante(estado, acoes, modifier, cartaoDoCodigo, depoisDaChegada)
+        CorpoDoTurnoDoContratante(estado, acoes, modifier, cartaoDoCodigo, depoisDaChegada, profissionalBloqueado)
     }
 }
 
@@ -153,6 +157,7 @@ private fun CorpoDoTurnoDoContratante(
     modifier: Modifier = Modifier,
     cartaoDoCodigo: (@Composable () -> Unit)? = null,
     depoisDaChegada: (@Composable () -> Unit)? = null,
+    profissionalBloqueado: Boolean = false,
 ) {
     val contexto = estado.contexto
     val pendente = estado.presenca == PresencaDoTurno.CHECKIN_MANUAL_PENDENTE && contexto.estadoDaPosicao != "cancelada"
@@ -286,8 +291,18 @@ private fun CorpoDoTurnoDoContratante(
             val denunciar = acoes.aoDenunciarProfissional
             val profissional = contexto.profissional
             val pedirSuporte = acoes.aoPedirSuporte
-            if (reabrirVisivel || pedirSuporte != null || (denunciar != null && profissional != null)) {
+            val dizBloqueado = profissionalBloqueado && profissional != null
+            if (reabrirVisivel || pedirSuporte != null || (denunciar != null && profissional != null) || dizBloqueado) {
                 Spacer(Modifier.height(FrilaEspacamento.item))
+                if (dizBloqueado) {
+                    // iOS: "Você bloqueou este profissional", logo acima das ações de segurança.
+                    Text(
+                        text = TextosTurnoDoContratante.VOCE_BLOQUEOU_PROFISSIONAL,
+                        style = FrilaTipo.apoio,
+                        color = FrilaTema.cores.tintaSuave,
+                        modifier = Modifier.testTag("turno-profissional-bloqueado"),
+                    )
+                }
                 if (reabrirVisivel) {
                     AcaoDiscreta(
                         texto = if (estado.reabrindo) TextosTurnoDoContratante.REABRINDO else TextosTurnoDoContratante.REABRIR_VAGA,
