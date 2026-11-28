@@ -19,12 +19,16 @@ import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
 import br.com.frila.core.dominio.regra.ListaAtualizavel
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PainelDto
+import br.com.frila.core.rede.PerfilPublicoDto
+import br.com.frila.core.rede.ServicoConfianca
 import br.com.frila.core.rede.ServicoMembros
 import br.com.frila.feature.equipe.IncluirNaEquipe
 import br.com.frila.feature.equipe.IncluirNaEquipeViewModel
+import br.com.frila.feature.suporte.AcoesDeSeguranca
 import br.com.frila.feature.turnos.contratante.AcompanhamentoContratanteViewModel
 import br.com.frila.feature.turnos.contratante.ContextoDoTurnoContratante
 import br.com.frila.feature.turnos.contratante.TelaTurnoDoContratante
+import br.com.frila.feature.turnos.contratante.TextosTurnoDoContratante
 import br.com.frila.feature.vagas.escala.EscalaDeEventoViewModel
 import br.com.frila.feature.vagas.escala.TelaEscalaDeEvento
 import br.com.frila.feature.vagas.escala.TextosEscala
@@ -343,6 +347,22 @@ internal fun RotaTurnoDoContratante(
             // I1PonzKJ: quem a casa bloqueou nesta sessão não se inclui na equipe (D-14 do iOS), e a tela diz que foi bloqueado.
             val bloqueados = alvosBloqueadosDaSessao()
             val profissionalBloqueado = atual.contexto.profissional?.let { bloqueados.bloqueia(it) } == true
+            // 0P4RwnNi: "Denunciar" e "Bloquear" do profissional, como o iOS (`segurancaDoProfissional`). A chave leva o turno e o perfil: a
+            // posição reatribuída a outro profissional ganha um bloqueio novo, sem herdar o do anterior. Sem o serviço de confiança no
+            // grafo (testes que montam o Koin à mão), não há como bloquear: fica o "Denunciar" avulso de antes.
+            val podeBloquear = aoDenunciarProfissional != null && getKoin().getOrNull<ServicoConfianca>() != null
+            val bloqueio = if (podeBloquear) bloqueioDoPerfil(atual.contexto.profissional, "turno-${atual.contexto.turnoId}") else null
+            val seguranca: (@Composable (PerfilPublicoDto) -> Unit)? = bloqueio?.let { viewModelDoBloqueio ->
+                @Composable { perfil: PerfilPublicoDto ->
+                    AcoesDeSeguranca(
+                        nome = perfil.nome,
+                        viewModel = viewModelDoBloqueio,
+                        aoDenunciar = { aoDenunciarProfissional?.invoke(perfil.id, atual.contexto.turnoId) },
+                        rotuloBloqueado = TextosTurnoDoContratante.VOCE_BLOQUEOU_PROFISSIONAL,
+                        tagBase = "turno",
+                    )
+                }
+            }
             TelaTurnoDoContratante(
                 viewModel = viewModel,
                 aoVoltar = aoVoltar,
@@ -351,6 +371,7 @@ internal fun RotaTurnoDoContratante(
                 codigoDaCasa = codigoDaCasa,
                 aoAvaliarTurno = aoAvaliarTurno,
                 profissionalBloqueado = profissionalBloqueado,
+                acoesDeSeguranca = seguranca,
                 depoisDaChegada = profissional?.takeIf { !profissionalBloqueado }?.let {
                     {
                         val incluir: IncluirNaEquipeViewModel = koinViewModel(
