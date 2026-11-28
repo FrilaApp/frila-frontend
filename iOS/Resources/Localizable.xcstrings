@@ -1215,6 +1215,17 @@
         }
       }
     },
+    "A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos. Quem estava confirmado será avisado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos. Quem estava confirmado será avisado."
+          }
+        }
+      }
+    },
     "A publicação continua e será concluída quando a conexão voltar.": {
       "extractionState": "stale",
       "localizations": {
@@ -1518,6 +1529,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "A vaga volta a ser oferecida a outros profissionais."
+          }
+        }
+      }
+    },
+    "O estabelecimento será avisado e poderá chamar outra pessoa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O estabelecimento será avisado e poderá chamar outra pessoa."
           }
         }
       }
@@ -3854,6 +3876,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Conta como falta para %@, e a vaga volta a ser oferecida a outros profissionais."
+          }
+        }
+      }
+    },
+    "Conta como falta para %@. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conta como falta para %@. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos."
           }
         }
       }
@@ -10188,6 +10221,17 @@
         }
       }
     },
+    "Posição cancelada. Ela continua aberta só para você chamar outra pessoa ou publicar para todos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posição cancelada. Ela continua aberta só para você chamar outra pessoa ou publicar para todos."
+          }
+        }
+      }
+    },
     "Posição cancelada. O turno ficou descoberto: depois do início não há reabertura.": {
       "extractionState": "stale",
       "localizations": {
@@ -13270,6 +13314,17 @@
         }
       }
     },
+    "Turno cancelado. O estabelecimento foi avisado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turno cancelado. O estabelecimento foi avisado."
+          }
+        }
+      }
+    },
     "Turno cancelado. O turno ficou descoberto, e o estabelecimento foi avisado.": {
       "extractionState": "stale",
       "localizations": {
@@ -13544,6 +13599,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida."
+          }
+        }
+      }
+    },
+    "Vaga reaberta. A falta foi registrada, e a posição ficou aberta só para você chamar outra pessoa ou publicar para todos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaga reaberta. A falta foi registrada, e a posição ficou aberta só para você chamar outra pessoa ou publicar para todos."
           }
         }
       }

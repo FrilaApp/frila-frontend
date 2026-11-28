@@ -143,6 +143,54 @@ private final class ChamadaEspiada: @unchecked Sendable {
         #expect(viewModel.motivos == MotivoDeCancelamento.opcoes(para: .contratante))
     }
 
+    // MARK: Vaga direta (RN35): sem promessa de nova oferta
+
+    @Test("Aviso antes de cancelar, vaga normal (publicacao ou origem ausente): o texto de sempre", arguments: [OrigemVaga?.none, .publicacao])
+    func avisoDaVagaNormalNaoMuda(origem: OrigemVaga?) throws {
+        #expect(TextosDoCancelamento.aviso(lado: .contratante, alvo: .posicao(id: posicaoID, turnoID: turnoID), antecedencia: 10 * 3600, contaComoFalta: false, origem: origem)
+            == "Faltam 10 h para o início. A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado. Não conta como falta para o profissional.")
+        #expect(TextosDoCancelamento.aviso(lado: .profissional, alvo: .posicao(id: posicaoID, turnoID: turnoID), antecedencia: 30 * 3600, contaComoFalta: false, origem: origem)
+            == "Faltam 30 h para o início. Este cancelamento não afeta sua taxa de comparecimento. A vaga volta a ser oferecida a outros profissionais.")
+    }
+
+    @Test("Aviso antes de cancelar, vaga direta: a casa e o profissional não leem promessa de oferta")
+    func avisoDaVagaDireta() throws {
+        #expect(TextosDoCancelamento.aviso(lado: .contratante, alvo: .posicao(id: posicaoID, turnoID: turnoID), antecedencia: 10 * 3600, contaComoFalta: false, origem: .chamadaDireta)
+            == "Faltam 10 h para o início. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos. Quem estava confirmado será avisado. Não conta como falta para o profissional.")
+        #expect(TextosDoCancelamento.aviso(lado: .profissional, alvo: .posicao(id: posicaoID, turnoID: turnoID), antecedencia: 30 * 3600, contaComoFalta: false, origem: .chamadaDireta)
+            == "Faltam 30 h para o início. Este cancelamento não afeta sua taxa de comparecimento. O estabelecimento será avisado e poderá chamar outra pessoa.")
+    }
+
+    @Test("Depois do início e na vaga inteira, a vaga direta lê o mesmo que a normal", arguments: [LadoDoCancelamento.profissional, .contratante])
+    func vagaDiretaSemReaberturaNaoMuda(lado: LadoDoCancelamento) {
+        let posicao = AlvoDoCancelamento.posicao(id: posicaoID, turnoID: turnoID)
+        // Só a casa cancela a vaga inteira.
+        let daVagaInteira: [(AlvoDoCancelamento, TimeInterval)] = lado == .contratante ? [(.vaga(id: UUID()), 30 * 3600), (.vaga(id: UUID()), -3600)] : []
+        for (alvo, antecedencia) in [(posicao, -3600)] + daVagaInteira {
+            #expect(TextosDoCancelamento.aviso(lado: lado, alvo: alvo, antecedencia: antecedencia, contaComoFalta: false, origem: .chamadaDireta)
+                == TextosDoCancelamento.aviso(lado: lado, alvo: alvo, antecedencia: antecedencia, contaComoFalta: false))
+        }
+        let descoberto = DesfechoDoCancelamento.posicao(ResultadoCancelamento(posicaoID: posicaoID, falta: false, reaberta: false, novaPosicaoID: nil))
+        for desfecho in [descoberto, .naFila, .vaga(VagaCancelada(vagaID: UUID(), estado: .cancelada, posicoesCanceladas: 1))] {
+            #expect(TextosDoCancelamento.desfecho(desfecho, lado: lado, origem: .chamadaDireta) == TextosDoCancelamento.desfecho(desfecho, lado: lado))
+        }
+    }
+
+    @Test("Desfecho reaberto, vaga normal (publicacao ou origem ausente): o texto de sempre", arguments: [OrigemVaga?.none, .publicacao])
+    func desfechoDaVagaNormalNaoMuda(origem: OrigemVaga?) {
+        let reaberto = DesfechoDoCancelamento.posicao(ResultadoCancelamento(posicaoID: posicaoID, falta: false, reaberta: true, novaPosicaoID: UUID()))
+        #expect(TextosDoCancelamento.desfecho(reaberto, lado: .profissional, origem: origem) == "Turno cancelado. A vaga voltou a ser oferecida a outros profissionais.")
+        #expect(TextosDoCancelamento.desfecho(reaberto, lado: .contratante, origem: origem) == "Posição cancelada. Ela voltou a ser oferecida a outros profissionais.")
+    }
+
+    @Test("Desfecho reaberto, vaga direta: nada de oferta a outros profissionais")
+    func desfechoDaVagaDireta() {
+        let reaberto = DesfechoDoCancelamento.posicao(ResultadoCancelamento(posicaoID: posicaoID, falta: false, reaberta: true, novaPosicaoID: UUID()))
+        #expect(TextosDoCancelamento.desfecho(reaberto, lado: .profissional, origem: .chamadaDireta) == "Turno cancelado. O estabelecimento foi avisado.")
+        #expect(TextosDoCancelamento.desfecho(reaberto, lado: .contratante, origem: .chamadaDireta)
+            == "Posição cancelada. Ela continua aberta só para você chamar outra pessoa ou publicar para todos.")
+    }
+
     // MARK: Motivo obrigatório (critério 3)
 
     @Test func semMotivoNaoDaParaConfirmarENadaEChamado() async throws {

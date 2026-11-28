@@ -1,8 +1,10 @@
-import { RouterContextProvider } from "react-router";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createRoutesStub, RouterContextProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { contextoDaSessao } from "../app/contexto";
-import { action as agirNoTurno, loader as carregarTurno } from "../app/rotas/contratante/turno/detalhe";
+import TurnoDaCasa, { action as agirNoTurno, loader as carregarTurno } from "../app/rotas/contratante/turno/detalhe";
 import { loader as carregarLista } from "../app/rotas/contratante/turno/lista";
 
 const CASA_A = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -165,5 +167,48 @@ describe("avaliar o profissional (C5)", () => {
     expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "avaliar", turno_id: TURNO_ID, resposta: "nao" }))).toEqual({ avaliacao: "ja_registrada" });
     expect(await agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, { intencao: "avaliar", turno_id: TURNO_ID, resposta: "talvez" }))).toEqual({ avaliacao: "indisponivel" });
     expect(api.POST).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("reabertura por atraso conforme a origem da vaga", () => {
+  const REGRA_NORMAL = "Conta como falta para Pessoa Sintética, e a vaga volta a ser oferecida a outros profissionais.";
+  const REGRA_DIRETA =
+    "Conta como falta para Pessoa Sintética. A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos.";
+  const REABERTA_NORMAL = "Vaga reaberta. A falta foi registrada, e a posição voltou a ser oferecida.";
+  const REABERTA_DIRETA = "Vaga reaberta. A falta foi registrada, e a posição ficou aberta só para você chamar outra pessoa ou publicar para todos.";
+
+  /** A tela com o que o loader leu; `origem` ausente é a vaga como o servidor a manda hoje. */
+  async function tela(origem: string | undefined, actionData?: unknown) {
+    const base = turno();
+    servidor({ [CASA_A]: [{ ...base, vaga: { ...base.vaga, ...(origem ? { origem } : {}) } }] });
+    const loaderData = await carregarTurno(argumentos(`/casa/turnos/${TURNO_ID}`));
+    const Stub = createRoutesStub([{ path: "/casa/turnos/t", Component: () => createElement(TurnoDaCasa, { loaderData, actionData } as never) }]);
+    return renderToStaticMarkup(createElement(Stub, { initialEntries: ["/casa/turnos/t"] }));
+  }
+
+  /** O que a action devolve com os campos escondidos que a própria tela pôs no formulário de reabrir. */
+  async function reabrir(html: string) {
+    const formulario = html.split("</form>").find((trecho) => trecho.includes('value="reabrir"')) ?? "";
+    const campos = Object.fromEntries([...formulario.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]+)"/g)].map((m) => [String(m[1]), String(m[2])]));
+    api.POST.mockResolvedValueOnce(resposta(200, { posicao_id: POSICAO_ID, falta: true, reaberta: true, nova_posicao_id: null }));
+    return agirNoTurno(argumentos(`/casa/turnos/${TURNO_ID}`, campos));
+  }
+
+  it.each([undefined, "publicacao"])("vaga normal (origem %s): pergunta e resultado de sempre", async (origem) => {
+    const antes = await tela(origem);
+    expect(antes).toContain(REGRA_NORMAL);
+    expect(antes).not.toContain(REGRA_DIRETA);
+    const depois = await tela(origem, await reabrir(antes));
+    expect(depois).toContain(REABERTA_NORMAL);
+    expect(depois).not.toContain(REABERTA_DIRETA);
+  });
+
+  it("vaga direta: pergunta e resultado sem promessa de oferta", async () => {
+    const antes = await tela("chamada_direta");
+    expect(antes).toContain(REGRA_DIRETA);
+    expect(antes).not.toContain(REGRA_NORMAL);
+    const depois = await tela("chamada_direta", await reabrir(antes));
+    expect(depois).toContain(REABERTA_DIRETA);
+    expect(depois).not.toContain(REABERTA_NORMAL);
   });
 });

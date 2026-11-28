@@ -30,6 +30,10 @@ enum TextosDoCancelamento {
     static let contratanteSemFalta = String(localized: "Não conta como falta para o profissional.", bundle: bundleApresentacao)
     static let contratanteReabre = String(localized: "A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado.", bundle: bundleApresentacao)
     static let contratanteNaoReabre = String(localized: "A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado.", bundle: bundleApresentacao)
+    // Vaga direta (`origem = chamada_direta`, RN35): o servidor reabre a posição sem despacho e fora do feed.
+    // Provisórios, até o texto final do Fabrício.
+    static let profissionalReabreDireta = String(localized: "O estabelecimento será avisado e poderá chamar outra pessoa.", bundle: bundleApresentacao)
+    static let contratanteReabreDireta = String(localized: "A posição volta a ficar aberta, mas não é oferecida a outros profissionais: você pode chamar outra pessoa ou publicar para todos. Quem estava confirmado será avisado.", bundle: bundleApresentacao)
     static let vagaInteira = String(localized: "Todas as posições serão canceladas, e os profissionais confirmados serão avisados. Não conta como falta para ninguém.", bundle: bundleApresentacao)
     static let vagaInteiraComecada = String(localized: "Todas as posições serão canceladas, sem reabertura, e os profissionais confirmados serão avisados. Não conta como falta para ninguém.", bundle: bundleApresentacao)
 
@@ -37,6 +41,8 @@ enum TextosDoCancelamento {
     static let turnoCanceladoReaberto = String(localized: "Turno cancelado. A vaga voltou a ser oferecida a outros profissionais.", bundle: bundleApresentacao)
     static let turnoCanceladoDescoberto = String(localized: "Turno cancelado. O turno ficou descoberto, e o estabelecimento foi avisado.", bundle: bundleApresentacao)
     static let posicaoCanceladaReaberta = String(localized: "Posição cancelada. Ela voltou a ser oferecida a outros profissionais.", bundle: bundleApresentacao)
+    static let turnoCanceladoReabertoDireta = String(localized: "Turno cancelado. O estabelecimento foi avisado.", bundle: bundleApresentacao)
+    static let posicaoCanceladaReabertaDireta = String(localized: "Posição cancelada. Ela continua aberta só para você chamar outra pessoa ou publicar para todos.", bundle: bundleApresentacao)
     static let posicaoCanceladaDescoberta = String(localized: "Posição cancelada. O turno ficou descoberto: depois do início não há reabertura.", bundle: bundleApresentacao)
     static let vagaCancelada = String(localized: "Vaga cancelada. Os profissionais confirmados foram avisados.", bundle: bundleApresentacao)
     static let naFila = String(localized: "Sem conexão. O cancelamento será enviado quando a internet voltar.", bundle: bundleApresentacao)
@@ -78,27 +84,30 @@ enum TextosDoCancelamento {
         return String(format: horas, Int(floor(antecedencia / 3600)))
     }
 
-    static func aviso(lado: LadoDoCancelamento, alvo: AlvoDoCancelamento, antecedencia: TimeInterval, contaComoFalta: Bool) -> String {
+    /// `origem` ausente vale `publicacao` (contrato 0.2.55): só a vaga direta troca a promessa de nova oferta.
+    static func aviso(lado: LadoDoCancelamento, alvo: AlvoDoCancelamento, antecedencia: TimeInterval, contaComoFalta: Bool, origem: OrigemVaga? = nil) -> String {
         let comecou = antecedencia <= 0
+        let direta = origem == .chamadaDireta
         let quando = comecou ? turnoJaComecou : String(format: faltamParaOInicio, tempoAteOInicio(antecedencia))
         let efeito: [String]
         switch (lado, alvo) {
         case (.profissional, _):
-            efeito = [contaComoFalta ? profissionalComFalta : profissionalSemFalta, comecou ? profissionalNaoReabre : profissionalReabre]
+            efeito = [contaComoFalta ? profissionalComFalta : profissionalSemFalta, comecou ? profissionalNaoReabre : (direta ? profissionalReabreDireta : profissionalReabre)]
         case (.contratante, .posicao):
-            efeito = [comecou ? contratanteNaoReabre : contratanteReabre, contratanteSemFalta]
+            efeito = [comecou ? contratanteNaoReabre : (direta ? contratanteReabreDireta : contratanteReabre), contratanteSemFalta]
         case (.contratante, .vaga):
             efeito = [comecou ? vagaInteiraComecada : vagaInteira]
         }
         return ([quando] + efeito).joined(separator: " ")
     }
 
-    static func desfecho(_ desfecho: DesfechoDoCancelamento, lado: LadoDoCancelamento) -> String {
-        switch desfecho {
+    static func desfecho(_ desfecho: DesfechoDoCancelamento, lado: LadoDoCancelamento, origem: OrigemVaga? = nil) -> String {
+        let direta = origem == .chamadaDireta
+        return switch desfecho {
         case let .posicao(resultado):
             switch lado {
-            case .profissional: resultado.reaberta ? turnoCanceladoReaberto : turnoCanceladoDescoberto
-            case .contratante: resultado.reaberta ? posicaoCanceladaReaberta : posicaoCanceladaDescoberta
+            case .profissional: resultado.reaberta ? (direta ? turnoCanceladoReabertoDireta : turnoCanceladoReaberto) : turnoCanceladoDescoberto
+            case .contratante: resultado.reaberta ? (direta ? posicaoCanceladaReabertaDireta : posicaoCanceladaReaberta) : posicaoCanceladaDescoberta
             }
         case .vaga: vagaCancelada
         case .naFila: naFila
