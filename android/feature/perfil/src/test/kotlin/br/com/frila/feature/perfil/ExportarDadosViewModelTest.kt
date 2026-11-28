@@ -88,4 +88,36 @@ class ExportarDadosViewModelTest {
         assertFalse(vm.estado.value.carregando)
         assertNull(vm.estado.value.arquivo)
     }
+
+    // ---- Nome do arquivo com a data em São Paulo (bXGz9vi0) ----
+
+    @Test
+    fun `o nome do arquivo leva a data de Sao Paulo, e nao a do relogio UTC`() {
+        // 28/11 01:30 UTC ainda é 27/11 22:30 em São Paulo.
+        assertEquals("frila-meus-dados-2026-11-27.json", nomeDoArquivo(java.time.Instant.parse("2026-11-28T01:30:00Z")))
+        // 27/11 02:59 UTC é 26/11 23:59 em SP; 03:00 UTC já é 27/11 00:00.
+        assertEquals("frila-meus-dados-2026-11-26.json", nomeDoArquivo(java.time.Instant.parse("2026-11-27T02:59:00Z")))
+        assertEquals("frila-meus-dados-2026-11-27.json", nomeDoArquivo(java.time.Instant.parse("2026-11-27T03:00:00Z")))
+    }
+
+    @Test
+    fun `nao importa o fuso do aparelho`() {
+        val original = java.util.TimeZone.getDefault()
+        try {
+            listOf("Asia/Tokyo", "Pacific/Auckland", "UTC").forEach { fuso ->
+                java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(fuso))
+                assertEquals("frila-meus-dados-2026-11-27.json", nomeDoArquivo(java.time.Instant.parse("2026-11-28T01:30:00Z")), fuso)
+            }
+        } finally {
+            java.util.TimeZone.setDefault(original)
+        }
+    }
+
+    @Test
+    fun `o arquivo exportado se chama frila-meus-dados com a data e sem UUID`() = runTest(dispatcher) {
+        val vm = ExportarDadosViewModel({ "{}".toByteArray() }, dispatcher, agora = { java.time.Instant.parse("2026-11-28T01:30:00Z") })
+        vm.exportar(cache)
+        advanceUntilIdle()
+        assertEquals("frila-meus-dados-2026-11-27.json", requireNotNull(vm.estado.value.arquivo).name)
+    }
 }
