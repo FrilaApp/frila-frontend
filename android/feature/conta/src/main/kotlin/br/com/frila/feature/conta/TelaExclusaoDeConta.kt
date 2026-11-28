@@ -71,6 +71,7 @@ fun TelaExclusaoDeConta(
         aoExcluir = { viewModel.confirmarExclusao() },
         aoVoltar = aoVoltar,
         modifier = modifier,
+        excluindoAoVivo = { viewModel.estado.value.excluindo },
     )
 }
 
@@ -90,17 +91,22 @@ fun ConteudoExclusaoDeConta(
     aoExcluir: () -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Lê o pedido em curso AO VIVO, e não o [estado] já recomposto (que atrasa um quadro depois do toque). Padrão: o próprio estado. */
+    excluindoAoVivo: () -> Boolean = { estado.excluindo },
 ) {
     val cores = FrilaTema.cores
     var dialogoAberto by rememberSaveable { mutableStateOf(false) }
     // rKCpWPez: o voltar do sistema também fica preso enquanto a exclusão roda, como o da barra. Tirar a tela da
     // pilha limpa o ViewModel e cancela o pedido no meio; se o servidor já aceitou, a sessão não seria limpa.
-    BackHandler(enabled = estado.excluindo) {}
+    // F4owLsLH (item 213): `estado.excluindo` só chega aqui no quadro seguinte ao toque, e um voltar nesse quadro passava. O voltar
+    // (do sistema e da barra) confere o pedido ao vivo; o handler fica sempre ativo e, parado, entrega ao `aoVoltar` da rota.
+    val voltarSeLivre: () -> Unit = { if (!excluindoAoVivo()) aoVoltar() }
+    BackHandler(enabled = true) { voltarSeLivre() }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = cores.fundo,
-        topBar = { BarraDeVoltar(aoVoltar = aoVoltar, habilitado = !estado.excluindo) },
+        topBar = { BarraDeVoltar(aoVoltar = voltarSeLivre, habilitado = !estado.excluindo) },
     ) { preenchimento ->
         Column(
             modifier = Modifier
