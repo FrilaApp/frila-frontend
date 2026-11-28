@@ -60,6 +60,8 @@ fun TelaDetalheChamadaRecebida(
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
     /** Bloqueada a casa, a chamada não se responde mais (o servidor a encerra, RF26): some o rodapé de aceitar e recusar. */
     bloqueado: Boolean = false,
+    /** Há um pedido de bloqueio em curso: Aceitar e Recusar ficam desligados até ele voltar (xsZd5wZO). */
+    bloqueando: Boolean = false,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -75,6 +77,7 @@ fun TelaDetalheChamadaRecebida(
         aoAbrirTurno = aoAbrirTurno ?: { aoVoltar() },
         acoesDeSeguranca = acoesDeSeguranca,
         bloqueado = bloqueado,
+        bloqueando = bloqueando,
         modifier = modifier,
     )
 }
@@ -102,6 +105,7 @@ fun ConteudoDaChamadaRecebida(
     modifier: Modifier = Modifier,
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
     bloqueado: Boolean = false,
+    bloqueando: Boolean = false,
 ) {
     val detalhe = tela.detalhe
     val resultado = tela.resultado
@@ -124,13 +128,13 @@ fun ConteudoDaChamadaRecebida(
                     BotaoPrimario(
                         texto = TextosChamadaProfissional.ACEITAR_CHAMADA,
                         aoClicar = aoAceitar,
-                        habilitado = !tela.respondendo,
+                        habilitado = !tela.respondendo && !bloqueando,
                         modifier = Modifier.fillMaxWidth().testTag("aceitar-chamada"),
                     )
                     BotaoSecundario(
                         texto = TextosChamadaProfissional.RECUSAR_CHAMADA,
                         aoClicar = aoAbrirRecusa,
-                        habilitado = !tela.respondendo,
+                        habilitado = !tela.respondendo && !bloqueando,
                         modifier = Modifier.fillMaxWidth().testTag("recusar-chamada"),
                     )
                 }
