@@ -54,7 +54,11 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class, qualifiers = "w411dp-h2400dp")
 class RotaTurnoDoContratanteBloquearTest {
 
-    @get:Rule
+    // Sem ele, o build release não tem a ComponentActivity do createComposeRule no manifesto (como nos outros testes do :app).
+    @get:Rule(order = 0)
+    val registraActivity = RegistraActivityDeTeste()
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private val bloqueios = BloqueiosDaSessao()
