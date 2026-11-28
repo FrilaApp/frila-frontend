@@ -352,6 +352,11 @@ class TelasDaEquipeDaCasaTest {
         montarEquipe(PapelMembro.ADMINISTRADOR)
 
         rule.onNodeWithText("Carla Dias").performScrollTo().assertIsDisplayed()
+        // Sem ação sobre quem tem papel desconhecido ou em branco (iOS `papelConhecido`); quem tem papel conhecido segue com as suas.
+        rule.onAllNodesWithContentDescription(TextosEquipeDaCasa.REMOVER_DE.format("Carla Dias")).assertCountEquals(0)
+        rule.onAllNodesWithContentDescription(TextosEquipeDaCasa.REMOVER_DE.format("Davi Reis")).assertCountEquals(0)
+        rule.onAllNodesWithContentDescription(TextosEquipeDaCasa.TRANSFERIR_DE.format("Carla Dias")).assertCountEquals(0)
+        rule.onNodeWithContentDescription(TextosEquipeDaCasa.REMOVER_DE.format("Beto Lima")).performScrollTo().assertIsDisplayed()
         // A pessoa não some nem fica sem papel: "Outro papel" (iOS `papelDesconhecido`), duas vezes (o papel desconhecido e o em branco).
         rule.onAllNodesWithText("Outro papel").assertCountEquals(2)
         rule.onNodeWithText("Administrador · ${TextosEquipeDaCasa.VOCE}").performScrollTo().assertIsDisplayed()

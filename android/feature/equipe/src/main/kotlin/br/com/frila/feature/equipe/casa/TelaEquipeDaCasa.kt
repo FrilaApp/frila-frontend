@@ -263,8 +263,9 @@ private fun CartaoDoMembro(membro: MembroDaCasa, ocupado: Boolean, acoes: AcoesE
             membro.desde?.let {
                 Text(text = TextosEquipeDaCasa.DESDE.format(DIA.format(it.atZone(FUSO))), style = FrilaTipo.apoio, color = cores.tintaSuave)
             }
-            // Quem é "você" não tem ações: o app não oferece sair da casa nem se tornar administrador de novo por aqui.
-            if (!membro.eVoce) {
+            // Quem é "você" não tem ações: o app não oferece sair da casa nem se tornar administrador de novo por aqui. Papel que o app
+            // não conhece também não: não se sabe o que a pessoa é, então nada é oferecido sobre ela (iOS `papelConhecido`).
+            if (!membro.eVoce && membro.papel != null) {
                 if (membro.papel == PapelMembro.OPERADOR) {
                     BotaoSecundario(
                         texto = TextosEquipeDaCasa.TRANSFERIR,

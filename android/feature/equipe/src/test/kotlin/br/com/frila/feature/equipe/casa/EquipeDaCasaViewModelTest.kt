@@ -461,4 +461,23 @@ class EquipeDaCasaViewModelTest {
         assertEquals(TextosEquipeDaCasa.REMOVIDA, vm.estado.value.aviso)
         assertTrue(vm.estado.value.lista is ListaDaEquipe.Conteudo)
     }
+
+    @Test
+    fun `papel desconhecido nao abre confirmacao de remover nem de transferir`() = runBlocking {
+        val servidor = servidorComEquipe()
+        val vm = viewModel(servidor, papel = PapelMembro.ADMINISTRADOR)
+        vm.carregar().join()
+        val desconhecido = MembroDaCasa("m-carla", "Carla Dias", null, null, false)
+
+        vm.pedirConfirmacao(AcaoSobreMembro.REMOVER, desconhecido)
+        assertNull(vm.estado.value.pendente)
+        vm.pedirConfirmacao(AcaoSobreMembro.TRANSFERIR, desconhecido)
+        assertNull(vm.estado.value.pendente)
+        vm.confirmar().join()
+
+        assertTrue(servidor.remocoes.isEmpty())
+        // Quem tem papel conhecido segue podendo.
+        vm.pedirConfirmacao(AcaoSobreMembro.REMOVER, MembroDaCasa("m-beto", "Beto Lima", PapelMembro.OPERADOR, null, false))
+        assertNotNull(vm.estado.value.pendente)
+    }
 }
