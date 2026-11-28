@@ -1261,6 +1261,7 @@ fun AppNavegacao(
                         aoAbrirEmailDeSuporte = { pedido ->
                             abrirExterno(contexto, intentDoEmailDeSuporte(EnderecosOficiais.padrao.emailSuporte, turnoId, pedido))
                         },
+                        aoLigar = { numero -> abrirForaDoApp(intentParaLigar(numero), AvisoDeAberturaExterna.semTelefone(numero)) },
                         aoVoltar = { navController.popBackStack() },
                     )
                 }
@@ -1558,10 +1559,7 @@ fun AppNavegacao(
                             viewModel = viewModel,
                             aoFechar = { navController.popBackStack() },
                             aoLigar = { numero ->
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero")).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                abrirForaDoApp(intent, AvisoDeAberturaExterna.semTelefone(numero))
+                                abrirForaDoApp(intentParaLigar(numero), AvisoDeAberturaExterna.semTelefone(numero))
                             },
                         )
                     }

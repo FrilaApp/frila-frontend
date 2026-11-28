@@ -3,6 +3,7 @@ package br.com.frila.app
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,10 @@ import br.com.frila.core.designsystem.tema.FrilaRaios
 import br.com.frila.core.designsystem.tema.FrilaTema
 import br.com.frila.core.designsystem.tema.FrilaTipo
 import kotlinx.coroutines.launch
+
+/** Abre o discador com o número já digitado (`ACTION_DIAL`: a pessoa decide ligar; o app não precisa da permissão de chamada). */
+internal fun intentParaLigar(numero: String): Intent =
+    Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numero")).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
 
 /**
  * Abre [intent] em outro app (e-mail, discador, navegador). Devolve `false` quando o aparelho não tem quem o trate

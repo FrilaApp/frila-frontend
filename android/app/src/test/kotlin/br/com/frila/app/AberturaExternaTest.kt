@@ -156,4 +156,13 @@ class AberturaExternaTest {
 
         assertEquals("https://play.google.com/store/apps/details?id=x", abrirLojaDoApp(recusa, "x")?.paraCopiar)
     }
+
+    @Test
+    fun `ligar abre o discador com o numero, sem exigir a permissao de chamada`() {
+        val intent = intentParaLigar("190")
+
+        assertEquals(Intent.ACTION_DIAL, intent.action)
+        assertEquals(Uri.parse("tel:190"), intent.data)
+        assertTrue(intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
+    }
 }

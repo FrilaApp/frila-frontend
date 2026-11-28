@@ -260,4 +260,50 @@ class TelaOcorrenciaTest {
             ).assertIsDisplayed()
         }
     }
+
+    // ---- wGwOqAWW: "Risco de segurança" oferece ligar 190 e 180, como a Denúncia e o iOS ----
+
+    private fun montarComLigar(): MutableList<String> {
+        val numeros = mutableListOf<String>()
+        compose.setContent { FrilaTheme { TelaOcorrencia(viewModel = criarViewModel(), aoLigar = { numeros += it }) } }
+        return numeros
+    }
+
+    @Test
+    fun `risco de seguranca mostra o aviso e os dois numeros de emergencia, cada um liga o seu`() {
+        val numeros = montarComLigar()
+        compose.onNodeWithText(TextosOcorrencia.LIGAR_190).assertDoesNotExist()
+
+        compose.onNodeWithText(MotivoOcorrencia.RISCO_SEGURANCA.descricao).performClick()
+
+        compose.onNodeWithText(TextosOcorrencia.EMERGENCIA).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(TextosOcorrencia.LIGAR_190).performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        assertEquals(listOf("190"), numeros)
+        compose.onNodeWithText(TextosOcorrencia.LIGAR_180).performScrollTo().assertHeightIsAtLeast(FrilaMetricas.alvoMinimo).performClick()
+        assertEquals(listOf("190", "180"), numeros)
+    }
+
+    @Test
+    fun `os outros motivos nao oferecem ligar`() {
+        montarComLigar()
+
+        MotivoOcorrencia.entries.filter { it != MotivoOcorrencia.RISCO_SEGURANCA }.forEach { motivo ->
+            compose.onNodeWithText(motivo.descricao).performScrollTo().performClick()
+            compose.onNodeWithText(TextosOcorrencia.EMERGENCIA).assertDoesNotExist()
+            compose.onNodeWithText(TextosOcorrencia.LIGAR_190).assertDoesNotExist()
+            compose.onNodeWithText(TextosOcorrencia.LIGAR_180).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `trocar o motivo de risco por outro tira os numeros da tela`() {
+        montarComLigar()
+        compose.onNodeWithText(MotivoOcorrencia.RISCO_SEGURANCA.descricao).performClick()
+        compose.onNodeWithText(TextosOcorrencia.LIGAR_190).performScrollTo().assertIsDisplayed()
+
+        compose.onNodeWithText(MotivoOcorrencia.OUTRO.descricao).performScrollTo().performClick()
+
+        compose.onNodeWithText(TextosOcorrencia.LIGAR_190).assertDoesNotExist()
+        compose.onNodeWithText(TextosOcorrencia.LIGAR_180).assertDoesNotExist()
+    }
 }
