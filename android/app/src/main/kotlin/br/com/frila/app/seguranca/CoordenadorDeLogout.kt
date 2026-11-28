@@ -93,11 +93,15 @@ class CoordenadorDeLogout(
     /**
      * Sair condicional: só encerra se a sessão guardada ainda tem o refresh token [esperado], e então passa pela mesma
      * limpeza completa do [limparSessao] ([deslogar]). Se a sessão mudou (outra conta entrou), não apaga nem limpa nada.
+     *
+     * Não é o caminho da renovação recusada em produção: o cliente apaga pelo `SessaoComCacheVagas` e avisa
+     * [encerrarAposRecusa] (#793). Os dois completam a limpeza fora do lock do armazenamento, então conferem antes que
+     * nenhuma conta entrou depois do apagar ([completarSeAindaSemSessao]).
      */
     override fun limparSeRefreshTokenIgual(esperado: String): Boolean {
         val tokenDeAcesso = armazenamentoDeSessao.obterSessao()?.accessToken
         if (!armazenamentoDeSessao.limparSeRefreshTokenIgual(esperado)) return false
-        completarLimpezaDoLogout()
+        completarSeAindaSemSessao()
         if (tokenDeAcesso != null) removerDispositivoEmSegundoPlano(tokenDeAcesso)
         return true
     }
@@ -159,7 +163,15 @@ class CoordenadorDeLogout(
      * #793: o Auth recusou o refresh e o cliente já tirou a sessão do armazenamento. Completa a limpeza do Sair (cache de imagens,
      * corrotinas da sessão, cliente novo). Sem `remover_dispositivo`: o token de acesso que o pediria já foi recusado.
      */
-    fun encerrarAposRecusa(): ResultadoLimpezaLogout = completarLimpezaDoLogout()
+    fun encerrarAposRecusa(): ResultadoLimpezaLogout? = completarSeAindaSemSessao()
+
+    /**
+     * A limpeza depois de um apagar condicional roda fora do lock do armazenamento. Se outra conta entrou nesse meio, o que
+     * está no aparelho (cache, corrotinas, cliente) já é dela: não limpa nada e devolve `null`. Resta a janela entre esta
+     * leitura e a limpeza, que só um lock comum com o login fecharia.
+     */
+    private fun completarSeAindaSemSessao(): ResultadoLimpezaLogout? =
+        if (armazenamentoDeSessao.obterSessao() != null) null else completarLimpezaDoLogout()
 
     /** Passos 2 a 4 do [deslogar], depois que a sessão já saiu do armazenamento. */
     private fun completarLimpezaDoLogout(): ResultadoLimpezaLogout {
