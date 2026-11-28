@@ -28,6 +28,15 @@ object ValidadorIsolamentoConta {
         return vinculoIdDoPush == vinculoIdDaSessaoAtiva
     }
 
-    /** Mensagem genérica para o push neutralizado (nunca o `title`/`body` originais do payload). */
-    const val MENSAGEM_NEUTRALIZADA = "Frila: Nova notificação disponível"
+    /**
+     * O corpo do push neutralizado (nunca o `title`/`body` originais do payload). Dkl0qvR7: o texto do contrato
+     * (`openapi.yaml:773`) e do iOS (`FiltroDoPushPorVinculo.corpoNeutro`). Neutro de propósito: só diz que há algo no app.
+     */
+    const val MENSAGEM_NEUTRALIZADA = "Abra o aplicativo para conferir."
+
+    /**
+     * O título neutro do contrato e do iOS (`FiltroDoPushPorVinculo.tituloNeutro`). Ainda não é usado: o título do aviso
+     * neutralizado vive em `ProcessadorDePush` ("Frila") e fica para um próximo cartão.
+     */
+    const val TITULO_NEUTRO = "Nova notificação do Frila"
 }

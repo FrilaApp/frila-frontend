@@ -334,4 +334,35 @@ class ProcessadorDePushTest {
         assertFalse(semVinculo.vinculoConfirmado, "o validador deixa passar o push sem vínculo, mas ele não confirma a conta")
         assertFalse(deOutraConta.vinculoConfirmado)
     }
+
+    // ---- Dkl0qvR7 (item 289): o aviso de outra conta sai com o corpo do contrato e sem nenhum dado da vaga ou da pessoa ----
+
+    @Test
+    fun `aviso de outra conta sai com o corpo exato do contrato e sem nenhum dado do payload`() {
+        val payload = mapOf(
+            "vinculo_id" to "vinculo-da-conta-anterior",
+            "tipo" to "confirmacao",
+            "titulo" to "Turno confirmado no Bar do Zé",
+            "corpo" to "Ana, seu turno de garçom é amanhã às 19h na CLS 405",
+            "vaga_id" to "vaga-secreta-123",
+            "turno_id" to "turno-secreto-456",
+            "chamada_id" to "chamada-secreta-789",
+            "posicao_id" to "posicao-secreta-000",
+        )
+
+        val resultado = processadorComSessao(sessaoCom(vinculoId = "vinculo-da-conta-atual")).processar(payload)
+
+        assertTrue(resultado.neutralizada)
+        assertEquals("Abra o aplicativo para conferir.", resultado.corpo)
+        val falado = resultado.titulo + " " + resultado.corpo
+        for (dado in listOf("Bar do Zé", "Ana", "garçom", "19h", "CLS 405", "Turno confirmado", "vaga-secreta", "turno-secreto", "chamada-secreta", "posicao-secreta", "confirmacao")) {
+            assertFalse(falado.contains(dado, ignoreCase = true), "o aviso neutralizado vazou: $dado")
+        }
+        assertNull(resultado.vagaId)
+        assertNull(resultado.turnoId)
+        assertNull(resultado.chamadaId)
+        assertNull(resultado.posicaoId)
+        assertNull(resultado.tipo, "sem o tipo, o toque não abre a tela da outra conta")
+        assertFalse(resultado.vinculoConfirmado)
+    }
 }

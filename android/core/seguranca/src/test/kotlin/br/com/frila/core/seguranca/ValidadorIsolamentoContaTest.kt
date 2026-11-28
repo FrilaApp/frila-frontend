@@ -1,5 +1,6 @@
 package br.com.frila.core.seguranca
 
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -61,5 +62,16 @@ class ValidadorIsolamentoContaTest {
     fun `mensagem neutralizada nunca varia por payload - e sempre o texto generico fixo`() {
         assertTrue(ValidadorIsolamentoConta.MENSAGEM_NEUTRALIZADA.isNotBlank())
         assertFalse(ValidadorIsolamentoConta.MENSAGEM_NEUTRALIZADA.contains("vaga", ignoreCase = true))
+    }
+
+    /**
+     * Dkl0qvR7 (item 289): o texto exato do contrato (`openapi.yaml:773`: "Nova notificação do Frila", "Abra o aplicativo para
+     * conferir.") e do iOS (`FiltroDoPushPorVinculo.tituloNeutro`/`corpoNeutro`). Comparar com a constante não pegaria um texto
+     * trocado; aqui vai o literal.
+     */
+    @Test
+    fun `o texto neutro e o do contrato, palavra por palavra`() {
+        assertEquals("Abra o aplicativo para conferir.", ValidadorIsolamentoConta.MENSAGEM_NEUTRALIZADA)
+        assertEquals("Nova notificação do Frila", ValidadorIsolamentoConta.TITULO_NEUTRO)
     }
 }
