@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.heading
@@ -105,6 +106,7 @@ internal fun CartaoDeStatusDoTurno(
             )
             Text(text = turno.estabelecimentoNome, style = FrilaTipo.corpo, color = cores.tintaSuave)
             Text(text = turno.dataHorarioFormatado, style = FrilaTipo.corpo, color = cores.tinta)
+            turno.quemRecebeNaTela?.let { Text(text = stringResource(R.string.turno_quem_recebe, it), style = FrilaTipo.corpo, color = cores.tinta) }
             Text(text = turno.valorFormatado, style = FrilaTipo.rotuloSecundario, color = cores.tinta)
             if (selo.etapa != null) {
                 Spacer(modifier = Modifier.height(FrilaEspacamento.item))

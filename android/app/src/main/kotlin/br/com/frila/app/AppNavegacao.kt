@@ -37,6 +37,8 @@ import androidx.navigation.compose.rememberNavController
 import br.com.frila.app.falhas.GerenciadorConsentimentoCrashlytics
 import br.com.frila.app.falhas.TelaConsentimentoCrashlytics
 import br.com.frila.app.seguranca.CoordenadorDeLogout
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
+import br.com.frila.core.dominio.regra.ListaAtualizavel
 import br.com.frila.core.designsystem.componentes.AvisoFrila
 import br.com.frila.core.designsystem.componentes.TomAviso
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -88,6 +90,7 @@ import br.com.frila.feature.vagas.detalhe.TelaAberturaDeVaga
 import br.com.frila.feature.vagas.detalhe.TelaDetalheVaga
 import br.com.frila.feature.vagas.detalhe.TelaTurnoConfirmado
 import br.com.frila.feature.vagas.detalhe.TelaConflitoHorario
+import br.com.frila.feature.vagas.detalhe.TelaFuncaoIncompativel
 import br.com.frila.feature.vagas.detalhe.paraVagaAberta
 import br.com.frila.feature.vagas.detalhe.TelaVagaIndisponivel
 import br.com.frila.feature.turnos.contratante.TelaAvaliacaoDoContratante
@@ -225,12 +228,14 @@ object Rotas {
     const val CONFLITO_HORARIO = "conflito_horario/{vagaId}"
     const val VAGA_PREENCHIDA = "vaga_preenchida/{vagaId}"
     const val VAGA_ENCERRADA = "vaga_encerrada/{vagaId}"
+    const val FUNCAO_INCOMPATIVEL = "funcao_incompativel/{vagaId}"
     const val AVALIACAO_DO_CONTRATANTE = "avaliacao_contratante/{turnoId}?estabelecimentoId={estabelecimentoId}"
 
     fun turnoConfirmado(vagaId: String) = "turno_confirmado/$vagaId"
     fun conflitoHorario(vagaId: String) = "conflito_horario/$vagaId"
     fun vagaPreenchida(vagaId: String) = "vaga_preenchida/$vagaId"
     fun vagaEncerrada(vagaId: String) = "vaga_encerrada/$vagaId"
+    fun funcaoIncompativel(vagaId: String) = "funcao_incompativel/$vagaId"
     fun avaliacaoDoContratante(turnoId: String, estabelecimentoId: String? = null): String {
         val base = "avaliacao_contratante/$turnoId"
         return if (estabelecimentoId == null) base else "$base?estabelecimentoId=${Uri.encode(estabelecimentoId)}"
@@ -864,6 +869,10 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: FeedVagasViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    // HaRJJ0L0: relê ao voltar do segundo plano e com um push da conta, em silêncio (a lista não pisca). Sem o ponto central no Koin (testes de navegação que montam o próprio módulo), a rota segue sem a atualização.
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     val estadoFeed by viewModel.estado.collectAsStateWithLifecycle()
                     LaunchedEffect(estadoFeed.status) {
                         if (estadoFeed.status != StatusFeed.CARREGANDO) {
@@ -917,6 +926,9 @@ fun AppNavegacao(
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
                                 },
+                                aoNavegarParaFuncaoIncompativel = { vagaRecusada ->
+                                    navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
+                                },
                             )
                         }
                     } else {
@@ -948,6 +960,9 @@ fun AppNavegacao(
                                 },
                                 aoNavegarParaContaSuspensa = {
                                     navController.navigate(Rotas.contaSuspensa())
+                                },
+                                aoNavegarParaFuncaoIncompativel = { vagaRecusada ->
+                                    navegarComVaga(navController, Rotas.funcaoIncompativel(vagaRecusada.id), vagaRecusada)
                                 },
                             )
                         }
@@ -1010,6 +1025,25 @@ fun AppNavegacao(
                     } else {
                         FallbackVoltarAoFeed(navController, entrada)
                     }
+                }
+            }
+
+            composable(Rotas.FUNCAO_INCOMPATIVEL) {
+                RotaProtegida(guardaBiometrico) {
+                    TelaFuncaoIncompativel(
+                        // Como o iOS (`ajustarFuncoes` reabre a vaga): o resultado sai da pilha, e salvar ou voltar das
+                        // funções devolve a pessoa ao detalhe da vaga, para tentar de novo.
+                        aoAjustarFuncoes = {
+                            navController.navigate(Rotas.FUNCOES_E_HORARIOS) {
+                                popUpTo(Rotas.FUNCAO_INCOMPATIVEL) { inclusive = true }
+                            }
+                        },
+                        aoVoltarAoFeed = {
+                            navController.navigate(Rotas.FEED) {
+                                popUpTo(Rotas.FEED) { inclusive = true }
+                            }
+                        },
+                    )
                 }
             }
 
@@ -1152,6 +1186,9 @@ fun AppNavegacao(
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MeusTurnosViewModel = koinViewModel()
                     LaunchedEffect(viewModel) { viewModel.carregar() }
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MEUS_TURNOS, atualizacao) { viewModel.atualizarSemPiscar().join() }
+                    }
                     ComConfirmacaoPorCodigo(
                         habilitada = checkinPorCodigoHabilitado,
                         aoPresencaVerificada = { viewModel.carregar() },
@@ -1540,6 +1577,12 @@ fun AppNavegacao(
                     val viewModel: EquipeDeConfiancaViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId) },
                     )
+                    // A tela relê sozinha a cada aparição: só a volta do segundo plano e o push entram (`.nunca` do iOS).
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.EQUIPE_DE_CONFIANCA, atualizacao, AtualizacaoAoAparecer.NUNCA) {
+                            viewModel.atualizarEmSilencio().join()
+                        }
+                    }
                     TelaEquipeDeConfianca(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
@@ -1677,6 +1720,9 @@ fun AppNavegacao(
                     val viewModel: MinhasVagasViewModel = koinViewModel(
                         parameters = { parametersOf(estabelecimentoId, nomeEstabelecimento, vagaRecemPublicadaId) },
                     )
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_VAGAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     // L2-3: "Republicar posições em urgência" é uma confirmação na própria lista; cancelar e republicar são telas.
                     var restantesDe by remember { mutableStateOf<ItemMinhaVaga?>(null) }
                     TelaMinhasVagas(
@@ -1750,6 +1796,9 @@ fun AppNavegacao(
             composable(Rotas.MINHAS_CANDIDATURAS) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: MinhasCandidaturasViewModel = koinViewModel()
+                    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+                        AtualizacaoAutomaticaDaLista(ListaAtualizavel.MINHAS_CANDIDATURAS, atualizacao) { viewModel.atualizarEmSilencio().join() }
+                    }
                     var retirando by remember { mutableStateOf<ItemCandidatura?>(null) }
                     TelaMinhasCandidaturas(
                         viewModel = viewModel,

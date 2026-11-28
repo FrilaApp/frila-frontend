@@ -285,4 +285,17 @@ class ProcessadorDePushTest {
         assertFalse(resultado.silenciada)
         assertTrue(comTurnosDesligado.silenciada)
     }
+
+    @Test
+    fun `so o push com o vinculo_id da sessao ativa confirma o vinculo para as listas (HaRJJ0L0)`() {
+        val processador = processadorComSessao(sessaoCom(vinculoId = "vinculo-abc"))
+
+        val comVinculo = processador.processar(mapOf("vinculo_id" to "vinculo-abc", "tipo" to "vaga_urgente"))
+        val semVinculo = processador.processar(mapOf("tipo" to "vaga_urgente"))
+        val deOutraConta = processador.processar(mapOf("vinculo_id" to "outro", "tipo" to "vaga_urgente"))
+
+        assertTrue(comVinculo.vinculoConfirmado)
+        assertFalse(semVinculo.vinculoConfirmado, "o validador deixa passar o push sem vínculo, mas ele não confirma a conta")
+        assertFalse(deOutraConta.vinculoConfirmado)
+    }
 }

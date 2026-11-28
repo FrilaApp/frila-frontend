@@ -1,18 +1,24 @@
 package br.com.frila.app
 
 import android.net.Uri
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.feature.chamadas.profissional.ChamadaRecebidaViewModel
 import br.com.frila.feature.chamadas.profissional.EditarServicosViewModel
 import br.com.frila.feature.chamadas.profissional.PreferenciasChamadaViewModel
 import br.com.frila.feature.chamadas.profissional.TelaDetalheChamadaRecebida
 import br.com.frila.feature.chamadas.profissional.TelaEditarServicos
 import br.com.frila.feature.chamadas.profissional.TelaPreferenciasDeChamada
+import br.com.frila.feature.suporte.AcoesDeSeguranca
+import br.com.frila.feature.suporte.TextosSuporte
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -66,10 +72,33 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaProfissional(
             val chamadaId = entrada.arguments?.getString("chamadaId").orEmpty()
             // A chave é a chamada: um aviso de outra chamada na mesma posição da pilha recria o ViewModel.
             val viewModel: ChamadaRecebidaViewModel = koinViewModel(key = chamadaId, parameters = { parametersOf(chamadaId) })
+            // CD-RF12: denunciar e bloquear quem chamou. A denúncia leva o id da chamada (0.2.71); bloqueada a casa, a chamada não se
+            // responde mais (o servidor a encerra, RF26) e a tela tira o rodapé de aceitar e recusar.
+            val estado by viewModel.estado.collectAsStateWithLifecycle()
+            val bloqueio = bloqueioDoPerfil(estado.detalhe?.outraParte, "chamada-$chamadaId")
+            val estadoDoBloqueio = bloqueio?.estado?.collectAsStateWithLifecycle()?.value
+            val seguranca: (@Composable (PerfilPublicoDto) -> Unit)? = bloqueio?.let { viewModelDoBloqueio ->
+                @Composable { perfil: PerfilPublicoDto ->
+                    AcoesDeSeguranca(
+                        nome = perfil.nome,
+                        viewModel = viewModelDoBloqueio,
+                        aoDenunciar = {
+                            navController.navigate(
+                                Rotas.denuncia(tipoDeAlvoDe(perfil), perfil.id, chamadaId = chamadaId, fotoId = perfil.fotoId),
+                            )
+                        },
+                        rotuloBloqueado = TextosSuporte.BLOQUEOU_ESTABELECIMENTO,
+                        tagBase = "chamada",
+                    )
+                }
+            }
             TelaDetalheChamadaRecebida(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
                 aoAbrirTurno = { turnoId -> navController.navigate("meus_turnos/${Uri.encode(turnoId)}") },
+                acoesDeSeguranca = seguranca,
+                bloqueado = estadoDoBloqueio?.bloqueado == true,
+                bloqueando = estadoDoBloqueio?.bloqueando == true,
             )
         }
     }

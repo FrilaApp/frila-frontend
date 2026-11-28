@@ -58,6 +58,10 @@ fun TelaDetalheChamadaRecebida(
     aoAbrirTurno: ((turnoId: String) -> Unit)? = null,
     /** Denúncia e bloqueio de quem chamou (CD-RF12); a tela só reserva o lugar, o chamador traz o conteúdo. */
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
+    /** Bloqueada a casa, a chamada não se responde mais (o servidor a encerra, RF26): some o rodapé de aceitar e recusar. */
+    bloqueado: Boolean = false,
+    /** Há um pedido de bloqueio em curso: Aceitar e Recusar ficam desligados até ele voltar (xsZd5wZO). */
+    bloqueando: Boolean = false,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -72,6 +76,8 @@ fun TelaDetalheChamadaRecebida(
         aoVoltar = aoVoltar,
         aoAbrirTurno = aoAbrirTurno ?: { aoVoltar() },
         acoesDeSeguranca = acoesDeSeguranca,
+        bloqueado = bloqueado,
+        bloqueando = bloqueando,
         modifier = modifier,
     )
 }
@@ -98,6 +104,8 @@ fun ConteudoDaChamadaRecebida(
     aoAbrirTurno: (String) -> Unit,
     modifier: Modifier = Modifier,
     acoesDeSeguranca: (@Composable (PerfilPublicoDto) -> Unit)? = null,
+    bloqueado: Boolean = false,
+    bloqueando: Boolean = false,
 ) {
     val detalhe = tela.detalhe
     val resultado = tela.resultado
@@ -106,7 +114,7 @@ fun ConteudoDaChamadaRecebida(
     val turnoAceito = tela.turnoAceito
     val recusada = resultado != null && resultado.chamada.estado == "recusada"
     // Decidindo: a chamada está aberta e sem resposta. Respondendo, o aceite continua no lugar, só desligado.
-    val decidindo = detalhe != null && !aceita && !recusada &&
+    val decidindo = detalhe != null && !aceita && !recusada && !bloqueado &&
         (tela.podeResponder || (tela.respondendo && detalhe.estado == "aberta" && tela.mensagemDeConcorrencia == null))
 
     Scaffold(
@@ -120,13 +128,13 @@ fun ConteudoDaChamadaRecebida(
                     BotaoPrimario(
                         texto = TextosChamadaProfissional.ACEITAR_CHAMADA,
                         aoClicar = aoAceitar,
-                        habilitado = !tela.respondendo,
+                        habilitado = !tela.respondendo && !bloqueando,
                         modifier = Modifier.fillMaxWidth().testTag("aceitar-chamada"),
                     )
                     BotaoSecundario(
                         texto = TextosChamadaProfissional.RECUSAR_CHAMADA,
                         aoClicar = aoAbrirRecusa,
-                        habilitado = !tela.respondendo,
+                        habilitado = !tela.respondendo && !bloqueando,
                         modifier = Modifier.fillMaxWidth().testTag("recusar-chamada"),
                     )
                 }

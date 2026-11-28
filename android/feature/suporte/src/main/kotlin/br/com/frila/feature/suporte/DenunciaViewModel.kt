@@ -2,6 +2,7 @@ package br.com.frila.feature.suporte
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import br.com.frila.core.dominio.modelo.BloqueiosDaSessao
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoDenuncia
 import br.com.frila.core.dominio.modelo.TipoDeAlvo
@@ -65,12 +66,14 @@ class DenunciaViewModel(
     private val chamadaId: String? = null,
     private val fotoId: String? = null,
     private val gerarChave: () -> String = { UUID.randomUUID().toString() },
+    /** O que a sessão já bloqueou (I1PonzKJ): a tela abre sabendo se este alvo já foi bloqueado. `null` ignora (testes antigos). */
+    private val bloqueios: BloqueiosDaSessao? = null,
     escopo: CoroutineScope? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
-    private val _estado = MutableStateFlow(EstadoDenuncia())
+    private val _estado = MutableStateFlow(EstadoDenuncia(bloqueado = bloqueios?.contem(alvoTipo, alvoId) == true))
     val estado: StateFlow<EstadoDenuncia> = _estado.asStateFlow()
 
     /** Corpo e chave do último envio; a chave só é reaproveitada se o corpo for o mesmo. */

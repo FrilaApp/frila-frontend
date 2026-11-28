@@ -1,5 +1,6 @@
 package br.com.frila.feature.vagas.detalhe
 
+import android.content.Intent
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -10,10 +11,13 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import br.com.frila.core.designsystem.componentes.TextosVerNoMapa
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,6 +42,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -59,6 +65,8 @@ class TelaDetalheVagaTest {
         incluiRefeicao: Boolean = true,
         incluiTransporte: Boolean = false,
         exigeMaterial: Boolean = false,
+        positivas: Int = 7,
+        total: Int = 7,
     ) = VagaAbertaDto(
         id = "11111111-1111-1111-1111-111111111111",
         funcao = FuncaoDto(id = "f1", nome = funcaoNome, categoria = "Salão"),
@@ -66,7 +74,7 @@ class TelaDetalheVagaTest {
             id = "e1",
             tipo = "estabelecimento",
             nome = estabelecimentoNome,
-            reputacao = ReputacaoDto(positivas = 7, total = 7, taxaComparecimento = 1.0, turnosConsiderados = 7, turnosRealizados = 7),
+            reputacao = ReputacaoDto(positivas = positivas, total = total, taxaComparecimento = 1.0, turnosConsiderados = total, turnosRealizados = total),
         ),
         inicioEm = "2026-11-01T21:00:00Z",
         fimEm = "2026-11-02T03:00:00Z",
@@ -628,5 +636,230 @@ class TelaDetalheVagaTest {
             compose.onNodeWithTag("dialogo-permissao-notificacao").assertDoesNotExist()
             compose.onNodeWithText("Candidatura confirmada").assertExists().assertIsNotEnabled()
         }
+    }
+
+    // ---- zjiTWbAP: "Ver no mapa" no detalhe da vaga, com a casa e o endereço, como o iOS ----
+
+    @Test
+    fun `Ver no mapa abre a casa e o endereco da vaga no app de mapas`() {
+        val viewModel = criarViewModel(criarVaga(estabelecimentoNome = "Bar do Zé"))
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModel) } }
+
+        compose.onNodeWithTag(TextosVerNoMapa.TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        val aberto = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, aberto.action)
+        assertEquals("geo:0,0?q=Bar%20do%20Z%C3%A9%2C%20SQN%20108", aberto.dataString)
+    }
+
+    // ── A reputação da casa (DLjTVc2e, item 149) ──────────────────────────────────────────────────────────────────────
+
+    private fun textoDaReputacaoNaTela(positivas: Int, total: Int): String {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga(positivas = positivas, total = total))) } }
+        return compose.onNodeWithTag("detalhe-reputacao").fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("") { it.text }
+    }
+
+    @Test
+    fun `a reputacao da casa diz quantas avaliacoes indicam que trabalhariam la de novo`() {
+        assertEquals("3 de 5 avaliações indicam que trabalhariam lá de novo", textoDaReputacaoNaTela(positivas = 3, total = 5))
+    }
+
+    @Test
+    fun `uma casa sem avaliacoes diz Ainda sem avaliacoes`() {
+        assertEquals("Ainda sem avaliações.", textoDaReputacaoNaTela(positivas = 0, total = 0))
+    }
+
+    @Test
+    fun `uma casa com avaliacoes e nenhuma positiva ainda mostra a contagem`() {
+        assertEquals("0 de 4 avaliações indicam que trabalhariam lá de novo", textoDaReputacaoNaTela(positivas = 0, total = 4))
+    }
+
+    // ── A leitura de detalhe_vaga ao abrir pelo feed (DLjTVc2e) ───────────────────────────────────────────────────────
+
+    private fun viewModelQueLeODetalhe(resposta: String, status: HttpStatusCode = HttpStatusCode.OK): DetalheVagaViewModel {
+        val cliente = ClienteSupabase(
+            baseUrl = "https://frila.supabase.co",
+            apiKey = "chave-teste",
+            engine = MockEngine { respond(resposta, status, headersOf(HttpHeaders.ContentType, "application/json")) },
+        )
+        return DetalheVagaViewModel(vaga = criarVaga(), servicoVagas = ServicoVagas(cliente), escopo = CoroutineScope(Dispatchers.Default))
+    }
+
+    @Test
+    fun `aberta pelo feed, o bloco do detalhe aparece depois da leitura, sem trocar o que ja estava na tela`() {
+        val json = ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor())
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe(json)) } }
+
+        // Na hora: o que o feed trouxe.
+        compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
+        // Depois da leitura: o que a lista não traz.
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(hasText("Responsável no local: Procure a gerente no balcão")).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Observações: Chegar 15 minutos antes")).performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("Traje: Camisa preta")).assertExists()
+        compose.onNodeWithText("Bar do Zé").assertExists()
+    }
+
+    @Test
+    fun `aberta pelo feed, se a leitura do detalhe falha a tela segue com o que veio do feed e sem erro`() {
+        compose.setContent {
+            // Falha de rede/servidor (um 404 agora diz que a vaga não está mais disponível: item 160).
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError)) }
+        }
+        compose.waitForIdle()
+        Thread.sleep(300)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Bar do Zé").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Não foi possível", substring = true).fetchSemanticsNodes().size)
+        compose.onNodeWithText("Candidatar-se").assertExists()
+    }
+
+    // ── O rateio dos 10% (DLjTVc2e, item 150) ─────────────────────────────────────────────────────────────────────────
+
+    private fun montarComDetalhe(participaRateio: Boolean?) {
+        val vm = DetalheVagaViewModel(
+            vaga = criarVaga(),
+            servicoVagas = ServicoVagas(ClienteSupabase("https://frila.supabase.co", "chave-teste", engine = MockEngine { respond("") })),
+            detalhe = vagaDoServidor(participaRateio = participaRateio),
+            escopo = CoroutineScope(Dispatchers.Default),
+        )
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = vm) } }
+    }
+
+    @Test
+    fun `a casa que participa do rateio mostra Rateio dos 10 por cento Sim`() {
+        montarComDetalhe(participaRateio = true)
+        compose.onNodeWithText("Rateio dos 10%: Sim").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `a casa que nao participa mostra Nao`() {
+        montarComDetalhe(participaRateio = false)
+        compose.onNodeWithText("Rateio dos 10%: Não").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `quando a casa nao disse o rateio, a linha nao aparece`() {
+        montarComDetalhe(participaRateio = null)
+        compose.onNode(hasText("Responsável no local", substring = true)).performScrollTo().assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `aberta pela lista, sem o detalhe do servidor, a tela nao inventa o rateio`() {
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = criarViewModel(criarVaga())) } }
+        assertEquals(0, compose.onAllNodesWithText("Rateio dos 10%", substring = true).fetchSemanticsNodes().size)
+    }
+
+    // ── A vaga aberta pelo feed que já não está disponível (DLjTVc2e, item 160) ──────────────────────────────────────
+
+    @Test
+    fun `404 do detalhe mostra Esta vaga nao esta mais disponivel e esconde o botao Candidatar-se`() {
+        compose.setContent {
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"nao_encontrado","message":"x"}""", HttpStatusCode.NotFound)) }
+        }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().isNotEmpty() }
+
+        compose.onNodeWithText("Esta vaga não está mais disponível.").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Candidatar-se").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `200 com a vaga encerrada mostra o aviso e esconde o botao`() {
+        val json = ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor(estado = "encerrada"))
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe(json)) } }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().isNotEmpty() }
+
+        assertEquals(0, compose.onAllNodesWithText("Candidatar-se").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `falha de rede do detalhe nao mostra o aviso e o botao segue`() {
+        compose.setContent {
+            FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe("""{"code":"erro_interno","message":"x"}""", HttpStatusCode.InternalServerError)) }
+        }
+        compose.waitForIdle()
+        Thread.sleep(300)
+        compose.waitForIdle()
+
+        assertEquals(0, compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Candidatar-se").assertExists()
+    }
+
+    @Test
+    fun `vaga disponivel (publicada com posicao aberta) nao mostra o aviso e o botao segue`() {
+        val json = ClienteSupabase.jsonFrila.encodeToString(br.com.frila.core.rede.VagaDto.serializer(), vagaDoServidor())
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModelQueLeODetalhe(json)) } }
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Responsável no local", substring = true).fetchSemanticsNodes().isNotEmpty() }
+
+        assertEquals(0, compose.onAllNodesWithText("Esta vaga não está mais disponível.").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Candidatar-se").assertExists()
+    }
+
+    // ── O selo Aguardando resposta (DLjTVc2e, item 151) ───────────────────────────────────────────────────────────────
+
+    private val respostaPendente = """{"estado": "pendente", "candidatura_id": "c1", "posicao_id": null, "turno_id": null, "contato": null}"""
+    private val respostaConfirmada = """{"estado": "confirmada", "candidatura_id": "c1", "posicao_id": "p1", "turno_id": "t1", "contato": {"nome": "Zé", "telefone": "61988887777"}}"""
+
+    private fun candidatarEm(modo: String, resposta: String): DetalheVagaViewModel {
+        val viewModel = criarViewModel(criarVaga(modo = modo), respostaJson = resposta)
+        compose.setContent { FrilaTheme { TelaDetalheVaga(viewModel = viewModel) } }
+        return viewModel
+    }
+
+    @Test
+    fun `por selecao, antes de candidatar mostra Por selecao e a frase da casa`() {
+        candidatarEm("selecao", respostaPendente)
+        compose.onNodeWithText("Por seleção").assertIsDisplayed()
+        compose.onNodeWithText("Modo seleção: contratante escolhe depois").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Você se candidatou.").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `por selecao, depois de candidatar com candidatura pendente o selo diz Aguardando resposta e a frase Voce se candidatou`() {
+        val viewModel = candidatarEm("selecao", respostaPendente)
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Aguardando resposta").assertIsDisplayed()
+        compose.onNodeWithText("Você se candidatou.").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Por seleção").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Modo seleção: contratante escolhe depois").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `em urgencia o selo nunca vira Aguardando resposta`() {
+        val viewModel = candidatarEm("urgencia", respostaConfirmada)
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Urgência").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("Você se candidatou.").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `em urgencia, mesmo com uma resposta pendente, o selo segue Urgencia (o Aguardando resposta e so do modo selecao)`() {
+        val viewModel = candidatarEm("urgencia", respostaPendente)
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Urgência").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Modo urgência: confirmação na hora").assertIsDisplayed()
+    }
+
+    @Test
+    fun `por selecao, uma candidatura recusada pelo servidor nao vira Aguardando resposta`() {
+        val viewModel = candidatarEm("selecao", """{"code":"vaga_encerrada","message":"x"}""")
+        runBlocking { viewModel.candidatar().join() }
+        compose.waitForIdle()
+
+        assertEquals(0, compose.onAllNodesWithText("Aguardando resposta").fetchSemanticsNodes().size)
+        compose.onNodeWithText("Por seleção").assertIsDisplayed()
     }
 }

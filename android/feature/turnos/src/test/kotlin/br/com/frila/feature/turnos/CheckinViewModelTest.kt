@@ -204,7 +204,7 @@ class CheckinViewModelTest {
     }
 
     @Test
-    fun `erro fora_da_janela resulta em status ERRO com mensagem`() = runBlocking {
+    fun `erro fora_da_janela resulta em status ERRO com o texto proprio da janela`() = runBlocking {
         val provedor = provedorComPermissaoEGps(coordenadaProxima)
         val servico = servicoComResposta(
             json = """{"code":"fora_da_janela","message":"toque fora da janela do turno"}""",
@@ -215,7 +215,7 @@ class CheckinViewModelTest {
         viewModel.fazerCheckin().join()
 
         assertEquals(StatusCheckin.ERRO, viewModel.estado.value.status)
-        assertNotNull(viewModel.estado.value.mensagemErro)
+        assertEquals("Fora do horário permitido para check-in deste turno.", viewModel.estado.value.mensagemErro)
     }
 
     // ---- 409 vaga_encerrada no check-in (cartão kcQICUG0): só teste, o mapeamento já existe ----

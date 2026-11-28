@@ -57,7 +57,7 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
     private val turnoId = "44444444-4444-4444-4444-444444444444"
     private val idDaMidia = "33333333-3333-3333-3333-333333333333"
 
-    private fun cliente() = ClienteSupabase(
+    private fun cliente() = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { request ->
@@ -103,6 +103,7 @@ class KoinGrafoPerfilETurnosTest : KoinTest {
 
     @AfterEach
     fun depois() {
+        encerrarOsClientesDoTeste()
         stopKoin()
         Dispatchers.resetMain()
     }
