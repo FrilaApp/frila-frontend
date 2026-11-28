@@ -23,6 +23,10 @@ class ExemploTest {
     }
 
     @Test
+    fun `roda`() {
+    }
+
+    @Test
     fun `recebe um diretorio`(dir: java.io.File) {
     }
 
@@ -48,13 +52,15 @@ if saida="$(python3 "$SCRIPT" --android-dir "$ANDROID" 2>&1)"; then
   echo "FALHA: o @Test ignorado deveria reprovar: $saida" >&2; exit 1
 fi
 [[ "$saida" == *"devolve Boolean e e ignorado"* ]] || { echo "FALHA: não apontou o teste ignorado: $saida" >&2; exit 1; }
+# `roda` é prefixo de `roda e passa`, que rodou: o prefixo não pode contar como relatório de `roda`.
+grep -qE ': roda$' <<<"$saida" || { echo "FALHA: não apontou o teste que é prefixo de outro: $saida" >&2; exit 1; }
 [[ "$saida" != *"recebe um diretorio"* ]] || { echo "FALHA: o sufixo (File) deveria ser tolerado: $saida" >&2; exit 1; }
 [[ "$saida" != *"tem parenteses"* ]] || { echo "FALHA: parenteses no nome do teste deveriam valer: $saida" >&2; exit 1; }
 
 # 2. Com os três relatórios, aprova.
-relatorio "$(caso 'roda e passa()')$(caso 'recebe um diretorio(File)')$(caso 'tem parenteses no nome (RN06)()')$(caso 'devolve Boolean e e ignorado()')"
+relatorio "$(caso 'roda e passa()')$(caso 'roda()')$(caso 'recebe um diretorio(File)')$(caso 'tem parenteses no nome (RN06)()')$(caso 'devolve Boolean e e ignorado()')"
 saida="$(python3 "$SCRIPT" --android-dir "$ANDROID" 2>&1)" || { echo "FALHA: o caso conforme foi reprovado: $saida" >&2; exit 1; }
-[[ "$saida" == *"OK: 4 @Test conferidos"* ]] || { echo "FALHA: aprovação sem a mensagem esperada: $saida" >&2; exit 1; }
+[[ "$saida" == *"OK: 5 @Test conferidos"* ]] || { echo "FALHA: aprovação sem a mensagem esperada: $saida" >&2; exit 1; }
 
 # 3. Sem nenhum relatório, não aprova em silêncio.
 rm -rf "$ANDROID/core/exemplo/build"
