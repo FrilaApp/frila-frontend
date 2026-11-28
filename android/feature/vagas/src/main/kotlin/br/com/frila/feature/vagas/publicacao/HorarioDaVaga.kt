@@ -22,6 +22,9 @@ fun formatarData(instante: Instant, fuso: ZoneId = FUSO_DA_VAGA): String = insta
 
 fun formatarHora(instante: Instant, fuso: ZoneId = FUSO_DA_VAGA): String = instante.atZone(fuso).format(FORMATO_HORA)
 
+/** "14/11/2026 às 15:00", no fuso da vaga (o `FormatadorFrila.dataEHora` do iOS). */
+fun formatarDataEHora(instante: Instant, fuso: ZoneId = FUSO_DA_VAGA): String = "${formatarData(instante, fuso)} às ${formatarHora(instante, fuso)}"
+
 /**
  * Troca o dia de [instante] pelo dia escolhido no `DatePicker` do Material 3, que devolve a meia-noite
  * UTC do dia tocado ([dataEscolhidaUtcMs]). A hora local é mantida.
