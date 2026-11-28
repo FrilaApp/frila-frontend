@@ -40,8 +40,8 @@ def ler_relatorios(android_dir: str):
 
 
 def rodou(nome: str, casos: set) -> bool:
-    """O relatório grava `nome()`, ou `nome(Tipo)` quando o método recebe parâmetros (como @TempDir). O nome pode ter parênteses: `x (RN06)()`."""
-    return f"{nome}()" in casos or any(c.startswith(nome + "(") and c.endswith(")") for c in casos)
+    """O relatório grava `nome()`, ou `nome(Tipo)` quando o método recebe parâmetros (como @TempDir): em ambos, o nome seguido de `(` e terminado em `)`. O nome pode ter parênteses: `x (RN06)()`."""
+    return any(c.startswith(nome + "(") and c.endswith(")") for c in casos)
 
 
 def testes_do_arquivo(texto: str):
