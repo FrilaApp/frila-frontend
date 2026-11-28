@@ -133,4 +133,51 @@ class BloqueiosDaSessaoTest {
         assertEquals(true, aindaBloqueadoDuranteAAcao)
         assertFalse(bloqueios.contem(casa))
     }
+
+    @Test
+    fun `um bloqueio em voo quando a sessao termina nao entra no conjunto da conta seguinte`() = runBlocking {
+        val bloqueios = BloqueiosDaSessao()
+        val portao = CompletableDeferred<Unit>()
+        val noAr = CompletableDeferred<Unit>()
+
+        val trabalho = async(start = CoroutineStart.UNDISPATCHED) {
+            bloqueios.registrandoAposSucesso("estabelecimento", "id-1") { noAr.complete(Unit); portao.await() }
+        }
+        noAr.await()
+        bloqueios.limpar() // logout, troca de conta ou expiracao com o pedido ainda em voo
+        portao.complete(Unit)
+        trabalho.await()
+
+        assertFalse(bloqueios.contem(casa), "o servidor confirmou, mas a conta que bloqueou ja saiu")
+        assertTrue(bloqueios.alvos.value.isEmpty())
+    }
+
+    @Test
+    fun `um desbloqueio em voo quando a sessao termina nao mexe no conjunto da conta seguinte`() = runBlocking {
+        val bloqueios = BloqueiosDaSessao()
+        bloqueios.registrar(casa)
+        val portao = CompletableDeferred<Unit>()
+        val noAr = CompletableDeferred<Unit>()
+
+        val trabalho = async(start = CoroutineStart.UNDISPATCHED) {
+            bloqueios.removendoAposSucesso("estabelecimento", "id-1") { noAr.complete(Unit); portao.await() }
+        }
+        noAr.await()
+        bloqueios.limpar()
+        bloqueios.registrar(casa) // a conta seguinte bloqueou a mesma casa por conta propria
+        portao.complete(Unit)
+        trabalho.await()
+
+        assertTrue(bloqueios.contem(casa), "o desbloqueio da conta anterior nao pode soltar o bloqueio da nova")
+    }
+
+    @Test
+    fun `depois de limpar, o conjunto volta a aceitar registros normais`() = runBlocking {
+        val bloqueios = BloqueiosDaSessao()
+        bloqueios.limpar()
+
+        bloqueios.registrandoAposSucesso("estabelecimento", "id-1") { }
+
+        assertTrue(bloqueios.contem(casa))
+    }
 }

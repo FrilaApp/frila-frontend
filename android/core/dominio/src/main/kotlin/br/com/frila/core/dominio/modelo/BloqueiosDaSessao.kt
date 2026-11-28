@@ -26,6 +26,13 @@ class BloqueiosDaSessao {
     private val _alvos = MutableStateFlow<Set<AlvoBloqueado>>(emptySet())
     val alvos: StateFlow<Set<AlvoBloqueado>> = _alvos.asStateFlow()
 
+    /**
+     * Sobe a cada [limpar]. Um pedido em voo quando a sessão termina (logout, troca de conta, expiração) volta depois do `limpar`: se
+     * ele registrasse ou removesse, o bloqueio da conta que saiu apareceria na seguinte. Quem espera o servidor só mexe no conjunto
+     * se a geração é a mesma de quando partiu.
+     */
+    private var geracao = 0
+
     fun contem(tipo: TipoDeAlvo, id: String): Boolean = AlvoBloqueado(tipo, id) in _alvos.value
     fun contem(alvo: AlvoBloqueado): Boolean = alvo in _alvos.value
 
@@ -38,23 +45,33 @@ class BloqueiosDaSessao {
     }
 
     fun limpar() {
-        _alvos.value = emptySet()
+        synchronized(this) {
+            geracao++
+            _alvos.value = emptySet()
+        }
     }
 
     /**
      * Roda [acao] (o pedido de bloqueio ao servidor) e **só depois** de ela voltar sem falha registra o alvo. Falha, recusa do servidor
-     * e cancelamento sobem sem registrar: o conjunto nunca diz "bloqueado" por um bloqueio que o servidor não confirmou.
+     * e cancelamento sobem sem registrar: o conjunto nunca diz "bloqueado" por um bloqueio que o servidor não confirmou. Se a sessão
+     * terminou enquanto o pedido estava em voo, o alvo não é registrado (ver [geracao]).
      */
     suspend fun <T> registrandoAposSucesso(alvoTipo: String, alvoId: String, acao: suspend () -> T): T {
+        val daPartida = synchronized(this) { geracao }
         val resultado = acao()
-        AlvoBloqueado.deChaves(alvoTipo, alvoId)?.let(::registrar)
+        AlvoBloqueado.deChaves(alvoTipo, alvoId)?.let { alvo ->
+            synchronized(this) { if (geracao == daPartida) registrar(alvo) }
+        }
         return resultado
     }
 
-    /** O desbloqueio, com a mesma regra: o alvo só sai do conjunto depois de o servidor confirmar. */
+    /** O desbloqueio, com a mesma regra: o alvo só sai do conjunto depois de o servidor confirmar, e na mesma sessão em que partiu. */
     suspend fun <T> removendoAposSucesso(alvoTipo: String, alvoId: String, acao: suspend () -> T): T {
+        val daPartida = synchronized(this) { geracao }
         val resultado = acao()
-        AlvoBloqueado.deChaves(alvoTipo, alvoId)?.let(::remover)
+        AlvoBloqueado.deChaves(alvoTipo, alvoId)?.let { alvo ->
+            synchronized(this) { if (geracao == daPartida) remover(alvo) }
+        }
         return resultado
     }
 }
