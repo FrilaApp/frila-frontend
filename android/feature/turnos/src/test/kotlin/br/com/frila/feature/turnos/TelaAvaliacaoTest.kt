@@ -250,8 +250,21 @@ class TelaAvaliacaoTest {
                 }
             },
         )
-        return AvaliacaoViewModel(servicoTurnos = ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Default))
+        return AvaliacaoViewModel(servicoTurnos = ServicoTurnos(cliente), escopo = CoroutineScope(Dispatchers.Main))
     }
+
+    /**
+     * Af5BOu4u, gêmeo do 6sHHfHUd: em produção o view model roda no `viewModelScope` (a thread principal). Com o escopo de
+     * [viewModelComConflito] em `Dispatchers.Default`, a emissão de JA_AVALIADO saía de uma thread de fundo e, de vez em quando, a
+     * árvore não a refletia na asserção seguinte (MEDIDO em "ao abrir": 4 em 200 com Default, 0 em 200 com Main; a falha do "409
+     * avaliacao_ja_registrada" na main tem o mesmo sintoma; o mecanismo exato é DEDUZIDO, não provado). Na thread principal o trabalho
+     * só anda quando ela é processada, e por isso a espera faz `waitForIdle()` a cada checagem.
+     */
+    private fun aguardarEstado(vm: AvaliacaoViewModel, esperado: StatusAvaliacao) =
+        compose.waitUntil(5000) {
+            compose.waitForIdle()
+            vm.estado.value.status == esperado
+        }
 
     @Test
     fun `409 avaliacao_ja_registrada mostra turno ja avaliado com a resposta gravada e sem botoes de avaliar`() {
@@ -260,7 +273,7 @@ class TelaAvaliacaoTest {
         compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
 
         compose.onNodeWithText("Não trabalharia").performClick()
-        compose.waitUntil(5000) { viewModel.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        aguardarEstado(viewModel, StatusAvaliacao.JA_AVALIADO)
         compose.waitForIdle()
 
         compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
@@ -277,7 +290,7 @@ class TelaAvaliacaoTest {
         compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
 
         compose.onNodeWithText("Sim, trabalharia").performClick()
-        compose.waitUntil(5000) { viewModel.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        aguardarEstado(viewModel, StatusAvaliacao.JA_AVALIADO)
         compose.waitForIdle()
 
         compose.onNodeWithText("Este turno já tem uma avaliação registrada.").assertIsDisplayed()
@@ -290,7 +303,7 @@ class TelaAvaliacaoTest {
         val viewModel = viewModelComConflito(gravada = false, avaliadoAoAbrir = true)
 
         compose.setContent { FrilaTheme { TelaAvaliacao(turnoId = turnoId, viewModel = viewModel) } }
-        compose.waitUntil(5000) { viewModel.estado.value.status == StatusAvaliacao.JA_AVALIADO }
+        aguardarEstado(viewModel, StatusAvaliacao.JA_AVALIADO)
         compose.waitForIdle()
 
         compose.onNodeWithText("Turno já avaliado").assertIsDisplayed()
