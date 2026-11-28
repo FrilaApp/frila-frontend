@@ -7,11 +7,25 @@ import br.com.frila.core.dominio.modelo.GeradorComprovanteCheckin
 import br.com.frila.core.dominio.modelo.TipoVerificacaoCheckin
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.TurnoDto
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val FUSO_BRASILIA: ZoneId = ZoneId.of("America/Sao_Paulo")
 private val FORMATO_DATA_HORARIO: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM HH:mm")
+private val FORMATO_HORARIO: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+/**
+ * v1SJQkm7: o intervalo do turno no fuso de Brasília, como o `FormatadorFrila.intervalo` do iOS: "20/11 18:00 – 23:00", e com o dia
+ * do fim quando ele passa da meia-noite ("20/11 22:00 – 21/11 02:00"). Sem fim legível, só o início.
+ */
+internal fun intervaloDoTurno(inicio: Instant, fim: Instant?): String {
+    val inicioLocal = inicio.atZone(FUSO_BRASILIA)
+    val textoInicio = FORMATO_DATA_HORARIO.format(inicioLocal)
+    val fimLocal = fim?.atZone(FUSO_BRASILIA) ?: return textoInicio
+    val formatoDoFim = if (fimLocal.toLocalDate() == inicioLocal.toLocalDate()) FORMATO_HORARIO else FORMATO_DATA_HORARIO
+    return "$textoInicio – ${formatoDoFim.format(fimLocal)}"
+}
 
 /**
  * Mapeia a verificação do check-in a partir do backend (RN06/RN22, migrations 20260925000000 e 20260928160000).
@@ -63,14 +77,16 @@ fun TurnoDto.paraItem(): ItemTurno {
         )
     }
 
+    val inicio = instanteDoServidor(vaga.inicioEm)
+    val fim = runCatching { instanteDoServidor(vaga.fimEm) }.getOrNull()
     return ItemTurno(
         turnoId = id,
         posicaoId = posicaoId,
-        inicio = instanteDoServidor(vaga.inicioEm),
-        fim = runCatching { instanteDoServidor(vaga.fimEm) }.getOrNull(),
+        inicio = inicio,
+        fim = fim,
         funcaoNome = vaga.funcao,
         estabelecimentoNome = contraparte.nome,
-        dataHorarioFormatado = FORMATO_DATA_HORARIO.withZone(FUSO_BRASILIA).format(instanteDoServidor(vaga.inicioEm)),
+        dataHorarioFormatado = intervaloDoTurno(inicio, fim),
         valorFormatado = Dinheiro(valorAcordadoCentavos).formatado(),
         estado = estado ?: "confirmada",
         podeAvaliar = podeAvaliar,
