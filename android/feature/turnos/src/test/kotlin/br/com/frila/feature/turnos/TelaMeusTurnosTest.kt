@@ -8,6 +8,8 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -803,6 +805,51 @@ class TelaMeusTurnosTest {
 
             compose.onNodeWithText("Garçom").assertExists()
             compose.onAllNodesWithTag(TextosVerNoMapa.TAG).assertCountEquals(0)
+        }
+    }
+
+    // ---- Item 242: o endereço no cartão, como o iOS (TelaMeusTurnos.swift:52), logo abaixo do horário ----
+
+    @Test
+    fun `o cartao mostra o endereco do turno logo abaixo do horario, mesmo sem o ponto liberado`() {
+        runBlocking {
+            val viewModel = criarViewModel("[${turnoJson("t1", "confirmada", "Garçom", "Bar do Zé")}]")
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme { TelaMeusTurnos(viewModel = viewModel, criarCheckinViewModel = { criarCheckin(it.turnoId) }) }
+            }
+
+            val endereco = compose.onNodeWithTag("local-do-turno-t1", useUnmergedTree = true)
+            endereco.assertTextEquals("CLS 405 Bloco C")
+            val horario = compose.onNodeWithText("01/11 18:00 – 02/11 00:00", useUnmergedTree = true)
+            assertTrue(
+                "o endereço vem depois do horário",
+                endereco.getUnclippedBoundsInRoot().top > horario.getUnclippedBoundsInRoot().top,
+            )
+            // Logo abaixo do horário: antes do valor (uma mutação que o punha depois do valor sobrevivia sem isto).
+            val valor = compose.onNodeWithText("R$\u00A0160,00", useUnmergedTree = true)
+            assertTrue(
+                "o endereço vem antes do valor",
+                endereco.getUnclippedBoundsInRoot().top < valor.getUnclippedBoundsInRoot().top,
+            )
+        }
+    }
+
+    @Test
+    fun `endereco em branco nao ocupa espaco no cartao`() {
+        runBlocking {
+            val semEndereco = turnoJson("t1", "confirmada", "Garçom", "Bar do Zé").replace("\"local\": \"CLS 405 Bloco C\"", "\"local\": \"  \"")
+            assertTrue(semEndereco.contains("\"local\": \"  \""))
+            val viewModel = criarViewModel("[$semEndereco]")
+            viewModel.carregar().join()
+
+            compose.setContent {
+                FrilaTheme { TelaMeusTurnos(viewModel = viewModel, criarCheckinViewModel = { criarCheckin(it.turnoId) }) }
+            }
+
+            compose.onNodeWithText("Garçom").assertExists()
+            compose.onAllNodesWithTag("local-do-turno-t1", useUnmergedTree = true).assertCountEquals(0)
         }
     }
 }

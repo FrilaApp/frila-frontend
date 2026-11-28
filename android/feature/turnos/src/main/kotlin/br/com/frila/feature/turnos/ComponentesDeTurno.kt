@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
@@ -106,6 +107,11 @@ internal fun CartaoDeStatusDoTurno(
             )
             Text(text = turno.estabelecimentoNome, style = FrilaTipo.corpo, color = cores.tintaSuave)
             Text(text = turno.dataHorarioFormatado, style = FrilaTipo.corpo, color = cores.tinta)
+            // Item 242: o endereço da vaga logo abaixo do horário, como o iOS (TelaMeusTurnos.swift:52). O contrato manda `local` sempre;
+            // só o `ponto` (o "Ver no mapa") depende do turno confirmado.
+            turno.local?.takeIf { it.isNotBlank() }?.let {
+                Text(text = it, style = FrilaTipo.corpo, color = cores.tinta, modifier = Modifier.testTag("local-do-turno-${turno.turnoId}"))
+            }
             turno.quemRecebeNaTela?.let { Text(text = stringResource(R.string.turno_quem_recebe, it), style = FrilaTipo.corpo, color = cores.tinta) }
             Text(text = turno.valorFormatado, style = FrilaTipo.rotuloSecundario, color = cores.tinta)
             if (selo.etapa != null) {
