@@ -66,6 +66,8 @@ class MainActivity : FragmentActivity() {
         // O app desenha de borda a borda em todas as versões (no Android 15+ já é obrigatório): as telas recuam para as
         // barras do sistema e o rodapé ancorado sobe com o teclado. Sem isto, no Android 14 ou menos o teclado cobria o botão.
         enableEdgeToEdge()
+        // Sem miniatura da tela no seletor de apps (Android 13+; abaixo disso, nada: ver CortinaDosRecentes).
+        esconderMiniaturaNosRecentes(this)
         // A abertura animada toca só na abertura a frio do processo (ver PoliticaDaAbertura) e cobre o app SEM segurá-lo:
         // a configuração do app, o registro do push e a primeira tela carregam por baixo desde o primeiro quadro.
         val inicioDaActivity = SystemClock.elapsedRealtime()
