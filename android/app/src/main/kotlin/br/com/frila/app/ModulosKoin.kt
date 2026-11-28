@@ -734,9 +734,11 @@ val moduloFeatures = module {
     /**
      * Histórico de turnos e extrato (Item #32 da Paridade, Lote C).
      */
-    viewModel {
+    // rUFapFEL: com o id da casa como parâmetro é o histórico da casa (só CSV); sem parâmetro, o do profissional.
+    viewModel { parametros ->
         HistoricoDeTurnosViewModel(
             servicoTurnos = get<ServicoTurnos>(),
+            estabelecimentoId = parametros.getOrNull<String>(),
         )
     }
     /**

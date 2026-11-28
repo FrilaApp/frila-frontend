@@ -135,6 +135,7 @@ import br.com.frila.feature.perfil.TelaAjudaPerfil
 import br.com.frila.feature.perfil.TelaLicencas
 import br.com.frila.feature.perfil.TelaPerfil
 import br.com.frila.feature.perfil.TelaVerificacaoDocumento
+import br.com.frila.feature.perfil.TextosHistoricoDeTurnos
 import br.com.frila.feature.perfil.VerificacaoIdentidadeViewModel
 import br.com.frila.feature.suporte.BloqueiosViewModel
 import br.com.frila.feature.suporte.DenunciaViewModel
@@ -164,6 +165,7 @@ import org.koin.core.parameter.parametersOf
 internal const val ENTRADA_BLOQUEIOS = "entrada-bloqueios"
 internal const val ENTRADA_PUBLICAR_ESCALA = "entrada-publicar-escala"
 internal const val ENTRADA_EQUIPE_DA_CASA = "entrada-equipe-da-casa"
+internal const val ENTRADA_HISTORICO_DA_CASA = "entrada-historico-da-casa"
 internal const val ENTRADA_TENHO_UM_CONVITE = "entrada-tenho-um-convite"
 internal const val ENTRADA_TROCAR_DE_CASA = "entrada-trocar-de-casa"
 internal const val ENTRADA_CONTESTAR_DESPACHO = "entrada-contestar-despacho"
@@ -207,6 +209,7 @@ object Rotas {
     const val PUBLICAR_VAGA = "publicar_vaga/{estabelecimentoId}"
     const val PUBLICAR_ESCALA = "publicar_escala/{estabelecimentoId}"
     const val EQUIPE_DA_CASA = "equipe_da_casa/{estabelecimentoId}"
+    const val HISTORICO_TURNOS_DA_CASA = "historico_turnos_da_casa/{estabelecimentoId}"
     const val TENHO_UM_CONVITE = "tenho_um_convite"
     const val TROCAR_DE_CASA = "trocar_de_casa?atual={atual}"
     const val MINHAS_VAGAS = "minhas_vagas/{estabelecimentoId}?nomeEstabelecimento={nomeEstabelecimento}&vagaRecemPublicadaId={vagaRecemPublicadaId}"
@@ -322,6 +325,7 @@ object Rotas {
     fun publicarEscala(estabelecimentoId: String) = "publicar_escala/${Uri.encode(estabelecimentoId)}"
 
     fun equipeDaCasa(estabelecimentoId: String) = "equipe_da_casa/${Uri.encode(estabelecimentoId)}"
+    fun historicoDeTurnosDaCasa(estabelecimentoId: String) = "historico_turnos_da_casa/${Uri.encode(estabelecimentoId)}"
 
     fun trocarDeCasa(atual: String? = null) = if (atual == null) "trocar_de_casa" else "trocar_de_casa?atual=${Uri.encode(atual)}"
 
@@ -1326,6 +1330,10 @@ fun AppNavegacao(
                         primeiraCasa?.takeIf { it.papel?.podeGerenciarEquipe == true }?.let { casa ->
                             AtalhoDaConta(TextosEquipeDaCasa.ENTRADA_EQUIPE, ENTRADA_EQUIPE_DA_CASA) { navController.navigate(Rotas.equipeDaCasa(casa.id)) }
                         },
+                        // rUFapFEL: o histórico e o extrato (CSV) da casa; o servidor recusa quem não é membro, e `primeiraCasa` já é membro.
+                        primeiraCasa?.let { casa ->
+                            AtalhoDaConta(TextosHistoricoDeTurnos.TITULO, ENTRADA_HISTORICO_DA_CASA) { navController.navigate(Rotas.historicoDeTurnosDaCasa(casa.id)) }
+                        },
                         primeiraCasa?.takeIf { it.total > 1 }?.let { casa ->
                             AtalhoDaConta(TextosEquipeDaCasa.ENTRADA_TROCAR, ENTRADA_TROCAR_DE_CASA) { navController.navigate(Rotas.trocarDeCasa(casa.id)) }
                         },
@@ -1440,6 +1448,20 @@ fun AppNavegacao(
             composable(Rotas.HISTORICO_TURNOS) {
                 RotaProtegida(guardaBiometrico) {
                     val viewModel: HistoricoDeTurnosViewModel = koinViewModel()
+                    TelaHistoricoDeTurnos(
+                        viewModel = viewModel,
+                        aoVoltar = { navController.popBackStack() },
+                    )
+                }
+            }
+
+            composable(
+                route = Rotas.HISTORICO_TURNOS_DA_CASA,
+                arguments = listOf(navArgument("estabelecimentoId") { type = NavType.StringType }),
+            ) { entrada ->
+                RotaProtegida(guardaBiometrico) {
+                    val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
+                    val viewModel: HistoricoDeTurnosViewModel = koinViewModel(parameters = { parametersOf(estabelecimentoId) })
                     TelaHistoricoDeTurnos(
                         viewModel = viewModel,
                         aoVoltar = { navController.popBackStack() },
