@@ -38,6 +38,8 @@ fun TelaPerfilPublico(
     modifier: Modifier = Modifier,
     aoChamar: ((PerfilPublicoDto) -> Unit)? = null,
     acoesDeSeguranca: @Composable (PerfilPublicoDto) -> Unit = {},
+    /** Bloqueado nesta tela, "Chamar" deixa de ser oferecido. Não esconde o perfil: o conjunto de bloqueios da sessão não existe. */
+    bloqueado: Boolean = false,
 ) {
     val estado by viewModel.estado.collectAsState()
     LaunchedEffect(viewModel) { viewModel.carregar() }
@@ -48,6 +50,7 @@ fun TelaPerfilPublico(
         modifier = modifier,
         aoChamar = aoChamar,
         acoesDeSeguranca = acoesDeSeguranca,
+        bloqueado = bloqueado,
     )
 }
 
@@ -66,6 +69,7 @@ fun ConteudoPerfilPublico(
     modifier: Modifier = Modifier,
     aoChamar: ((PerfilPublicoDto) -> Unit)? = null,
     acoesDeSeguranca: @Composable (PerfilPublicoDto) -> Unit = {},
+    bloqueado: Boolean = false,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -92,7 +96,7 @@ fun ConteudoPerfilPublico(
                 )
                 is EstadoPerfilPublico.Carregado -> {
                     CorpoDoPerfil(estado.perfil)
-                    if (aoChamar != null && estado.perfil.tipo == "profissional") {
+                    if (aoChamar != null && !bloqueado && estado.perfil.tipo == "profissional") {
                         BotaoPrimario(
                             texto = TextosChamadaCasa.TITULO_DA_FOLHA,
                             aoClicar = { aoChamar(estado.perfil) },

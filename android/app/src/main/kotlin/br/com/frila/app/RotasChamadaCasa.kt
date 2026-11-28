@@ -3,6 +3,8 @@ package br.com.frila.app
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -11,6 +13,8 @@ import androidx.navigation.navArgument
 import br.com.frila.feature.chamadas.casa.AcompanharChamadasViewModel
 import br.com.frila.feature.chamadas.casa.ChamadaDiretaViewModel
 import br.com.frila.feature.chamadas.casa.BuscaDeProfissionaisViewModel
+import br.com.frila.core.designsystem.componentes.FrilaDivisoria
+import br.com.frila.feature.chamadas.casa.EstadoPerfilPublico
 import br.com.frila.feature.chamadas.casa.PerfilPublicoViewModel
 import br.com.frila.feature.chamadas.casa.RascunhoDeVagaDaBusca
 import br.com.frila.feature.chamadas.casa.HorarioDaBusca
@@ -20,6 +24,7 @@ import br.com.frila.feature.chamadas.casa.TelaAcompanharChamadas
 import br.com.frila.feature.chamadas.casa.TelaBuscaDeProfissionais
 import br.com.frila.feature.chamadas.casa.TelaChamadaDireta
 import br.com.frila.feature.chamadas.casa.TelaPerfilPublico
+import br.com.frila.feature.suporte.AcoesDeSeguranca
 import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -103,10 +108,30 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(
             val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
             val profissionalId = entrada.arguments?.getString("profissionalId").orEmpty()
             val viewModel: PerfilPublicoViewModel = koinViewModel(parameters = { parametersOf(profissionalId) })
+            // CD-RF12: denunciar e bloquear o perfil que a casa está vendo (mesmo componente da chamada recebida do profissional).
+            // Bloqueada a pessoa, "Chamar" deixa de ser oferecido nesta tela; esconder o perfil na sessão fica de fora, sem
+            // `BloqueiosDaSessao` no Android.
+            val estado by viewModel.estado.collectAsStateWithLifecycle()
+            val bloqueio = bloqueioDoPerfil((estado as? EstadoPerfilPublico.Carregado)?.perfil, "perfil-publico-$profissionalId")
+            val estadoDoBloqueio = bloqueio?.estado?.collectAsStateWithLifecycle()?.value
             TelaPerfilPublico(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
                 aoChamar = { navController.navigate(RotasChamadaCasa.chamar(estabelecimentoId, it.id)) },
+                acoesDeSeguranca = { perfil ->
+                    bloqueio?.let { viewModelDoBloqueio ->
+                        FrilaDivisoria()
+                        AcoesDeSeguranca(
+                            nome = perfil.nome,
+                            viewModel = viewModelDoBloqueio,
+                            aoDenunciar = {
+                                navController.navigate(Rotas.denuncia(tipoDeAlvoDe(perfil), perfil.id, fotoId = perfil.fotoId))
+                            },
+                            tagBase = "perfil-publico",
+                        )
+                    }
+                },
+                bloqueado = estadoDoBloqueio?.bloqueado == true,
             )
         }
     }
