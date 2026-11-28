@@ -83,6 +83,23 @@ class EstadoErroSemanticaTest {
         textos.assertCountEquals(1)
     }
 
+    // Item 247: com a mensagem vazia ou só de espaços a tela mostra só o título, e a semântica de erro tem de anunciar o título, e não um erro vazio.
+    @Test
+    fun `mensagem vazia, a semantica de erro anuncia o titulo`() {
+        montar(mensagem = "")
+
+        compose.onNode(erro(titulo)).assertExists()
+        compose.onAllNodes(erro("")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `mensagem so de espacos, a semantica de erro anuncia o titulo`() {
+        montar(mensagem = "   ")
+
+        compose.onNode(erro(titulo)).assertExists()
+        compose.onAllNodes(erro("   ")).assertCountEquals(0)
+    }
+
     @Test
     fun `com mensagem, titulo e mensagem aparecem`() {
         montar(mensagem = mensagem)
