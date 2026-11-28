@@ -98,6 +98,7 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaProfissional(
                 aoAbrirTurno = { turnoId -> navController.navigate("meus_turnos/${Uri.encode(turnoId)}") },
                 acoesDeSeguranca = seguranca,
                 bloqueado = estadoDoBloqueio?.bloqueado == true,
+                bloqueando = estadoDoBloqueio?.bloqueando == true,
             )
         }
     }
