@@ -211,8 +211,15 @@ private fun Formulario(
             Text(text = TextosChamadaProfissional.ACEITO_EXPLICACAO, style = FrilaTipo.apoio, color = cores.tintaSuave)
             Text(text = TextosChamadaProfissional.ACEITO_O_QUE_APARECE, style = FrilaTipo.apoio, color = cores.tintaSuave)
             Text(text = TextosChamadaProfissional.ACEITO_DESLIGAR, style = FrilaTipo.apoio, color = cores.tintaSuave)
-            val pendencias = tela.pendencias.mapNotNull(TextosChamadaProfissional::pendencia)
-            if (tela.aceitaChamadas && pendencias.isNotEmpty()) {
+            val pendencias = tela.pendencias.orEmpty().mapNotNull(TextosChamadaProfissional::pendencia)
+            if (tela.apareceNaBusca) {
+                Text(
+                    text = TextosChamadaProfissional.APARECE_NA_BUSCA,
+                    style = FrilaTipo.corpo,
+                    color = cores.tinta,
+                    modifier = Modifier.testTag("aparece-na-busca"),
+                )
+            } else if (tela.aceitaChamadas && pendencias.isNotEmpty()) {
                 CartaoFrila(modifier = Modifier.fillMaxWidth().testTag("pendencias-busca")) {
                     Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
                         RotuloDeGrupo(TextosChamadaProfissional.PENDENCIAS_TITULO)

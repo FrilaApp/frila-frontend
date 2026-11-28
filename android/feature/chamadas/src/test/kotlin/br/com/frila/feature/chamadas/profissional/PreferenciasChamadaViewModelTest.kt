@@ -53,6 +53,34 @@ class PreferenciasChamadaViewModelTest {
         assertEquals("/rest/v1/rpc/meu_perfil_detalhado", rede.pedidos.single().caminho)
     }
 
+    // ---- djhyFA5Z (item 237): "Você aparece na busca" só com a lista presente e vazia (o backend #660 ainda não manda o campo) ----
+
+    private suspend fun apareceNaBuscaCom(aceitaChamadas: Boolean, pendencias: List<String>?): EstadoPreferenciasChamada {
+        val vm = viewModelCom(rede(Fixtures.preferenciaJson(aceitaChamadas = aceitaChamadas, pendencias = pendencias)))
+        vm.carregar().join()
+        return vm.estado.value
+    }
+
+    @Test
+    fun `sem o campo pendencias_para_busca nao se sabe se aparece na busca`() = runBlocking {
+        val tela = apareceNaBuscaCom(aceitaChamadas = true, pendencias = null)
+        assertNull(tela.pendencias, "campo ausente não é lista vazia")
+        assertFalse(tela.apareceNaBusca)
+    }
+
+    @Test
+    fun `com a lista presente e vazia e a chave ligada aparece na busca`() = runBlocking {
+        assertTrue(apareceNaBuscaCom(aceitaChamadas = true, pendencias = emptyList()).apareceNaBusca)
+    }
+
+    @Test
+    fun `com pendencia, ou com a chave desligada, nao aparece na busca`() = runBlocking {
+        assertFalse(apareceNaBuscaCom(aceitaChamadas = true, pendencias = listOf("sem_regiao")).apareceNaBusca)
+        // Um código que o app ainda não conhece também é pendência: o servidor diz que falta algo.
+        assertFalse(apareceNaBuscaCom(aceitaChamadas = true, pendencias = listOf("codigo_novo")).apareceNaBusca)
+        assertFalse(apareceNaBuscaCom(aceitaChamadas = false, pendencias = emptyList()).apareceNaBusca)
+    }
+
     @Test
     fun `ligar aceito chamadas envia aceita_chamadas e a versao do texto, so o que mudou`() = runBlocking {
         val rede = rede()
