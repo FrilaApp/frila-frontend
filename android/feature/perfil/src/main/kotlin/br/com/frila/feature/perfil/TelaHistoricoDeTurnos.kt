@@ -86,6 +86,7 @@ fun TelaHistoricoDeTurnos(
         aoExportar = { viewModel.exportar(contexto.cacheDir) },
         aoVoltar = aoVoltar,
         modifier = modifier,
+        formatosDisponiveis = viewModel.formatosDisponiveis,
     )
 }
 
@@ -100,6 +101,8 @@ fun ConteudoHistoricoDeTurnos(
     aoExportar: () -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A casa só exporta CSV (o PDF local é do profissional); o padrão são os dois, como sempre foi. */
+    formatosDisponiveis: List<FormatoExportacao> = FormatoExportacao.entries,
 ) {
     val cores = FrilaTema.cores
     val formatoData = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy") }
@@ -343,7 +346,7 @@ fun ConteudoHistoricoDeTurnos(
             }
 
             FrilaGrupoDeLinhas(titulo = stringResource(R.string.historico_turnos_formato)) {
-                linha {
+                if (FormatoExportacao.CSV in formatosDisponiveis) linha {
                     FrilaLinhaDeOpcao(
                         titulo = "CSV",
                         marcada = estado.formato == FormatoExportacao.CSV,
@@ -351,7 +354,7 @@ fun ConteudoHistoricoDeTurnos(
                         modifier = Modifier.testTag("historico-formato-csv"),
                     )
                 }
-                linha {
+                if (FormatoExportacao.PDF in formatosDisponiveis) linha {
                     FrilaLinhaDeOpcao(
                         titulo = "PDF",
                         marcada = estado.formato == FormatoExportacao.PDF,
