@@ -220,12 +220,24 @@ class EscalaDeEventoViewModel(
 
     fun editarNome(texto: String) = editar { copy(nome = texto, errosDoEvento = errosDoEvento - CampoDoEvento.NOME) }
 
-    /** Mudar o dia do evento leva o início e o fim de todas as vagas junto, pelo mesmo número de dias. */
+    /**
+     * Mudar o dia do evento leva o início e o fim de todas as vagas junto, pelo mesmo número de dias. A vaga em seleção que, no dia
+     * novo, deixou de ter as 24 h de antecedência (RN24) volta para urgência, como no iOS (`deslocarVagas`): senão ela ficaria em
+     * seleção com o chip desabilitado e só o Publicar mostraria o erro.
+     */
     fun editarData(nova: LocalDate) = editar {
         val dias = ChronoUnit.DAYS.between(data, nova)
+        val agoraDoCalculo = relogio()
         copy(
             data = nova,
-            itens = itens.map { it.copy(inicio = it.inicio.somarDias(dias), fim = it.fim.somarDias(dias)) },
+            itens = itens.map { item ->
+                val movido = item.copy(inicio = item.inicio.somarDias(dias), fim = item.fim.somarDias(dias))
+                if (movido.modo == ModoDaVaga.SELECAO && !movido.inicio.isAfter(agoraDoCalculo.plus(EstadoEscalaDeEvento.ANTECEDENCIA_DA_SELECAO))) {
+                    movido.copy(modo = ModoDaVaga.URGENCIA)
+                } else {
+                    movido
+                }
+            },
             errosDoEvento = errosDoEvento - CampoDoEvento.DATA,
             errosDosItens = errosDosItens.mapValues { (_, erros) -> erros - CampoDoItem.INICIO - CampoDoItem.MODO },
         )
