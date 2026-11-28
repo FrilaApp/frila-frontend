@@ -98,9 +98,10 @@ class TelaEquipeDeConfiancaTest {
         rule.onNodeWithText("Ana Souza").assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         rule.onNodeWithText("garçom, barman").assertIsDisplayed()
-        rule.onNodeWithText("7 de 8 avaliações positivas").assertIsDisplayed()
+        // T2gtyjq8: o texto do contrato e do iOS (SeloReputacao.descricao), o mesmo do perfil público.
+        rule.onNodeWithText("7 de 8 chamariam de novo").assertIsDisplayed()
         rule.onNodeWithText("Beto Lima").assertIsDisplayed()
-        rule.onNodeWithText(TextosEquipe.SEM_AVALIACOES).assertIsDisplayed()
+        rule.onNodeWithText("Sem histórico").assertIsDisplayed()
     }
 
     @Test
