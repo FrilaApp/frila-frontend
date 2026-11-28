@@ -272,6 +272,88 @@ class EditarServicosViewModelTest {
         val corpo: JsonObject = rede.doCaminho("/rpc/definir_servicos").single().corpo!!
         assertEquals(setOf("servicos"), corpo.keys)
     }
+
+    // ---- vmUWYhTy: os limites do contrato (openapi `ServicoOferecido`, RN27/RN44) aceitos na borda, não só recusados fora dela ----
+
+    /** Salva a linha da função com [unidade] e [ajuste] e devolve o que foi ao servidor (ou falha dizendo o campo recusado). */
+    private fun enviadoNaBorda(unidade: String, ajuste: (ServicoEmEdicao) -> ServicoEmEdicao): kotlinx.serialization.json.JsonObject =
+        runBlocking {
+            val rede = rede()
+            val vm = viewModelCom(rede)
+            vm.carregar().join()
+            vm.editar(Fixtures.FUNCAO) { ajuste(it.copy(habilitado = true).comUnidade(unidade)) }
+
+            vm.salvar().join()
+
+            assertEquals(null, vm.estado.value.campoComErro, "$unidade: o aparelho recusou um valor que o contrato aceita")
+            rede.servicosEnviados().single().jsonObject
+        }
+
+    private fun kotlinx.serialization.json.JsonObject.numero(campo: String): Long = getValue(campo).jsonPrimitive.content.toLong()
+
+    @Test
+    fun `valor aceito nas duas bordas, R$ 10 e R$ 10 mil`() {
+        assertEquals(1_000L, enviadoNaBorda("hora") { it.copy(valor = "10") }.numero("valor_centavos"))
+        assertEquals(1_000_000L, enviadoNaBorda("hora") { it.copy(valor = "10000") }.numero("valor_centavos"))
+    }
+
+    @Test
+    fun `valor maximo igual ao valor e igual a R$ 10 mil e aceito`() {
+        val igual = enviadoNaBorda("hora") { it.copy(valor = "100", valorMaximo = "100") }
+        assertEquals(10_000L, igual.numero("valor_centavos"))
+        assertEquals(10_000L, igual.numero("valor_max_centavos"))
+        assertEquals(1_000_000L, enviadoNaBorda("hora") { it.copy(valor = "100", valorMaximo = "10000") }.numero("valor_max_centavos"))
+    }
+
+    @Test
+    fun `valor maximo vale so por hora, diaria e pacote`() {
+        for (unidade in listOf("hora", "diaria", "pacote")) {
+            val enviado = enviadoNaBorda(unidade) {
+                it.copy(valor = "100", valorMaximo = "150", descricaoPacote = if (unidade == "pacote") "Bar completo" else it.descricaoPacote)
+            }
+            assertEquals(15_000L, enviado.numero("valor_max_centavos"), unidade)
+        }
+        for (unidade in listOf("evento", "por_pessoa", "a_combinar")) {
+            runBlocking {
+                val rede = rede()
+                val vm = viewModelCom(rede)
+                vm.carregar().join()
+                vm.editar(Fixtures.FUNCAO) {
+                    it.copy(habilitado = true).comUnidade(unidade).copy(valor = if (unidade == "a_combinar") "" else "100", valorMaximo = "150")
+                }
+
+                vm.salvar().join()
+
+                assertEquals("valor_max_centavos", vm.estado.value.campoComErro, unidade)
+                assertTrue(rede.doCaminho("/rpc/definir_servicos").isEmpty(), unidade)
+            }
+        }
+    }
+
+    @Test
+    fun `diaria aceita 4 e 12 horas incluidas`() {
+        for (horas in listOf(4, 12)) {
+            val enviado = enviadoNaBorda("diaria") { it.copy(valor = "150", horasIncluidas = "$horas") }
+            assertEquals(horas.toLong(), enviado.numero("horas_incluidas"), "$horas h")
+        }
+    }
+
+    @Test
+    fun `pacote aceita a descricao com 120 caracteres`() {
+        val descricao = "x".repeat(120)
+        val enviado = enviadoNaBorda("pacote") { it.copy(valor = "100", descricaoPacote = descricao) }
+        assertEquals(descricao, enviado.getValue("descricao_pacote").jsonPrimitive.content)
+    }
+
+    @Test
+    fun `as outras bordas do contrato tambem passam`() {
+        assertEquals(1L, enviadoNaBorda("hora") { it.copy(valor = "100", minimoHoras = "1") }.numero("minimo_horas"))
+        assertEquals(12L, enviadoNaBorda("hora") { it.copy(valor = "100", minimoHoras = "12") }.numero("minimo_horas"))
+        assertEquals(24L, enviadoNaBorda("evento") { it.copy(valor = "100", duracaoTipicaH = "24") }.numero("duracao_tipica_h"))
+        assertEquals(2000L, enviadoNaBorda("evento") { it.copy(valor = "100", atePessoas = "2000") }.numero("ate_pessoas"))
+        assertEquals(2000L, enviadoNaBorda("por_pessoa") { it.copy(valor = "100", minimoPessoas = "2000") }.numero("minimo_pessoas"))
+        assertEquals(300, enviadoNaBorda("hora") { it.copy(valor = "100", inclui = "x".repeat(300)) }.getValue("inclui").jsonPrimitive.content.length)
+    }
 }
 
 class ServicoDeEspecialidadesTest {
