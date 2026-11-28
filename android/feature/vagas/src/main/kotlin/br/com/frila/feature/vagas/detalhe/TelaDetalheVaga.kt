@@ -9,6 +9,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
+import br.com.frila.core.designsystem.componentes.FrilaGrupoDeLinhas
+import br.com.frila.core.designsystem.tema.FrilaMetricas
+import br.com.frila.core.rede.InclusosDto
+import br.com.frila.core.rede.VagaDto
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -305,10 +313,13 @@ fun TelaDetalheVaga(
                         style = FrilaTipo.valorEmDestaque,
                         color = FrilaTema.cores.tinta,
                     )
-                    RotuloDeGrupo(texto = "Inclui", modifier = Modifier.padding(top = FrilaEspacamento.item))
-                    LinhaBeneficio("Refeição", vaga.inclusos.incluiRefeicao)
-                    LinhaBeneficio("Transporte", vaga.inclusos.incluiTransporte)
-                    LinhaBeneficio("Material próprio exigido", vaga.inclusos.exigeMaterialProprio)
+                }
+            }
+
+            // "O que está incluso": uma linha por item (iOS `inclusos`). Quem recebe, o rateio e as observações vêm do detalhe (`detalhe_vaga`).
+            FrilaGrupoDeLinhas(titulo = TextosAberturaDeVaga.INCLUSO) {
+                itensInclusos(vaga.inclusos, estado.detalhe).forEach { item ->
+                    linha { LinhaDeItemIncluso(item.rotulo, item.valor) }
                 }
             }
 
@@ -321,14 +332,6 @@ fun TelaDetalheVaga(
                                 TextosAberturaDeVaga.POSICOES_ABERTAS,
                                 TextosAberturaDeVaga.POSICOES_DE.format(detalhe.posicoesAbertas, detalhe.posicoes),
                             )
-                            LinhaDeTexto(TextosAberturaDeVaga.RESPONSAVEL_NO_LOCAL, detalhe.responsavelLocal)
-                            // O rateio dos 10% (Lei 13.419/2017) vem só do detalhe, e só quando a casa disse (iOS: `if let rateio`).
-                            detalhe.participaRateio?.let { rateio ->
-                                LinhaDeTexto(TextosAberturaDeVaga.RATEIO, if (rateio) TextosAberturaDeVaga.SIM else TextosAberturaDeVaga.NAO)
-                            }
-                            detalhe.observacoes?.takeIf { it.isNotBlank() }?.let {
-                                LinhaDeTexto(TextosAberturaDeVaga.OBSERVACOES, it)
-                            }
                         }
                     }
                 }
@@ -354,18 +357,46 @@ private fun LinhaDeTexto(rotulo: String, valor: String) {
     Text(text = "$rotulo: $valor", style = FrilaTipo.corpo, color = FrilaTema.cores.tinta)
 }
 
+/** Uma linha de "O que está incluso": o rótulo à esquerda e o valor à direita, lidos juntos ("Refeição: Sim"). */
 @Composable
-private fun LinhaBeneficio(rotulo: String, incluido: Boolean) {
-    val estado = if (incluido) "incluído" else "não incluído"
-    Text(
-        text = "${if (incluido) "✓" else "—"} $rotulo",
-        style = FrilaTipo.corpo,
-        color = if (incluido) FrilaTema.cores.tinta else FrilaTema.cores.tintaSuave,
-        modifier = Modifier.clearAndSetSemantics {
-            contentDescription = "$rotulo: $estado"
-        },
-    )
+private fun LinhaDeItemIncluso(rotulo: String, valor: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = FrilaMetricas.alvoMinimo)
+            .padding(horizontal = FrilaEspacamento.bloco, vertical = FrilaEspacamento.item)
+            .clearAndSetSemantics { text = AnnotatedString("$rotulo: $valor") },
+        horizontalArrangement = Arrangement.spacedBy(FrilaEspacamento.bloco),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = rotulo, style = FrilaTipo.corpo, color = FrilaTema.cores.tinta, modifier = Modifier.weight(1f))
+        Text(text = valor, style = FrilaTipo.corpo, color = FrilaTema.cores.tintaSuave, textAlign = TextAlign.End)
+    }
 }
+
+internal data class ItemIncluso(val rotulo: String, val valor: String)
+
+/**
+ * Os itens de "O que está incluso", na ordem do iOS (`itensInclusos`): refeição, transporte, material, quem recebe, o rateio dos 10% (só se a
+ * casa disse) e as observações (só se houver). Os três últimos vêm do detalhe; sem ele, a lista tem só os três primeiros.
+ */
+internal fun itensInclusos(inclusos: InclusosDto, detalhe: VagaDto?): List<ItemIncluso> = buildList {
+    add(ItemIncluso(TextosAberturaDeVaga.REFEICAO, simNao(inclusos.incluiRefeicao)))
+    add(ItemIncluso(TextosAberturaDeVaga.TRANSPORTE, simNao(inclusos.incluiTransporte)))
+    add(
+        ItemIncluso(
+            TextosAberturaDeVaga.MATERIAL,
+            if (inclusos.exigeMaterialProprio) TextosAberturaDeVaga.PRECISA_LEVAR else TextosAberturaDeVaga.NAO_PRECISA_LEVAR,
+        ),
+    )
+    if (detalhe != null) {
+        add(ItemIncluso(TextosAberturaDeVaga.QUEM_RECEBE, detalhe.responsavelLocal))
+        detalhe.participaRateio?.let { add(ItemIncluso(TextosAberturaDeVaga.RATEIO, simNao(it))) }
+        detalhe.observacoes?.takeIf { it.isNotBlank() }?.let { add(ItemIncluso(TextosAberturaDeVaga.OBSERVACOES, it)) }
+    }
+}
+
+private fun simNao(valor: Boolean) = if (valor) TextosAberturaDeVaga.SIM else TextosAberturaDeVaga.NAO
 
 /** "Sábado, 21 de novembro de 2026". */
 private fun dataPorExtenso(data: java.time.LocalDate): String =
