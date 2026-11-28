@@ -3,7 +3,6 @@ package br.com.frila.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import br.com.frila.core.rede.ClienteSupabase
 import br.com.frila.core.rede.GestorClienteKtor
 import br.com.frila.core.rede.ServicoChamadaDireta
 import br.com.frila.core.rede.ServicoMembros
@@ -89,7 +88,7 @@ class KoinGuardaDaBuscaTest {
     private fun cartao(id: String, garcom: String) =
         """{"id":"$id","nome":"Pessoa $id","servico":{"funcao":{"id":"$garcom","nome":"Garçom","categoria":"salao"},"unidade":"diaria","valor_centavos":15000,"horas_incluidas":8},"regioes":[],"atende_todo_df":false,"distancia_faixa":"ate_5km","reputacao":{"positivas":7,"total":7,"turnos_considerados":7,"turnos_realizados":7},"disponivel_no_horario":true}"""
 
-    private fun clienteDe(servidor: Servidor) = ClienteSupabase(
+    private fun clienteDe(servidor: Servidor) = clienteSupabaseDeTeste(
         baseUrl = "https://frila.supabase.co",
         apiKey = "chave-teste",
         engine = MockEngine { pedido ->
@@ -153,7 +152,7 @@ class KoinGuardaDaBuscaTest {
             single { ServicoDeRegioes { gestor.clienteAtual } }
         }
         val app = koinApplication { modules(*(if (comSeguranca) listOf(moduloSeguranca) else emptyList()).toTypedArray(), moduloFeatures, rede) }
-        try { bloco(app.koin) } finally { app.close(); Dispatchers.resetMain() }
+        try { bloco(app.koin) } finally { app.close(); encerrarOsClientesDoTeste(); Dispatchers.resetMain() }
     }
 
     /** A pilha de navegação: cada [visita] é um view model da fábrica real; [sair] é o `clear()` da entrada que saiu. */
