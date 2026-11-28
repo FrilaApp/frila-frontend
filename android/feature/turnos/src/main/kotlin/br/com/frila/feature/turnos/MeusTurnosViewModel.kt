@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.MotivoCancelamento
 import br.com.frila.core.dominio.modelo.RegraCancelamentoTurno
+import br.com.frila.core.dominio.modelo.TextosDoCancelamento
 import br.com.frila.core.dominio.regra.instanteDoServidor
 import br.com.frila.core.rede.AcaoPendente
 import br.com.frila.core.rede.FilaDeAcoes
@@ -28,7 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal const val CANCELAMENTO_NA_FILA = "O cancelamento será enviado quando a conexão voltar."
+internal const val CANCELAMENTO_NA_FILA = TextosDoCancelamento.NA_FILA_SEM_CONEXAO
 internal const val CANCELAMENTO_RECUSADO = "O cancelamento não foi aceito. Atualize a tela e tente de novo."
 
 private val ESTADOS_AGENDADOS = setOf("confirmada")
