@@ -42,6 +42,14 @@ data class EstadoCadastroEstabelecimento(
     val latitude: String = "",
     val longitude: String = "",
     val enviando: Boolean = false,
+    /** O aparelho tem serviço de busca de endereço. Sem ele, as coordenadas digitadas são o único caminho. */
+    val buscaDisponivel: Boolean = false,
+    val buscando: Boolean = false,
+    val resultadosDaBusca: List<EnderecoEncontrado> = emptyList(),
+    /** A busca terminou e não achou nada. */
+    val buscaSemResultado: Boolean = false,
+    /** A busca falhou (serviço ou rede): quem digita pode tentar de novo ou usar as coordenadas. */
+    val erroDaBusca: Boolean = false,
     /** Mensagem por campo, preenchida pela validação local ou pela recusa do servidor. */
     val errosDeCampo: Map<CampoCadastro, String> = emptyMap(),
     val erro: ErroGlobalCadastro? = null,
@@ -63,11 +71,13 @@ data class EstadoCadastroEstabelecimento(
 class CadastroEstabelecimentoViewModel(
     private val cadastrar: suspend (NovoEstabelecimentoDto) -> EstabelecimentoDto,
     escopo: CoroutineScope? = null,
+    private val buscador: BuscadorDeEndereco? = null,
 ) : ViewModel() {
 
     private val escopoDeTrabalho: CoroutineScope = escopo ?: viewModelScope
 
-    private val _estado = MutableStateFlow(EstadoCadastroEstabelecimento())
+    private val _estado = MutableStateFlow(EstadoCadastroEstabelecimento(buscaDisponivel = buscador?.disponivel == true))
+    private var buscaEmAndamento: Job? = null
     val estado: StateFlow<EstadoCadastroEstabelecimento> = _estado.asStateFlow()
 
     private fun editar(campo: CampoCadastro?, mudar: EstadoCadastroEstabelecimento.() -> EstadoCadastroEstabelecimento) {
@@ -85,7 +95,57 @@ class CadastroEstabelecimentoViewModel(
 
     fun escolherTipo(tipo: TipoEstabelecimento) = editar(null) { copy(tipo = tipo) }
 
-    fun editarEndereco(endereco: String) = editar(CampoCadastro.ENDERECO) { copy(endereco = endereco) }
+    /** Mudar o texto joga fora a busca em andamento e os resultados: eles eram de outro texto. */
+    fun editarEndereco(endereco: String) {
+        buscaEmAndamento?.cancel()
+        editar(CampoCadastro.ENDERECO) {
+            copy(endereco = endereco, buscando = false, resultadosDaBusca = emptyList(), buscaSemResultado = false, erroDaBusca = false)
+        }
+    }
+
+    /** Busca o texto do endereço (iOS `buscarEndereco`). Sem texto, sem serviço ou com uma busca em curso, não faz nada. */
+    fun buscarEndereco(): Job {
+        val atual = _estado.value
+        val consulta = atual.endereco.trim()
+        if (buscador == null || !atual.buscaDisponivel || !atual.podeEditar || atual.buscando || consulta.isEmpty()) {
+            return escopoDeTrabalho.launch { }
+        }
+        _estado.update { it.copy(buscando = true, resultadosDaBusca = emptyList(), buscaSemResultado = false, erroDaBusca = false) }
+        return escopoDeTrabalho.launch {
+            try {
+                val achados = buscador.buscar(consulta).take(MAXIMO_DE_RESULTADOS)
+                // `buscando` falso aqui quer dizer que o texto mudou no meio: o resultado é de outra busca.
+                _estado.update { if (!it.buscando) it else it.copy(buscando = false, resultadosDaBusca = achados, buscaSemResultado = achados.isEmpty()) }
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                _estado.update { if (!it.buscando) it else it.copy(buscando = false, erroDaBusca = true) }
+            }
+        }.also { buscaEmAndamento = it }
+    }
+
+    /**
+     * Usa o endereço escolhido: texto, latitude e longitude, e a Região Administrativa quando o texto a revelou (senão o campo fica
+     * vazio para a pessoa escolher, como no iOS). Os campos seguem editáveis: é o plano B.
+     */
+    fun escolherEndereco(encontrado: EnderecoEncontrado) {
+        buscaEmAndamento?.cancel()
+        _estado.update {
+            if (!it.podeEditar) it else it.copy(
+                endereco = encontrado.texto,
+                latitude = encontrado.latitude.toString(),
+                longitude = encontrado.longitude.toString(),
+                regiaoAdministrativa = encontrado.regiaoAdministrativa?.takeIf { regiao -> regiao in REGIOES_ADMINISTRATIVAS_DF }.orEmpty(),
+                buscando = false,
+                resultadosDaBusca = emptyList(),
+                buscaSemResultado = false,
+                erroDaBusca = false,
+                errosDeCampo = it.errosDeCampo - CampoCadastro.ENDERECO - CampoCadastro.LATITUDE - CampoCadastro.LONGITUDE -
+                    CampoCadastro.REGIAO_ADMINISTRATIVA,
+                erro = null,
+            )
+        }
+    }
 
     fun escolherRegiao(regiao: String) = editar(CampoCadastro.REGIAO_ADMINISTRATIVA) { copy(regiaoAdministrativa = regiao) }
 
@@ -192,3 +252,5 @@ class CadastroEstabelecimentoViewModel(
 /** Aceita "-15,78" e "-15.78"; `null` se não for um número finito. */
 internal fun lerGrau(texto: String): Double? =
     texto.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
+
+private const val MAXIMO_DE_RESULTADOS = 5
