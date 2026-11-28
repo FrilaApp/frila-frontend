@@ -36,7 +36,8 @@ import org.koin.core.parameter.parametersOf
  * ao carregar.
  */
 internal object RotasChamadaCasa {
-    const val PERFIL_PUBLICO = "chamada/perfil/{estabelecimentoId}/{profissionalId}"
+    /** `comChamar=false` abre o perfil só para ler (os candidatos da vaga, como o iOS); ausente vale `true` (a busca). */
+    const val PERFIL_PUBLICO = "chamada/perfil/{estabelecimentoId}/{profissionalId}?comChamar={comChamar}"
     const val CHAMAR = "chamada/chamar/{estabelecimentoId}/{profissionalId}?regiaoId={regiaoId}"
     const val ACOMPANHAR = "chamada/acompanhar/{vagaId}"
 
@@ -50,8 +51,8 @@ internal object RotasChamadaCasa {
 
     private const val SEM_REGIAO = -1
 
-    fun perfilPublico(estabelecimentoId: String, profissionalId: String) =
-        "chamada/perfil/${Uri.encode(estabelecimentoId)}/${Uri.encode(profissionalId)}"
+    fun perfilPublico(estabelecimentoId: String, profissionalId: String, comChamar: Boolean = true) =
+        "chamada/perfil/${Uri.encode(estabelecimentoId)}/${Uri.encode(profissionalId)}" + (if (comChamar) "" else "?comChamar=false")
 
     /** [regiaoId] é o da busca, quando a chamada nasce dela (0.2.88). */
     fun chamar(estabelecimentoId: String, profissionalId: String, regiaoId: Int? = null) =
@@ -102,11 +103,13 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(
         arguments = listOf(
             navArgument("estabelecimentoId") { type = NavType.StringType },
             navArgument("profissionalId") { type = NavType.StringType },
+            navArgument("comChamar") { type = NavType.BoolType; defaultValue = true },
         ),
     ) { entrada ->
         RotaProtegida(guardaBiometrico) {
             val estabelecimentoId = entrada.arguments?.getString("estabelecimentoId").orEmpty()
             val profissionalId = entrada.arguments?.getString("profissionalId").orEmpty()
+            val comChamar = entrada.arguments?.getBoolean("comChamar", true) ?: true
             val viewModel: PerfilPublicoViewModel = koinViewModel(parameters = { parametersOf(profissionalId) })
             // CD-RF12: denunciar e bloquear o perfil que a casa está vendo (mesmo componente da chamada recebida do profissional).
             // Bloqueada a pessoa, "Chamar" deixa de ser oferecido nesta tela; esconder o perfil na sessão fica de fora, sem
@@ -117,7 +120,11 @@ internal fun NavGraphBuilder.rotasDaChamadaDiretaCasa(
             TelaPerfilPublico(
                 viewModel = viewModel,
                 aoVoltar = { navController.popBackStack() },
-                aoChamar = { navController.navigate(RotasChamadaCasa.chamar(estabelecimentoId, it.id)) },
+                aoChamar = if (comChamar) {
+                    { navController.navigate(RotasChamadaCasa.chamar(estabelecimentoId, it.id)) }
+                } else {
+                    null
+                },
                 acoesDeSeguranca = { perfil ->
                     bloqueio?.let { viewModelDoBloqueio ->
                         FrilaDivisoria()
