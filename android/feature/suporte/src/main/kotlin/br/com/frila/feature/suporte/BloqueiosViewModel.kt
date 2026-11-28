@@ -29,6 +29,8 @@ data class EstadoTelaBloqueios(
     /** A chave ([chaveDoBloqueio]) do item cujo desbloqueio está em voo. */
     val desbloqueando: String? = null,
     val mensagemErro: String? = null,
+    /** CLD9Yg3e: uma recarga em curso com a lista na tela (o indicador do puxar para atualizar). A carga de abertura não conta. */
+    val atualizando: Boolean = false,
 )
 
 /** O par (tipo, id) é o que identifica um bloqueio; o id sozinho pode se repetir entre profissional e estabelecimento. */
@@ -60,7 +62,12 @@ class BloqueiosViewModel(
         carregando = true
         val itensAtuais = (_estado.value.estado as? EstadoBloqueios.Conteudo)?.itens.orEmpty()
         _estado.update {
-            it.copy(estado = if (itensAtuais.isEmpty()) EstadoBloqueios.Carregando else it.estado, mensagemErro = null)
+            it.copy(
+                estado = if (itensAtuais.isEmpty()) EstadoBloqueios.Carregando else it.estado,
+                mensagemErro = null,
+                // Com a lista na tela é uma atualização (o indicador do puxar); sem ela, o próprio "Carregando" aparece.
+                atualizando = itensAtuais.isNotEmpty(),
+            )
         }
         return escopoDeTrabalho.launch {
             try {
@@ -75,14 +82,24 @@ class BloqueiosViewModel(
                 falhouAoCarregar(itensAtuais, null)
             } finally {
                 carregando = false
+                _estado.update { it.copy(atualizando = false) }
             }
         }
     }
 
-    /** Sem efeito com outro desbloqueio em voo ou fora da lista: o segundo toque não dispara outro pedido. */
+    /**
+     * Puxar para atualizar (iOS `.refreshable`). Sem efeito com um desbloqueio em voo: a lista lida antes dele traria de volta quem acabou
+     * de sair. O contrário vale em [desbloquear]: sem desbloqueio durante a recarga, pelo mesmo motivo.
+     */
+    fun atualizar(): Job {
+        if (_estado.value.desbloqueando != null) return escopoDeTrabalho.launch { }
+        return carregar()
+    }
+
+    /** Sem efeito com outro desbloqueio em voo, com a lista sendo atualizada ou fora da lista: o segundo toque não dispara outro pedido. */
     fun desbloquear(item: ItemBloqueioDto): Job {
         val atual = _estado.value
-        if (atual.desbloqueando != null || atual.estado !is EstadoBloqueios.Conteudo) return escopoDeTrabalho.launch { }
+        if (atual.desbloqueando != null || atual.atualizando || atual.estado !is EstadoBloqueios.Conteudo) return escopoDeTrabalho.launch { }
         val chave = chaveDoBloqueio(item)
         _estado.update { it.copy(desbloqueando = chave, mensagemErro = null) }
         return escopoDeTrabalho.launch {
