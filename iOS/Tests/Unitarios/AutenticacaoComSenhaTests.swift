@@ -1110,3 +1110,25 @@ struct RegraDeRevelacaoBreveDeSenhaTests {
         #expect(RegraDeRevelacaoBreveDeSenha.textoMascarado(texto: "a\(emoji)b", revelando: comEmoji) == "\u{2022}\(emoji)\u{2022}")
     }
 }
+
+@Suite("EstadoVisibilidadeDeSenha")
+struct EstadoVisibilidadeDeSenhaTests {
+    @Test("comeca oculto nos dois campos, alterna cada campo de forma independente e volta a oculto ao limpar")
+    func estadoInicialAlternanciaEReset() {
+        var estado = EstadoVisibilidadeDeSenha()
+        #expect(estado.senhaVisivel == false)
+        #expect(estado.confirmacaoVisivel == false)
+
+        estado.alternarSenha()
+        #expect(estado.senhaVisivel == true)
+        #expect(estado.confirmacaoVisivel == false)
+
+        estado.alternarConfirmacao()
+        #expect(estado.senhaVisivel == true)
+        #expect(estado.confirmacaoVisivel == true)
+
+        estado.ocultarTudo()
+        #expect(estado.senhaVisivel == false)
+        #expect(estado.confirmacaoVisivel == false)
+    }
+}

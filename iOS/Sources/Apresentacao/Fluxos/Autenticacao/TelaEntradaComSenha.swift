@@ -7,7 +7,10 @@ public struct TelaEntradaComSenha: View {
     var aoEsqueciSenha: (String) -> Void
     var aoConcluir: (DestinoCodigo) -> Void
 
+    @Environment(\.scenePhase) private var scenePhase
     @FocusState private var campoFocado: Campo?
+    @State private var senhaFocada: Bool = false
+    @State private var senhaVisivel: Bool = false
     @State private var tarefaDeEntrada: Task<Void, Never>?
 
     private enum Campo: Hashable {
@@ -63,7 +66,10 @@ public struct TelaEntradaComSenha: View {
                             .autocorrectionDisabled()
                             .submitLabel(.next)
                             .focused($campoFocado, equals: .email)
-                            .onSubmit { campoFocado = .senha }
+                            .onSubmit {
+                                campoFocado = nil
+                                senhaFocada = true
+                            }
                             .disabled(viewModel.carregando)
                             .padding(.horizontal, FrilaEspaco.bloco)
                             .frame(height: FrilaMetrica.alturaDoCampo)
@@ -80,22 +86,26 @@ public struct TelaEntradaComSenha: View {
                                 .font(FrilaTipo.rotuloDeGrupo)
                                 .foregroundStyle(FrilaCor.textoSecundario)
 
-                            SecureField(text: $viewModel.senha, prompt: Text("Digite sua senha", bundle: bundleApresentacao)) {
-                                Text("Senha", bundle: bundleApresentacao)
-                            }
-                            .textContentType(.password)
-                            .submitLabel(.go)
-                            .focused($campoFocado, equals: .senha)
-                            .onSubmit { executarEntrada() }
-                            .disabled(viewModel.carregando)
-                            .padding(.horizontal, FrilaEspaco.bloco)
-                            .frame(height: FrilaMetrica.alturaDoCampo)
-                            .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                    .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                            CampoDeSenhaComVisibilidade(
+                                texto: $viewModel.senha,
+                                senhaVisivel: $senhaVisivel,
+                                placeholder: String(localized: "Digite sua senha", bundle: bundleApresentacao),
+                                rotuloAcessibilidade: String(localized: "Senha", bundle: bundleApresentacao),
+                                identificadorCampo: "entrada-senha-campo",
+                                identificadorBotao: "entrada-senha-alternar-visibilidade",
+                                returnKeyType: .go,
+                                habilitado: !viewModel.carregando,
+                                estaFocado: $senhaFocada,
+                                ocultarPorSeguranca: scenePhase != .active,
+                                textContentType: .password,
+                                revelacaoBreve: false,
+                                aoSubmeter: { executarEntrada() }
                             )
-                            .accessibilityIdentifier("entrada-senha-campo")
+                            .frilaFormField(
+                                id: "entrada-senha-campo",
+                                isFocused: senhaFocada,
+                                onDismiss: { senhaFocada = false }
+                            )
                         }
 
                         VStack(alignment: .leading, spacing: FrilaEspaco.item) {
@@ -167,7 +177,14 @@ public struct TelaEntradaComSenha: View {
         .frilaKeyboardDismissScope()
         .onChange(of: viewModel.email) { _, _ in viewModel.erro = nil }
         .onChange(of: viewModel.senha) { _, _ in viewModel.erro = nil }
+        .onChange(of: scenePhase) { _, novaFase in
+            if novaFase != .active {
+                senhaVisivel = false
+            }
+        }
         .onDisappear {
+            senhaVisivel = false
+            senhaFocada = false
             tarefaDeEntrada?.cancel()
             viewModel.cancelarTentativaAtual()
         }
@@ -175,7 +192,9 @@ public struct TelaEntradaComSenha: View {
 
     private func executarEntrada() {
         guard !viewModel.carregando else { return }
+        senhaVisivel = false
         campoFocado = nil
+        senhaFocada = false
         tarefaDeEntrada?.cancel()
         tarefaDeEntrada = Task {
             if let destino = await viewModel.entrar(), !Task.isCancelled {
@@ -186,7 +205,9 @@ public struct TelaEntradaComSenha: View {
 
     private func executarEntradaSocial(_ acao: @escaping @MainActor () async -> DestinoCodigo?) {
         guard !viewModel.carregando else { return }
+        senhaVisivel = false
         campoFocado = nil
+        senhaFocada = false
         tarefaDeEntrada?.cancel()
         tarefaDeEntrada = Task {
             if let destino = await acao(), !Task.isCancelled {
@@ -196,6 +217,8 @@ public struct TelaEntradaComSenha: View {
     }
 
     private func cancelarEEsair(_ acao: () -> Void) {
+        senhaVisivel = false
+        senhaFocada = false
         tarefaDeEntrada?.cancel()
         viewModel.cancelarTentativaAtual()
         acao()

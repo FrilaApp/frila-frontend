@@ -53,6 +53,29 @@ public enum RegraDeRevelacaoBreveDeSenha {
     }
 }
 
+public struct EstadoVisibilidadeDeSenha: Equatable, Sendable {
+    public private(set) var senhaVisivel: Bool
+    public private(set) var confirmacaoVisivel: Bool
+
+    public init(senhaVisivel: Bool = false, confirmacaoVisivel: Bool = false) {
+        self.senhaVisivel = senhaVisivel
+        self.confirmacaoVisivel = confirmacaoVisivel
+    }
+
+    public mutating func alternarSenha() {
+        senhaVisivel.toggle()
+    }
+
+    public mutating func alternarConfirmacao() {
+        confirmacaoVisivel.toggle()
+    }
+
+    public mutating func ocultarTudo() {
+        senhaVisivel = false
+        confirmacaoVisivel = false
+    }
+}
+
 public struct TelaDefinirSenha: View {
     @State private var viewModel: DefinirSenhaViewModel
     @Environment(\.dismiss) private var dismiss
@@ -62,6 +85,7 @@ public struct TelaDefinirSenha: View {
     private let aoConcluir: (() -> Void)?
 
     @State private var campoFocado: Campo?
+    @State private var visibilidade = EstadoVisibilidadeDeSenha()
 
     private enum Campo: Hashable {
         case senha
@@ -80,6 +104,7 @@ public struct TelaDefinirSenha: View {
     }
 
     public var body: some View {
+        ScrollViewReader { scrollProxy in
         ScrollView {
             VStack(alignment: .leading, spacing: FrilaEspaco.grupo) {
                 VStack(alignment: .leading, spacing: FrilaEspaco.item) {
@@ -101,11 +126,20 @@ public struct TelaDefinirSenha: View {
                             .font(FrilaTipo.rotuloDeGrupo)
                             .foregroundStyle(FrilaCor.textoSecundario)
 
-                        CampoDeSenhaComRevelacaoBreve(
+                        CampoDeSenhaComVisibilidade(
                             texto: $viewModel.senha,
+                            senhaVisivel: Binding(
+                                get: { visibilidade.senhaVisivel },
+                                set: { novo in
+                                    if novo != visibilidade.senhaVisivel {
+                                        visibilidade.alternarSenha()
+                                    }
+                                }
+                            ),
                             placeholder: String(localized: "Mínimo de 8 caracteres", bundle: bundleApresentacao),
                             rotuloAcessibilidade: String(localized: "Nova senha", bundle: bundleApresentacao),
-                            identificadorAcessibilidade: "definir-senha-campo",
+                            identificadorCampo: "definir-senha-campo",
+                            identificadorBotao: "definir-senha-alternar-visibilidade",
                             returnKeyType: .next,
                             habilitado: !viewModel.carregando,
                             estaFocado: Binding(
@@ -118,28 +152,36 @@ public struct TelaDefinirSenha: View {
                                     }
                                 }
                             ),
-                            ocultarRevelacao: scenePhase != .active,
+                            ocultarPorSeguranca: scenePhase != .active,
                             aoSubmeter: { campoFocado = .confirmacao }
                         )
-                        .frame(minHeight: FrilaMetrica.alturaDoCampo)
-                        .padding(.horizontal, FrilaEspaco.bloco)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                        .frilaFormField(
+                            id: "definir-senha-campo",
+                            isFocused: campoFocado == .senha,
+                            onDismiss: { campoFocado = nil }
                         )
                     }
+                    .id(Campo.senha)
 
                     VStack(alignment: .leading, spacing: FrilaEspaco.item) {
                         Text("Confirmar senha", bundle: bundleApresentacao)
                             .font(FrilaTipo.rotuloDeGrupo)
                             .foregroundStyle(FrilaCor.textoSecundario)
 
-                        CampoDeSenhaComRevelacaoBreve(
+                        CampoDeSenhaComVisibilidade(
                             texto: $viewModel.confirmacao,
+                            senhaVisivel: Binding(
+                                get: { visibilidade.confirmacaoVisivel },
+                                set: { novo in
+                                    if novo != visibilidade.confirmacaoVisivel {
+                                        visibilidade.alternarConfirmacao()
+                                    }
+                                }
+                            ),
                             placeholder: String(localized: "Repita a nova senha", bundle: bundleApresentacao),
                             rotuloAcessibilidade: String(localized: "Confirmar senha", bundle: bundleApresentacao),
-                            identificadorAcessibilidade: "definir-senha-confirmacao",
+                            identificadorCampo: "definir-senha-confirmacao",
+                            identificadorBotao: "definir-senha-confirmacao-alternar-visibilidade",
                             returnKeyType: .done,
                             habilitado: !viewModel.carregando,
                             estaFocado: Binding(
@@ -152,17 +194,16 @@ public struct TelaDefinirSenha: View {
                                     }
                                 }
                             ),
-                            ocultarRevelacao: scenePhase != .active,
+                            ocultarPorSeguranca: scenePhase != .active,
                             aoSubmeter: { salvar() }
                         )
-                        .frame(minHeight: FrilaMetrica.alturaDoCampo)
-                        .padding(.horizontal, FrilaEspaco.bloco)
-                        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
-                                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+                        .frilaFormField(
+                            id: "definir-senha-confirmacao",
+                            isFocused: campoFocado == .confirmacao,
+                            onDismiss: { campoFocado = nil }
                         )
                     }
+                    .id(Campo.confirmacao)
 
                     if viewModel.concluido {
                         Text("Senha salva nesta conta.", bundle: bundleApresentacao)
@@ -205,10 +246,26 @@ public struct TelaDefinirSenha: View {
         .frilaKeyboardDismissScope()
         .onChange(of: viewModel.senha) { _, _ in viewModel.erro = nil }
         .onChange(of: viewModel.confirmacao) { _, _ in viewModel.erro = nil }
+        .onChange(of: scenePhase) { _, novaFase in
+            if novaFase != .active {
+                visibilidade.ocultarTudo()
+            }
+        }
+        .onChange(of: campoFocado) { _, novoCampo in
+            guard let novoCampo else { return }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                scrollProxy.scrollTo(novoCampo, anchor: .center)
+            }
+        }
+        .onDisappear {
+            visibilidade.ocultarTudo()
+        }
+        }
     }
 
     private func salvar() {
         guard !viewModel.carregando else { return }
+        visibilidade.ocultarTudo()
         campoFocado = nil
         Task {
             if await viewModel.salvar() {
@@ -344,8 +401,67 @@ private final class CampoSeguroInternoUITextField: UITextField {
     }
 }
 
+struct CampoDeSenhaComVisibilidade: View {
+    @Binding var texto: String
+    @Binding var senhaVisivel: Bool
+    let placeholder: String
+    let rotuloAcessibilidade: String
+    let identificadorCampo: String
+    let identificadorBotao: String
+    let returnKeyType: UIReturnKeyType
+    let habilitado: Bool
+    @Binding var estaFocado: Bool
+    let ocultarPorSeguranca: Bool
+    var textContentType: UITextContentType = .newPassword
+    var revelacaoBreve: Bool = true
+    let aoSubmeter: () -> Void
+
+    var body: some View {
+        HStack(spacing: FrilaEspaco.minimo) {
+            CampoDeSenhaComRevelacaoBreve(
+                texto: $texto,
+                senhaVisivel: $senhaVisivel,
+                placeholder: placeholder,
+                rotuloAcessibilidade: rotuloAcessibilidade,
+                identificadorAcessibilidade: identificadorCampo,
+                returnKeyType: returnKeyType,
+                habilitado: habilitado,
+                estaFocado: $estaFocado,
+                ocultarRevelacao: ocultarPorSeguranca,
+                textContentType: textContentType,
+                revelacaoBreve: revelacaoBreve,
+                aoSubmeter: aoSubmeter
+            )
+
+            Button {
+                senhaVisivel.toggle()
+            } label: {
+                Image(systemName: senhaVisivel ? "eye.slash" : "eye")
+                    .font(.body)
+                    .foregroundStyle(FrilaCor.textoSecundario)
+                    .frame(width: FrilaMetrica.alvo, height: FrilaMetrica.alvo)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!habilitado)
+            .accessibilityLabel(Text(senhaVisivel ? "Ocultar senha" : "Mostrar senha", bundle: bundleApresentacao))
+            .accessibilityValue(Text(senhaVisivel ? "Visível" : "Oculta", bundle: bundleApresentacao))
+            .accessibilityIdentifier(identificadorBotao)
+        }
+        .frame(minHeight: FrilaMetrica.alturaDoCampo)
+        .padding(.leading, FrilaEspaco.bloco)
+        .padding(.trailing, FrilaEspaco.minimo)
+        .background(FrilaCor.superficie, in: RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FrilaRaio.entrada, style: .continuous)
+                .strokeBorder(FrilaCor.borda, lineWidth: 1)
+        )
+    }
+}
+
 private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
     @Binding var texto: String
+    @Binding var senhaVisivel: Bool
     let placeholder: String
     let rotuloAcessibilidade: String
     let identificadorAcessibilidade: String
@@ -353,6 +469,8 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
     let habilitado: Bool
     @Binding var estaFocado: Bool
     let ocultarRevelacao: Bool
+    let textContentType: UITextContentType
+    let revelacaoBreve: Bool
     let aoSubmeter: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -363,7 +481,7 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
         let campo = CampoSeguroInternoUITextField(frame: .zero)
         campo.delegate = context.coordinator
         campo.isSecureTextEntry = true
-        campo.textContentType = .newPassword
+        campo.textContentType = textContentType
         campo.autocorrectionType = .no
         campo.spellCheckingType = .no
         campo.smartQuotesType = .no
@@ -393,6 +511,27 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
 
     func updateUIView(_ uiView: CampoSeguroInternoUITextField, context: Context) {
         context.coordinator.pai = self
+        let emCapturaOuInativo = ocultarRevelacao || context.coordinator.capturaAtiva(para: uiView)
+        if emCapturaOuInativo, senhaVisivel {
+            Task { @MainActor in
+                senhaVisivel = false
+            }
+        }
+        let deveFicarSeguro = !senhaVisivel || emCapturaOuInativo
+        if uiView.isSecureTextEntry != deveFicarSeguro {
+            let selecaoAnterior = uiView.selectedTextRange
+            let textoAtual = uiView.text
+            uiView.isSecureTextEntry = deveFicarSeguro
+            // Evita que o UIKit apague o campo no próximo toque após alternar isSecureTextEntry.
+            uiView.text = ""
+            uiView.text = textoAtual
+            if let selecaoAnterior {
+                uiView.selectedTextRange = selecaoAnterior
+            }
+            if !deveFicarSeguro {
+                context.coordinator.limparRevelacao()
+            }
+        }
         if uiView.text != texto {
             uiView.text = texto
             context.coordinator.limparRevelacao()
@@ -401,7 +540,7 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
         uiView.placeholder = placeholder
         uiView.accessibilityLabel = rotuloAcessibilidade
         uiView.accessibilityIdentifier = identificadorAcessibilidade
-        if ocultarRevelacao || context.coordinator.capturaAtiva(para: uiView) {
+        if !deveFicarSeguro || emCapturaOuInativo {
             context.coordinator.limparRevelacao()
         }
         if estaFocado != context.coordinator.ultimoEstaFocadoAplicado {
@@ -473,12 +612,18 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
 
         @objc private func aoPerderFocoDeAplicacao() {
             limparRevelacao()
+            if pai.senhaVisivel {
+                pai.senhaVisivel = false
+            }
         }
 
         @objc private func aoMudarCapturaDeTela() {
             guard let campo else { return }
             if capturaAtiva(para: campo) {
                 limparRevelacao()
+                if pai.senhaVisivel {
+                    pai.senhaVisivel = false
+                }
             }
         }
 
@@ -562,7 +707,9 @@ private struct CampoDeSenhaComRevelacaoBreve: UIViewRepresentable {
             if pai.texto != novoTexto {
                 pai.texto = novoTexto
             }
-            guard !pai.ocultarRevelacao,
+            guard pai.revelacaoBreve,
+                  textField.isSecureTextEntry,
+                  !pai.ocultarRevelacao,
                   !capturaAtiva(para: textField),
                   let trecho = trechoPendente
             else {
