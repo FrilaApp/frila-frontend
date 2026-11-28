@@ -63,7 +63,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -199,6 +201,7 @@ fun TelaPerfil(
     val itemExportarDados: @Composable () -> Unit = { ItemExportarDados(exportacao) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
+    val areaDeTransferencia = LocalClipboardManager.current
     // Com o recurso desligado o hardware nem é consultado: o app não declara a permissão de biometria, e a consulta sem ela lança.
     val disponibilidadeBiometrica = remember(recursoBiometriaHabilitado) {
         if (recursoBiometriaHabilitado) verificarDisponibilidadeBiometrica(contexto) else DisponibilidadeBiometrica.INDISPONIVEL
@@ -304,6 +307,9 @@ fun TelaPerfil(
                 )
                 StatusPerfil.SUCESSO -> ConteudoDoPerfil(
                     nome = estado.conta?.nome,
+                    telefone = estado.conta?.telefone,
+                    email = estado.conta?.email,
+                    aoCopiarContato = { texto -> areaDeTransferencia.setText(AnnotatedString(texto)) },
                     fotoLocalPath = estado.fotoLocalPath,
                     statusFoto = estado.statusFoto,
                     mensagemErroFoto = estado.mensagemErroFoto,
@@ -436,6 +442,9 @@ private fun SecaoDoPerfil(titulo: String, conteudo: @Composable () -> Unit) {
 @Composable
 private fun ConteudoDoPerfil(
     nome: String?,
+    telefone: String?,
+    email: String?,
+    aoCopiarContato: (String) -> Unit,
     fotoLocalPath: String?,
     statusFoto: StatusFotoPerfil,
     mensagemErroFoto: String?,
@@ -507,6 +516,8 @@ private fun ConteudoDoPerfil(
             mensagemErroFoto = mensagemErroFoto,
             aoSelecionarFoto = aoSelecionarFoto,
         )
+        // wdgLuHOV: telefone e e-mail da conta, cada um com copiar (como o iOS); editar o contato fica de fora.
+        BlocoDeContato(telefone = telefone, email = email, aoCopiar = aoCopiarContato)
         BlocoDeReputacao(reputacao)
         BlocoDeSeloConfianca(verificacaoIdentidade, podeSolicitarSelo, aoAbrirSelo)
         // C0-11: o iOS não tem; só aparece com a trava ligada, que nada no app liga.
