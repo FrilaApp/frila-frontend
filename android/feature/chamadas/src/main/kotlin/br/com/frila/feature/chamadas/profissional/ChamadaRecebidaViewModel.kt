@@ -83,7 +83,21 @@ class ChamadaRecebidaViewModel(
             } catch (erro: CancellationException) {
                 throw erro
             } catch (erro: ErroDaApi) {
-                _estado.update { it.copy(carregando = false, erro = mensagemAoCarregar(erro)) }
+                _estado.update { tela ->
+                    // 404 com a chamada já na tela (RF26, ex.: a casa foi bloqueada pela Denúncia e a volta recarrega): o servidor a tirou do
+                    // alcance e recusaria a resposta. Mantém o que a pessoa lia, mas desliga Aceitar e Recusar e explica. Sem detalhe
+                    // (primeira carga) e nas outras falhas (rede, desligado, suspensa) nada se sabe da chamada: segue o erro de sempre.
+                    if (erro.codigo == CodigoErroAPI.NAO_ENCONTRADO && tela.detalhe != null) {
+                        tela.copy(
+                            carregando = false,
+                            erro = null,
+                            mensagemDeConcorrencia = TextosChamadaProfissional.INDISPONIVEL,
+                            mostrarRecusa = false,
+                        )
+                    } else {
+                        tela.copy(carregando = false, erro = mensagemAoCarregar(erro))
+                    }
+                }
             } catch (_: Exception) {
                 _estado.update { it.copy(carregando = false, erro = TextosChamadaProfissional.ERRO) }
             } finally {

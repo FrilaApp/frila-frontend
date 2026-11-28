@@ -25,8 +25,11 @@ typealias EnvioDeAcao = suspend (AcaoPendente) -> Unit
  *
  * Check-out recusado com `fora_da_janela`: pelo contrato (0.2.83), o servidor recusa assim também o reenvio de um turno que
  * já tem o check-out gravado, depois de `fim + 60 min`. Só nesse caso o sincronizador pergunta a [checkoutJaGravado]; com a
- * saída gravada, a ação sai da fila como enviada (a tela mostra a saída registrada), e não como recusada. A leitura sem rede
- * para a passada, como o envio sem rede; qualquer outra falha dela mantém a recusa de antes, nunca vira "enviada".
+ * saída gravada, a ação sai da fila como enviada (a tela mostra a saída registrada), e não como recusada. Se o servidor
+ * responder `false`, sem conferidor configurado ou sem `turnoId`, mantém a recusa. A leitura sem rede para a passada, como
+ * o envio sem rede; qualquer outra falha na conferência (`ErroDaApi` de outro código ou exceção inesperada, exceto
+ * `CancellationException` que propaga) mantém a ação pendente na fila (sem recusa) e a passada segue para a próxima ação,
+ * perguntando de novo na próxima passada.
  */
 class SincronizadorDeAcoes(
     private val fila: FilaDeAcoes,
@@ -65,9 +68,10 @@ class SincronizadorDeAcoes(
                     acao.tipo == TipoAcaoPendente.AVALIACAO && erro.codigo == AVALIACAO_JA_REGISTRADA ->
                         guardando { fila.remover(acao.id) }
                     acao.tipo == TipoAcaoPendente.CHECKOUT && erro.codigo == FORA_DA_JANELA -> when (saidaGravada(acao)) {
-                        null -> return@withLock
-                        true -> { guardando { fila.resolverRecusas(acao) }; guardando { fila.remover(acao.id) } }
-                        false -> guardando { fila.recusar(acao, erro.codigo) }
+                        ConferenciaSaida.SEM_REDE -> return@withLock
+                        ConferenciaSaida.GRAVADA -> { guardando { fila.resolverRecusas(acao) }; guardando { fila.remover(acao.id) } }
+                        ConferenciaSaida.NAO_GRAVADA -> guardando { fila.recusar(acao, erro.codigo) }
+                        ConferenciaSaida.FALHA_TRANSITORIA -> Unit
                     }
                     recusaDefinitiva(erro.codigo, acao) -> guardando { fila.recusar(acao, erro.codigo) }
                 }
@@ -80,18 +84,31 @@ class SincronizadorDeAcoes(
 
     private inline fun guardando(bloco: () -> Unit) = try { bloco() } catch (_: IOException) { }
 
-    /** `true` só com o servidor dizendo que a saída está gravada; `null` sem rede (a passada para); `false` em todo o resto. */
-    private suspend fun saidaGravada(acao: AcaoPendente): Boolean? {
-        val conferir = checkoutJaGravado ?: return false
-        val turno = acao.turnoId ?: return false
+    private enum class ConferenciaSaida {
+        GRAVADA,
+        NAO_GRAVADA,
+        SEM_REDE,
+        FALHA_TRANSITORIA,
+    }
+
+    /**
+     * Consulta [checkoutJaGravado] quando o check-out falha com `fora_da_janela`:
+     * - [ConferenciaSaida.GRAVADA]: servidor confirmou a saída gravada (resolve e remove da fila).
+     * - [ConferenciaSaida.NAO_GRAVADA]: servidor respondeu `false`, sem conferidor configurado ou ação sem `turnoId` (recusa).
+     * - [ConferenciaSaida.SEM_REDE]: leitura falhou por falta de rede (para a passada).
+     * - [ConferenciaSaida.FALHA_TRANSITORIA]: outro `ErroDaApi` ou exceção inesperada (mantém na fila sem recusar e segue a passada).
+     */
+    private suspend fun saidaGravada(acao: AcaoPendente): ConferenciaSaida {
+        val conferir = checkoutJaGravado ?: return ConferenciaSaida.NAO_GRAVADA
+        val turno = acao.turnoId ?: return ConferenciaSaida.NAO_GRAVADA
         return try {
-            conferir(turno)
+            if (conferir(turno)) ConferenciaSaida.GRAVADA else ConferenciaSaida.NAO_GRAVADA
         } catch (erro: CancellationException) {
             throw erro
         } catch (erro: ErroDaApi) {
-            if (erro.codigo == SEM_REDE) null else false
+            if (erro.codigo == SEM_REDE) ConferenciaSaida.SEM_REDE else ConferenciaSaida.FALHA_TRANSITORIA
         } catch (_: Exception) {
-            false
+            ConferenciaSaida.FALHA_TRANSITORIA
         }
     }
 

@@ -72,10 +72,12 @@ class KoinGrafoLote2Test : KoinTest {
         },
     )
 
+    private var clienteDoTeste: ClienteSupabase? = null
+
     @BeforeEach
     fun antes() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        val cliente = cliente()
+        val cliente = cliente().also { clienteDoTeste = it }
         startKoin {
             modules(
                 listOf(moduloSeguranca, moduloRede, moduloNotificacoes, moduloLocalizacaoDoGrafoDoLote2, moduloFeatures) +
@@ -91,6 +93,9 @@ class KoinGrafoLote2Test : KoinTest {
 
     @AfterEach
     fun depois() {
+        // A corrotina de chamada do Ktor termina em outra thread: sem esperar, ela retoma em Main depois do resetMain e a
+        // excecao cai no proximo runTest da JVM (hWad2l0H).
+        clienteDoTeste?.encerrarEEsperar()
         stopKoin()
         Dispatchers.resetMain()
     }

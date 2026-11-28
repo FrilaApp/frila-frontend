@@ -154,4 +154,57 @@ class MinhasCandidaturasViewModelTest {
         assertEquals(ListaDeCandidaturas.Vazia, vm.estado.value.lista)
         assertFalse(vm.estado.value.atualizando)
     }
+
+    @Test
+    fun `atualizarEmSilencio troca a lista sem indicador, e a falha a deixa como esta, sem marcar desatualizada (HaRJJ0L0)`() {
+        var chamada = 0
+        val vm = viewModel {
+            when (++chamada) {
+                1 -> listOf(candidatura("c1", "pendente"))
+                2 -> listOf(candidatura("c2", "pendente"))
+                else -> throw erro(CodigoErroAPI.SEM_REDE)
+            }
+        }
+        vm.carregar()
+        assertEquals(listOf("c1"), carregadas(vm).pendentes.map { it.id })
+
+        vm.atualizarEmSilencio()
+        assertEquals(listOf("c2"), carregadas(vm).pendentes.map { it.id })
+        assertFalse(vm.estado.value.atualizando)
+
+        vm.atualizarEmSilencio()
+        assertEquals(listOf("c2"), carregadas(vm).pendentes.map { it.id }, "a falha deixa a lista")
+        assertFalse(vm.estado.value.desatualizada, "a falha silenciosa não marca a lista como desatualizada")
+        assertFalse(vm.estado.value.atualizando)
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao abre outra leitura com uma em voo`() {
+        val trava = kotlinx.coroutines.CompletableDeferred<List<CandidaturaDto>>()
+        val vm = viewModel { trava.await() }
+        val primeira = vm.carregar()
+        val silenciosa = vm.atualizarEmSilencio()
+        assertEquals(primeira, silenciosa, "a silenciosa devolve a leitura em voo")
+        assertEquals(1, leituras)
+        trava.complete(emptyList())
+    }
+
+    @Test
+    fun `atualizarEmSilencio nao rele antes da carga nem com a tela em Erro, e nao mexe no estado (HaRJJ0L0)`() {
+        var falhar = true
+        val vm = viewModel { if (falhar) throw erro(CodigoErroAPI.SEM_REDE) else listOf(candidatura("c1", "pendente")) }
+
+        vm.atualizarEmSilencio()
+        assertEquals(0, leituras, "antes da carga não chama o servidor")
+        assertEquals(ListaDeCandidaturas.Carregando, vm.estado.value.lista)
+
+        vm.carregar()
+        val noErro = vm.estado.value
+        assertTrue(noErro.lista is ListaDeCandidaturas.Erro)
+        val leiturasAntes = leituras
+        falhar = false
+        vm.atualizarEmSilencio()
+        assertEquals(leiturasAntes, leituras, "em Erro não chama o servidor")
+        assertEquals(noErro, vm.estado.value, "em Erro o estado fica como estava")
+    }
 }

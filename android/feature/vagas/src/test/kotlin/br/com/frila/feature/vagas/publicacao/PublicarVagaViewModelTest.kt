@@ -724,5 +724,64 @@ class PublicarVagaViewModelTest {
 
         assertTrue(CampoPublicacao.FUNCAO !in vm.estado.value.errosDeCampo)
     }
-}
 
+    // ---- Quando avisar se a vaga seguir vazia: 2, 3 ou 6 horas (cartão 0Nm8bS1q) ----
+
+    @Test
+    fun `escolher 2, 3 ou 6 horas poe alerta_antecedencia_min de 120, 180 ou 360 no corpo`() = runBlocking {
+        for ((minutos, esperado) in listOf(120 to "120", 180 to "180", 360 to "360")) {
+            val rede = redeOk()
+            val vm = viewModelCom(rede)
+            vm.preencher()
+
+            vm.escolherAlertaAntecedencia(minutos)
+            vm.publicar().join()
+
+            assertEquals(esperado, rede.publicacoes.single().corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content, "$minutos")
+        }
+    }
+
+    @Test
+    fun `sem escolher o aviso fica em 3 horas, o padrao do contrato`() = runBlocking {
+        val rede = redeOk()
+        val vm = viewModelCom(rede)
+        vm.preencher()
+
+        vm.publicar().join()
+
+        assertEquals(180, vm.estado.value.alertaAntecedenciaMin)
+        assertEquals("180", rede.publicacoes.single().corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `so 2, 3 e 6 horas valem, outro valor e ignorado`() = runBlocking {
+        val vm = viewModelCom(redeOk())
+        vm.escolherAlertaAntecedencia(360)
+
+        for (invalido in listOf(0, -60, 1, 90, 121, 240, 361, 1440)) {
+            vm.escolherAlertaAntecedencia(invalido)
+            assertEquals(360, vm.estado.value.alertaAntecedenciaMin, "$invalido")
+        }
+    }
+
+    @Test
+    fun `com a publicacao pendente a escolha do aviso nao muda o que ja foi enviado`() = runBlocking {
+        var tentativa = 0
+        val rede = Rede(
+            publicar = { if (++tentativa == 1) throw io.ktor.client.network.sockets.ConnectTimeoutException("sem rede") else respond(publicadaJson, HttpStatusCode.OK, json) },
+            funcoes = { respond(funcoesJson, HttpStatusCode.OK, json) },
+        )
+        val vm = viewModelCom(rede)
+        vm.preencher()
+        vm.escolherAlertaAntecedencia(360)
+        vm.publicar().join()
+        assertEquals(1, rede.publicacoes.size)
+
+        vm.escolherAlertaAntecedencia(120) // a tela trava os campos com a publicação pendente: nada muda
+        vm.publicar().join()
+
+        assertEquals(2, rede.publicacoes.size)
+        assertEquals(rede.publicacoes[0].corpo, rede.publicacoes[1].corpo)
+        assertEquals("360", rede.publicacoes[1].corpo!!["alerta_antecedencia_min"]!!.jsonPrimitive.content)
+    }
+}

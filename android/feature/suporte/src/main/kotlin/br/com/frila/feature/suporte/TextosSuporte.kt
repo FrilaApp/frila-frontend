@@ -29,6 +29,11 @@ object TextosSuporte {
     const val BLOQUEAR = "Bloquear"
     const val BLOQUEANDO = "Bloqueando…"
     const val BLOQUEADO = "Você bloqueou este perfil"
+    /** `TextosDaSeguranca.voceBloqueouEstabelecimento` do iOS: a chamada recebida é sempre de um estabelecimento. */
+    const val BLOQUEOU_ESTABELECIMENTO = "Você bloqueou este estabelecimento"
+    /** O nome vai na descrição de acessibilidade, como o `accessibilityLabel` do iOS ("Denunciar <nome>"). */
+    const val DENUNCIAR_NOME = "Denunciar %s"
+    const val BLOQUEAR_NOME = "Bloquear %s"
     const val BLOQUEIO_CONFIRMAR = "Sim, bloquear"
     const val BLOQUEIO_TITULO = "Bloquear este perfil?"
     const val BLOQUEIO_EFEITO =

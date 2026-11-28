@@ -12,6 +12,8 @@ object TextosTurnoDoContratante {
     /** Como o iOS (`AcoesDeSeguranca.swift:46`): "Denunciar <nome>". */
     const val DENUNCIAR_ROTULO = "Denunciar %s"
     const val CHEGADA = "Chegada"
+    /** Antes do fim do turno, no lugar de "Avaliar turno" (iOS `TextosDoProfissional.Avaliacao.liberaAs`). */
+    const val AVALIACAO_LIBERA_AS = "A avaliação libera às %s"
 
     /** As quatro etapas do turno, como na tela do profissional (e o selo que repete a etapa atual). */
     const val ETAPA_CONFIRMADO = "Confirmado"

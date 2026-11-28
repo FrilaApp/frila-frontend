@@ -15,6 +15,8 @@ import br.com.frila.core.designsystem.componentes.EstadoErro
 import br.com.frila.core.designsystem.componentes.IndicadorCarregando
 import br.com.frila.core.dominio.modelo.CodigoErroAPI
 import br.com.frila.core.dominio.modelo.PapelMembro
+import br.com.frila.core.dominio.regra.AtualizacaoAutomatica
+import br.com.frila.core.dominio.regra.ListaAtualizavel
 import br.com.frila.core.rede.ErroDaApi
 import br.com.frila.core.rede.PainelDto
 import br.com.frila.core.rede.ServicoMembros
@@ -33,6 +35,7 @@ import br.com.frila.feature.vagas.publicacao.TelaPublicarVaga
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.getKoin
 import org.koin.core.parameter.parametersOf
 
 /** Textos da carga do estabelecimento antes do formulário de publicação. */
@@ -304,6 +307,16 @@ internal fun RotaTurnoDoContratante(
     LaunchedEffect(estabelecimentoId, vagaId, posicaoId, turnoId, tentativa) {
         estado = EstadoDoTurnoDaRota.Carregando
         estado = carregarTurnoDoContratante(buscarPainel, estabelecimentoId, vagaId, posicaoId, turnoId = turnoId)
+    }
+    // HaRJJ0L0: relê o painel ao voltar do segundo plano e com um push, sem trocar o turno por "carregando"; a falha deixa o que está
+    // na tela. A rota já carrega ao entrar, por isso a primeira vez ativa só conta como carga (no iOS, `.sempre`, porque lá a tela não carrega).
+    getKoin().getOrNull<AtualizacaoAutomatica>()?.let { atualizacao ->
+        AtualizacaoAutomaticaDaLista(ListaAtualizavel.TURNO_DO_CONTRATANTE, atualizacao) {
+            if (estado is EstadoDoTurnoDaRota.Pronto) {
+                val novo = carregarTurnoDoContratante(buscarPainel, estabelecimentoId, vagaId, posicaoId, turnoId = turnoId)
+                if (novo is EstadoDoTurnoDaRota.Pronto) estado = novo
+            }
+        }
     }
 
     when (val atual = estado) {

@@ -1,21 +1,33 @@
 package br.com.frila.feature.turnos.contratante
 
+import android.view.View
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import br.com.frila.core.designsystem.tema.FrilaMetricas
 import br.com.frila.core.designsystem.tema.FrilaTheme
+import br.com.frila.core.dominio.modelo.MotivoDeCancelamentoDaCasa
 import br.com.frila.core.rede.PerfilPublicoDto
 import br.com.frila.core.rede.ReputacaoDto
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -268,4 +280,323 @@ class TelaTurnoDoContratanteTest {
         assertEquals(0, contar(TextosTurnoDoContratante.CONFIRMAR_PRESENCA))
         assertEquals(1, voltou)
     }
+
+    // ── A folha de motivos da casa (Vmfnk4gQ) ─────────────────────────────────────────────────────────────────────────
+
+    private fun estadoComFolha(motivo: MotivoDeCancelamentoDaCasa? = null, detalhes: String = "") = estado().let {
+        it.copy(
+            contexto = it.contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            cancelamentoDisponivel = true, agora = { Instant.EPOCH },
+            pedindoCancelamento = true, motivoDoCancelamento = motivo, detalhesDoCancelamento = detalhes,
+        )
+    }
+
+    private class Escolhas {
+        val motivos = mutableListOf<MotivoDeCancelamentoDaCasa>()
+        var confirmou = 0
+        var desistiu = 0
+    }
+
+    private fun montarFolha(estado: EstadoTurnoDoContratante): Escolhas {
+        val escolhas = Escolhas()
+        rule.setContent { FrilaTheme {
+            ConteudoTurnoDoContratante(estado, AcoesTurnoDoContratante(
+                aoEscolherMotivoDoCancelamento = { escolhas.motivos += it },
+                aoConfirmarCancelamento = { escolhas.confirmou++ },
+                aoDesistir = { escolhas.desistiu++ },
+            ))
+        } }
+        return escolhas
+    }
+
+    @Test
+    fun `a folha lista os motivos da casa e escolher um chama a acao com ele`() {
+        val escolhas = montarFolha(estadoComFolha())
+
+        MotivoDeCancelamentoDaCasa.entries.forEach { rule.onNodeWithText(it.texto).assertIsDisplayed() }
+        rule.onNodeWithText("Movimento menor que o esperado").performClick()
+
+        rule.runOnIdle { assertEquals(listOf(MotivoDeCancelamentoDaCasa.MOVIMENTO_MENOR), escolhas.motivos) }
+    }
+
+    @Test
+    fun `sem motivo escolhido o confirmar fica desabilitado, com motivo fica habilitado e confirma`() {
+        val sem = montarFolha(estadoComFolha())
+        rule.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+        rule.runOnIdle { assertEquals(0, sem.confirmou) }
+    }
+
+    @Test
+    fun `com um motivo o confirmar habilita e chama a acao`() {
+        val escolhas = montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.MOVIMENTO_MENOR))
+        rule.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
+        rule.runOnIdle { assertEquals(1, escolhas.confirmou) }
+    }
+
+    @Test
+    fun `Outro motivo pede o detalhe e fica travado sem ele`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO))
+
+        rule.onNodeWithText("Descreva o motivo (pelo menos 3 caracteres)").assertExists()
+        rule.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `Outro motivo com o detalhe habilita o confirmar`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO, detalhes = "Fechamos mais cedo"))
+        rule.onNodeWithText("Confirmar cancelamento").assertIsEnabled()
+    }
+
+    @Test
+    fun `os outros motivos tem o detalhe opcional`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.PROBLEMA_NO_LOCAL))
+        rule.onNodeWithText("Quer explicar melhor? (opcional)").assertExists()
+    }
+
+    @Test
+    fun `Voltar desiste da folha`() {
+        val escolhas = montarFolha(estadoComFolha())
+        rule.onNodeWithText("Voltar").performClick()
+        rule.runOnIdle { assertEquals(1, escolhas.desistiu) }
+    }
+
+    @Test
+    @Config(sdk = [35], qualifiers = "w360dp-h480dp")
+    fun `em janela pequena com Outro motivo escolhido, Confirmar cancelamento e Voltar ficam visiveis sem rolar`() {
+        montarFolha(estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO))
+
+        rule.onNodeWithText(TextosCancelarPosicao.CONFIRMAR).assertIsDisplayed()
+        rule.onNodeWithText(TextosCancelarPosicao.VOLTAR).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a folha recua o titulo abaixo da barra de status`() {
+        lateinit var view: View
+        rule.setContent {
+            view = LocalView.current
+            FrilaTheme {
+                ConteudoTurnoDoContratante(estadoComFolha(), AcoesTurnoDoContratante())
+            }
+        }
+
+        val recuoPx = 48
+        rule.runOnUiThread {
+            val insets = WindowInsetsCompat.Builder()
+                .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, recuoPx, 0, 0))
+                .build()
+            ViewCompat.dispatchApplyWindowInsets(view, insets)
+        }
+        rule.waitForIdle()
+
+        val topoTitulo = rule.onNodeWithText(TextosCancelarPosicao.TITULO).getUnclippedBoundsInRoot().top
+        val recuoDp = with(rule.density) { recuoPx.toDp() }
+        assertTrue("Esperado topo do título ($topoTitulo) >= recuo ($recuoDp)", topoTitulo >= recuoDp)
+    }
+
+    @Test
+    @Config(sdk = [35], qualifiers = "w360dp-h640dp")
+    fun `com teclado aberto, os botoes do rodape sobem e o campo de detalhe continua acima do rodape`() {
+        lateinit var view: View
+        rule.setContent {
+            view = LocalView.current
+            FrilaTheme {
+                ConteudoTurnoDoContratante(
+                    estadoComFolha(motivo = MotivoDeCancelamentoDaCasa.OUTRO)
+                        .copy(avisoDoCancelamento = "Erro de teste junto ao botão"),
+                    AcoesTurnoDoContratante(),
+                )
+            }
+        }
+
+        val tecladoPx = 240
+        rule.runOnUiThread {
+            val insets = WindowInsetsCompat.Builder()
+                .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, tecladoPx))
+                .build()
+            ViewCompat.dispatchApplyWindowInsets(view, insets)
+        }
+        rule.waitForIdle()
+
+        val raiz = rule.onRoot().getUnclippedBoundsInRoot()
+        val tecladoDp = with(rule.density) { tecladoPx.toDp() }
+        val voltar = rule.onNodeWithText(TextosCancelarPosicao.VOLTAR).assertIsDisplayed()
+        val confirmar = rule.onNodeWithText(TextosCancelarPosicao.CONFIRMAR).assertIsDisplayed()
+        rule.onNodeWithText("Erro de teste junto ao botão").assertIsDisplayed()
+        val detalhe = rule.onNodeWithText(TextosCancelarPosicao.DETALHES_OBRIGATORIOS)
+            .performScrollTo()
+            .assertIsDisplayed()
+
+        assertTrue(
+            "Voltar (${voltar.getUnclippedBoundsInRoot().bottom}) deveria subir acima do teclado (${raiz.bottom - tecladoDp})",
+            voltar.getUnclippedBoundsInRoot().bottom <= raiz.bottom - tecladoDp,
+        )
+        assertTrue(
+            "Campo do detalhe (${detalhe.getUnclippedBoundsInRoot().bottom}) deveria ficar acima do confirmar (${confirmar.getUnclippedBoundsInRoot().top})",
+            detalhe.getUnclippedBoundsInRoot().bottom <= confirmar.getUnclippedBoundsInRoot().top,
+        )
+    }
+
+    @Test
+    fun `de ponta a ponta com o ViewModel real - escolher o motivo na folha e confirmar manda o texto do motivo`() {
+        val enviados = mutableListOf<Pair<String, String>>()
+        val viewModel = AcompanhamentoContratanteViewModel(
+            contexto = estado().contexto.copy(posicaoId = "posicao", estadoDaPosicao = "confirmada"),
+            confirmar = { error("não confirma") },
+            escopo = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+            cancelar = { posicao, motivo ->
+                enviados += posicao to motivo
+                br.com.frila.core.dominio.modelo.ResultadoCancelamento("posicao", true, false)
+            },
+            relogio = { Instant.EPOCH },
+        )
+        rule.setContent { FrilaTheme { TelaTurnoDoContratante(viewModel = viewModel, aoVoltar = {}) } }
+
+        rule.onNodeWithText("Cancelar posição").performClick()
+        rule.onNodeWithText("Confirmar cancelamento").assertIsNotEnabled()
+        rule.onNodeWithText("Movimento menor que o esperado").performClick()
+        rule.onNodeWithText("Confirmar cancelamento").assertIsEnabled().performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("posicao" to "Movimento menor que o esperado"), enviados)
+    }
+
+    // ── Turno já avaliado pela casa (QBAAgKth) ────────────────────────────────────────────────────────────────────────
+
+    private fun montarAvaliacao(estado: EstadoTurnoDoContratante, avaliou: MutableList<String> = mutableListOf()): MutableList<String> {
+        rule.setContent {
+            FrilaTheme {
+                ConteudoTurnoDoContratante(
+                    estado = estado,
+                    acoes = AcoesTurnoDoContratante(aoConfirmarPresenca = {}, aoVoltar = {}, aoAvaliarTurno = { avaliou += it }),
+                )
+            }
+        }
+        return avaliou
+    }
+
+    @Test
+    fun `presenca verificada sem avaliacao oferece Avaliar turno e nao diz que avaliou`() {
+        val avaliou = montarAvaliacao(estado(verificacao = "verificado", checkinTipo = "manual"))
+
+        rule.onNodeWithText("Avaliar turno").performClick()
+        assertEquals(listOf("t1"), avaliou)
+        assertEquals(0, contar("Turno avaliado"))
+        assertEquals(0, contar("Ver avaliação"))
+    }
+
+    @Test
+    fun `turno ja avaliado mostra a resposta e Ver avaliacao no lugar de Avaliar turno`() {
+        val avaliou = montarAvaliacao(estado(verificacao = "verificado", checkinTipo = "manual").copy(avaliacaoDoServidor = true))
+
+        rule.onNodeWithText("Turno avaliado · Resposta: Sim").assertIsDisplayed()
+        assertEquals("o convite some", 0, contar("Avaliar turno"))
+        assertEquals(0, contar("Como foi sua experiência no turno?"))
+        rule.onNodeWithText("Ver avaliação").performClick()
+        assertEquals("Ver avaliação abre a mesma tela de avaliação", listOf("t1"), avaliou)
+    }
+
+    @Test
+    fun `a resposta Nao e a avaliacao so na fila sem resposta do servidor tambem aparecem`() {
+        montarAvaliacao(estado(verificacao = "verificado", checkinTipo = "manual").copy(avaliacaoNaFila = false))
+        rule.onNodeWithText("Turno avaliado · Resposta: Não").assertIsDisplayed()
+    }
+
+    @Test
+    fun `avaliado sem presenca verificada nao mostra o cartao`() {
+        montarAvaliacao(estado(verificacao = "pendente", checkinTipo = "manual").copy(avaliacaoDoServidor = true))
+        assertEquals(0, contar("Ver avaliação"))
+        assertEquals(0, contar("Avaliar turno"))
+    }
+
+    // ── O efeito do cancelamento (Vmfnk4gQ, fatia 2) ──────────────────────────────────────────────────────────────────
+
+    private fun efeitoNaFolha(agoraDoTurno: Instant, inicio: Instant?): String {
+        val base = estadoComFolha()
+        montarFolha(base.copy(contexto = base.contexto.copy(inicio = inicio), agora = { agoraDoTurno }))
+        return rule.onNodeWithTag("efeito-do-cancelamento").fetchSemanticsNode().config
+            .let { androidx.compose.ui.semantics.SemanticsProperties.Text.let { chave -> it[chave].joinToString("") { t -> t.text } } }
+    }
+
+    @Test
+    fun `a folha antes do inicio diz que a posicao volta a ser oferecida`() {
+        val agora = Instant.parse("2026-11-12T16:00:00Z")
+        val texto = efeitoNaFolha(agora, inicio = Instant.parse("2026-11-12T21:00:00Z"))
+        assertEquals(
+            "Faltam 5 h para o início. A posição volta a ser oferecida a outros profissionais, e quem estava confirmado será avisado. " +
+                "Não conta como falta para o profissional.",
+            texto,
+        )
+    }
+
+    @Test
+    fun `a folha depois do inicio diz que nao reabre e o turno fica descoberto`() {
+        val agora = Instant.parse("2026-11-12T22:00:00Z")
+        val texto = efeitoNaFolha(agora, inicio = Instant.parse("2026-11-12T21:00:00Z"))
+        assertEquals(
+            "O turno já começou. A posição não será reaberta: o turno fica descoberto, e quem estava confirmado será avisado. " +
+                "Não conta como falta para o profissional.",
+            texto,
+        )
+    }
+
+    // ── A avaliação só libera depois do fim previsto (rWpiTL8g) ───────────────────────────────────────────────────────
+
+    /** 23:30 em UTC são 20:30 em São Paulo: a hora do aviso tem de sair no fuso do Frila. */
+    private val fimDoTurno = Instant.parse("2026-11-12T23:30:00Z")
+
+    private fun verificadoComRelogio(agora: () -> Instant) =
+        estado(verificacao = "verificado", checkinTipo = "manual", fim = fimDoTurno.toString()).copy(agora = agora)
+
+    @Test
+    fun `antes do fim mostra quando a avaliacao libera, na hora de Sao Paulo, e nao oferece Avaliar turno`() {
+        val avaliou = montarAvaliacao(verificadoComRelogio { fimDoTurno.minusSeconds(3_600) })
+
+        rule.onNodeWithText("A avaliação libera às 20:30").assertIsDisplayed()
+        assertEquals(0, contar("Avaliar turno"))
+        assertEquals(0, contar("Como foi sua experiência no turno?"))
+        assertEquals(emptyList<String>(), avaliou)
+    }
+
+    private fun verificarQueOfereceAvaliar(agora: Instant) {
+        val avaliou = montarAvaliacao(verificadoComRelogio { agora })
+        rule.onNodeWithText("Avaliar turno").performClick()
+        assertEquals(listOf("t1"), avaliou)
+        assertEquals(0, rule.onAllNodesWithTag("aviso-avaliacao-libera").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `no fim previsto ja oferece Avaliar turno, sem o aviso`() = verificarQueOfereceAvaliar(fimDoTurno)
+
+    @Test
+    fun `depois do fim oferece Avaliar turno, sem o aviso`() = verificarQueOfereceAvaliar(fimDoTurno.plusSeconds(60))
+
+    @Test
+    fun `com a tela aberta, o aviso da lugar ao botao quando o fim passa`() {
+        rule.mainClock.autoAdvance = false
+        var agora = fimDoTurno.minusSeconds(600)
+        montarAvaliacao(verificadoComRelogio { agora })
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithText("A avaliação libera às 20:30").assertExists()
+        assertEquals(0, contar("Avaliar turno"))
+
+        agora = fimDoTurno.plusSeconds(1)
+        rule.mainClock.advanceTimeBy(601_000)
+        rule.mainClock.advanceTimeByFrame()
+
+        rule.onNodeWithText("Avaliar turno").assertExists()
+        assertEquals(0, rule.onAllNodesWithTag("aviso-avaliacao-libera").fetchSemanticsNodes().size)
+    }
+
+    private fun verificarCancelada(agora: Instant) {
+        val base = verificadoComRelogio { agora }
+        montarAvaliacao(base.copy(contexto = base.contexto.copy(estadoDaPosicao = "cancelada")))
+        assertEquals(0, contar("Avaliar turno"))
+        assertEquals(0, rule.onAllNodesWithTag("aviso-avaliacao-libera").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `posicao cancelada antes do fim nao mostra o aviso`() = verificarCancelada(fimDoTurno.minusSeconds(3_600))
+
+    @Test
+    fun `posicao cancelada depois do fim nao oferece a avaliacao`() = verificarCancelada(fimDoTurno.plusSeconds(60))
 }

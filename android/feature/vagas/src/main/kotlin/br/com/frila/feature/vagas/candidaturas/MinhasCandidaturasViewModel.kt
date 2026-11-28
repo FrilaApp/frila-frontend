@@ -91,6 +91,28 @@ class MinhasCandidaturasViewModel(
     /** Puxar para atualizar, e a releitura depois de retirar uma candidatura: mantém a lista na tela. */
     fun atualizar(): Job = iniciarLeitura()
 
+    /**
+     * Releitura automática (volta do segundo plano, push): troca a lista sem indicador, e uma falha deixa a lista como está, sem
+     * marcá-la como desatualizada (paridade com a releitura em silêncio do iOS). Sem efeito com outra leitura em voo.
+     */
+    fun atualizarEmSilencio(): Job {
+        leitura?.takeIf { it.isActive }?.let { return it }
+        // Só com a lista na tela (como o iOS): em Carregando disputaria a carga e em Erro tiraria a tela do erro sem ser pedido. Com
+        // outra leitura em voo a de cima devolve a própria, e por isso o estado não muda entre o começo e o fim desta.
+        if (_estado.value.lista !is ListaDeCandidaturas.Carregadas && _estado.value.lista !is ListaDeCandidaturas.Vazia) {
+            return escopoDeTrabalho.launch { }
+        }
+        return escopoDeTrabalho.launch {
+            try {
+                aplicar(buscar())
+            } catch (erro: CancellationException) {
+                throw erro
+            } catch (_: Exception) {
+                // Segue com o que já está na tela.
+            }
+        }.also { leitura = it }
+    }
+
     private fun iniciarLeitura(): Job {
         leitura?.takeIf { it.isActive }?.let { return it }
         _estado.update {
