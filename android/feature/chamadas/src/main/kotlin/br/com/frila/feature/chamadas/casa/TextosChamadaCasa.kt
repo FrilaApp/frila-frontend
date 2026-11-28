@@ -153,6 +153,9 @@ object TextosChamadaCasa {
     const val BUSCA_LIMITE_DE_BUSCAS = "Você fez muitas buscas em pouco tempo. Aguarde um pouco e tente de novo."
     const val BUSCA_INDISPONIVEL = "A busca de profissionais está indisponível no momento."
     const val BUSCA_ERRO = "Não foi possível buscar agora. Verifique sua conexão e tente novamente."
+    /** Iguais a `TextosBuscaDeProfissionais.semPermissao` e `contaSuspensa` do iOS. */
+    const val BUSCA_SEM_PERMISSAO = "Sua conta não tem permissão para buscar profissionais."
+    const val BUSCA_CONTA_SUSPENSA = "Sua conta está suspensa e não pode buscar profissionais agora."
     const val BUSCA_ERRO_AO_CARREGAR_MAIS = "Não foi possível carregar mais profissionais. Tente novamente."
     const val BUSCA_LIMITE_DE_SELECAO = "Você pode chamar até 3 profissionais de uma vez."
     const val BUSCA_HORARIO_INVALIDO = "O término precisa ser depois do início."
