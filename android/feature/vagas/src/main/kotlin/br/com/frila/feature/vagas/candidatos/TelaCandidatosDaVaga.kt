@@ -319,6 +319,7 @@ private fun CartaoDoCandidato(
                 }
                 FrilaLinhaDeDado(icone = Icons.Filled.Star, valor = textoDaReputacao(candidato))
             }
+            PerfilRicoDoCandidato(perfil = perfil, candidaturaId = candidato.candidaturaId)
             if (aoVerPerfil != null) {
                 LinkFrila(
                     texto = TextosCandidatosDaVaga.VER_PERFIL,
