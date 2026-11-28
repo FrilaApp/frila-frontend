@@ -23,6 +23,8 @@
 	<string>$(FRILA_APP_STORE_URL)</string>
 	<key>FRILA_ENVIRONMENT</key>
 	<string>$(FRILA_ENVIRONMENT)</string>
+	<key>FRILA_LOGIN_SOCIAL_RELEASE</key>
+	<string>$(FRILA_LOGIN_SOCIAL_RELEASE)</string>
 	<key>FRILA_SUPABASE_PUBLISHABLE_KEY</key>
 	<string>$(FRILA_SUPABASE_PUBLISHABLE_KEY)</string>
 	<key>FRILA_SUPABASE_URL</key>

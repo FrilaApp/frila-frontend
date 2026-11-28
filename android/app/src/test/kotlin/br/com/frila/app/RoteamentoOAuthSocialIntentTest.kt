@@ -254,4 +254,9 @@ class RoteamentoOAuthSocialIntentTest {
         assertTrue(vm.estado.value.autenticado)
         assertEquals("applink@frila.test", armazenamentoSessao.obterSessao()?.email)
     }
+
+    @Test
+    fun `chave BuildConfig LOGIN_SOCIAL_RELEASE_ATIVO nasce desligada por padrao`() {
+        assertFalse(BuildConfig.LOGIN_SOCIAL_RELEASE_ATIVO)
+    }
 }

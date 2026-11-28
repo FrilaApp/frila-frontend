@@ -559,6 +559,20 @@ struct LoginSocialTests {
         #expect(urlRetornada.absoluteString == "frila-auth://auth/callback?code=novo-ok-1234&tx=abc")
     }
 
+    @Test("Chave de Release FRILA_LOGIN_SOCIAL_RELEASE nasce desligada por padrão e exige valor explícito")
+    func chaveReleaseLoginSocialDesligadaPorPadrao() {
+        #expect(!SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: [:]))
+        #expect(!SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: ["FRILA_LOGIN_SOCIAL_RELEASE": "NO"]))
+        #expect(!SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: ["FRILA_LOGIN_SOCIAL_RELEASE": "false"]))
+        #expect(!SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: ["FRILA_LOGIN_SOCIAL_RELEASE": "$(FRILA_LOGIN_SOCIAL_RELEASE)"]))
+        #expect(SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: ["FRILA_LOGIN_SOCIAL_RELEASE": "YES"]))
+        #expect(SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: ["FRILA_LOGIN_SOCIAL_RELEASE": "true"]))
+        #expect(SupabaseApiCliente.suportaLoginSocialEmRelease(infoDictionary: ["FRILA_LOGIN_SOCIAL_RELEASE": "1"]))
+
+        #expect(!SupabaseApiCliente.suportaLoginSocial(infoDictionary: [:], environment: [:]))
+        #expect(SupabaseApiCliente.suportaLoginSocial(infoDictionary: [:], environment: ["FRILA_LOGIN_SOCIAL_DEV": "1"]))
+    }
+
     private static func fakeJwt(email: String) -> String {
         let header = Data(#"{"alg":"HS256","typ":"JWT"}"#.utf8).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
