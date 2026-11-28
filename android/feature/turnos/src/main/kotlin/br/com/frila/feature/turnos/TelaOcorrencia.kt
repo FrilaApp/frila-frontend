@@ -49,6 +49,8 @@ fun TelaOcorrencia(
     emailDeSuporte: String = "",
     /** Abre o e-mail já escrito; devolve `false` se nenhum app de e-mail abriu (a tela avisa e mantém o relato). */
     aoAbrirEmailDeSuporte: (PedidoDeEmailDeSuporte) -> Boolean = { true },
+    /** Abre o discador com o número (190 ou 180), no "Risco de segurança"; sem discador, quem chama avisa. */
+    aoLigar: (String) -> Unit = {},
     aoVoltar: () -> Unit = {},
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -70,6 +72,7 @@ fun TelaOcorrencia(
             aoSelecionarMotivo = viewModel::selecionarMotivo,
             aoAtualizarRelato = viewModel::atualizarRelato,
             aoEnviar = { viewModel.enviar() },
+            aoLigar = aoLigar,
             aoVoltar = aoVoltar,
             modifier = modifier,
         )
@@ -82,6 +85,7 @@ private fun FormularioDeOcorrencia(
     aoSelecionarMotivo: (MotivoOcorrencia) -> Unit,
     aoAtualizarRelato: (String) -> Unit,
     aoEnviar: () -> Unit,
+    aoLigar: (String) -> Unit,
     aoVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -126,6 +130,8 @@ private fun FormularioDeOcorrencia(
                     }
                 }
             }
+
+            if (estado.motivo == MotivoOcorrencia.RISCO_SEGURANCA) Emergencia(aoLigar)
 
             CampoDeTexto(
                 valor = estado.relato,
@@ -191,5 +197,15 @@ private fun ConfirmacaoDeOcorrencia(
                 }
             }
         }
+    }
+}
+
+/** Risco de segurança: o aviso e os dois números de emergência, como na Denúncia e na folha de suporte do iOS. */
+@Composable
+private fun Emergencia(aoLigar: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(FrilaEspacamento.item)) {
+        AvisoFrila(tom = TomAviso.ALERTA, mensagem = TextosOcorrencia.EMERGENCIA)
+        BotaoSecundario(texto = TextosOcorrencia.LIGAR_190, aoClicar = { aoLigar("190") }, modifier = Modifier.fillMaxWidth())
+        BotaoSecundario(texto = TextosOcorrencia.LIGAR_180, aoClicar = { aoLigar("180") }, modifier = Modifier.fillMaxWidth())
     }
 }

@@ -2,6 +2,10 @@ package br.com.frila.feature.turnos
 
 /** Textos do e-mail de suporte do relato de ocorrência (paridade com `FolhaSuporteTurno.swift`, que também não anexa foto). */
 object TextosOcorrencia {
+    /** Iguais a `TextosDoSuporte.avisoSeguranca`, `policia` e `mulher` do iOS (e aos da Denúncia). */
+    const val EMERGENCIA = "Em risco imediato, ligue 190 (Polícia Militar) ou 180 (Central de Atendimento à Mulher)"
+    const val LIGAR_190 = "Ligar 190 — Polícia Militar"
+    const val LIGAR_180 = "Ligar 180 — Central de Atendimento à Mulher"
     const val ROTULO_RELATO = "Relato (vai só no e-mail de suporte)"
     const val CONFIRMACAO = "Agora envie seu relato por e-mail para que a Equipe Frila possa ajudar. O e-mail abre com ele já escrito."
     const val ABRIR_EMAIL = "Abrir e-mail de suporte"
