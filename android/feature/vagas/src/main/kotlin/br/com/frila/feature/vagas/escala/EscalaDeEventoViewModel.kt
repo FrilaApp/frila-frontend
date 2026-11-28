@@ -105,6 +105,10 @@ data class EstadoEscalaDeEvento(
     /** RN24: a seleção só existe com o início a mais de 24 horas. */
     fun selecaoDisponivel(item: ItemDaEscala): Boolean = item.inicio.isAfter(agora.plus(ANTECEDENCIA_DA_SELECAO))
 
+    /** Até quando a casa escolhe: 24 h antes do início; `null` fora do modo seleção (iOS `prazoDeEscolha`, como a publicação de uma vaga só). */
+    fun prazoDeEscolha(item: ItemDaEscala): Instant? =
+        if (item.modo == ModoDaVaga.SELECAO && selecaoDisponivel(item)) item.inicio.minus(ANTECEDENCIA_DA_SELECAO) else null
+
     companion object {
         const val MAXIMO_DE_VAGAS = 10
         const val POSICOES_MIN = 1
