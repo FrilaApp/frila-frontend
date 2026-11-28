@@ -2,6 +2,7 @@ package br.com.frila.core.designsystem.componentes
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsMatcher
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import br.com.frila.core.designsystem.tema.FrilaTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,6 +69,29 @@ class EstadoCarregandoLeitorDeTelaTest {
 
         compose.onAllNodesWithContentDescription(carregando).assertCountEquals(0)
         progressos().assertCountEquals(0)
+    }
+
+    // O leitor de tela fala o `Text` E o `contentDescription` de cada nó da árvore mesclada. Contar só os nós com o texto da mensagem não pega um contêiner que
+    // ponha a mensagem no próprio `contentDescription` sem limpar os filhos: a mensagem seria falada duas vezes (por isso se somam as duas fontes, em todos os nós).
+    private fun quantasVezesALeitorFala(mensagem: String): Int =
+        compose.onAllNodes(SemanticsMatcher("qualquer nó") { true }).fetchSemanticsNodes().sumOf { no ->
+            val texto = no.config.getOrNull(SemanticsProperties.Text).orEmpty().count { it.text == mensagem }
+            val descricao = no.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty().count { it == mensagem }
+            texto + descricao
+        }
+
+    @Test
+    fun `com mensagem, a leitora fala a mensagem exatamente uma vez, somando texto e descricao de todos os nos`() {
+        compose.setContent { FrilaTheme { EstadoCarregando(mensagem = "Carregando as vagas\u2026") } }
+
+        assertEquals(1, quantasVezesALeitorFala("Carregando as vagas\u2026"))
+    }
+
+    @Test
+    fun `sem mensagem, o rotulo e falado exatamente uma vez`() {
+        compose.setContent { FrilaTheme { EstadoCarregando() } }
+
+        assertEquals(1, quantasVezesALeitorFala(carregando))
     }
 
     @Test
