@@ -80,6 +80,7 @@ public struct TelaDefinirSenha: View {
     @State private var viewModel: DefinirSenhaViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduzirMovimento
 
     private let permitirPular: Bool
     private let aoConcluir: (() -> Void)?
@@ -253,7 +254,7 @@ public struct TelaDefinirSenha: View {
         }
         .onChange(of: campoFocado) { _, novoCampo in
             guard let novoCampo else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(FrilaMovimento.animacao(.easeInOut(duration: 0.2), reduzir: reduzirMovimento)) {
                 scrollProxy.scrollTo(novoCampo, anchor: .center)
             }
         }
