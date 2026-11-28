@@ -205,6 +205,10 @@ class AvaliacaoViewModel(
         CodigoErroAPI.AVALIACAO_INDISPONIVEL -> "Este turno ainda não pode ser avaliado."
         CodigoErroAPI.SEM_PERMISSAO -> "Você não tem permissão para avaliar este turno."
         CodigoErroAPI.SEM_REDE -> "Sem conexão. Verifique sua internet e tente de novo."
+        // J3ZnzMGt: 401 e 429 com o texto do iOS (MensagemDoErroAPI.texto), em vez do "Tente de novo" que não resolve nenhum dos dois.
+        // O mesmo texto de sessão expirada está no #1251 (TextosCheckoutECodigo.SESSAO_EXPIRADA), ainda não mesclado.
+        CodigoErroAPI.NAO_AUTENTICADO -> "Sua sessão expirou. Entre novamente para continuar."
+        CodigoErroAPI.LIMITE_EXCEDIDO -> "Você fez muitas tentativas. Aguarde antes de tentar novamente."
         else -> "Não foi possível registrar sua avaliação. Tente de novo."
     }
 }
