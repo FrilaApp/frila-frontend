@@ -63,17 +63,20 @@ class FrilaFirebaseMessagingService : FirebaseMessagingService(), KoinComponent 
             .setPriority(prioridadeParaCanal(notificacao.canal))
             .setAutoCancel(true)
 
-        ResolvedorDeDeepLinkPush.resolver(notificacao)?.let { deepLink ->
-            // Explícito e para a entrada não exportada: só este PendingIntent põe um aviso na fila.
-            val intent = Intent(this, EntradaDoAvisoActivity::class.java).setData(Uri.parse(deepLink))
-            val pendingIntent = PendingIntent.getActivity(
+        // O toque sempre abre o app (item 251). Com link (`frila://aviso?...`), a entrada do aviso o põe na fila; sem link (aviso neutralizado,
+        // RN15, ou sem tipo), a intenção não leva dado nenhum: a `EntradaDoAvisoActivity` abre o app como o ícone abre, e nada do aviso original vaza.
+        val deepLink = ResolvedorDeDeepLinkPush.resolver(notificacao)
+        // Explícito e para a entrada não exportada: só este PendingIntent põe um aviso na fila.
+        val intent = Intent(this, EntradaDoAvisoActivity::class.java)
+        deepLink?.let { intent.data = Uri.parse(it) }
+        builder.setContentIntent(
+            PendingIntent.getActivity(
                 this,
-                deepLink.hashCode(),
+                deepLink.orEmpty().hashCode(),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            builder.setContentIntent(pendingIntent)
-        }
+            ),
+        )
 
         NotificationManagerCompat.from(this).notify(notificacao.hashCode(), builder.build())
     }
