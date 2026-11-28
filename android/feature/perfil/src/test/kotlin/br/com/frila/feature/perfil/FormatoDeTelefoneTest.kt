@@ -43,4 +43,15 @@ class FormatoDeTelefoneTest {
     fun `vazio continua vazio`() {
         assertEquals("", FormatoDeTelefone.paraExibir(""))
     }
+
+    @Test
+    fun `os mesmos digitos sem o mais continuam como vieram, so o mais cinquenta e cinco ganha a mascara`() {
+        assertEquals("5561988887777", FormatoDeTelefone.paraExibir("5561988887777"))
+    }
+
+    @Test
+    fun `mais cinquenta e cinco com dez ou onze digitos nao e mascarado como se o 55 fosse o DDD`() {
+        assertEquals("+5561988887", FormatoDeTelefone.paraExibir("+5561988887"))
+        assertEquals("+55619888877", FormatoDeTelefone.paraExibir("+55619888877"))
+    }
 }
